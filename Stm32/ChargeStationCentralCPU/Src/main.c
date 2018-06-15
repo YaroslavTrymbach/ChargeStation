@@ -56,6 +56,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "display.h"
+#include "RFID.h"
 
 /* USER CODE END Includes */
 
@@ -100,8 +101,17 @@ void initDisplay(){
 	Display_init(&hi2c2);
 	
 	Display_PrintStrCenter(0, "Starting\0");
-	Display_PrintStrCenter(1, "My life is like a red red rose\0");
+	Display_PrintStrCenter(1, "Hardware checking\0");
 }
+
+void checkHardware(){
+	
+	//Init RFID
+	if(!RFID_init(&hspi4)){
+		Display_PrintStrLeft(3, "ERROR: NO RFID\0");
+	}
+}
+
 
 /* USER CODE END 0 */
 
@@ -434,6 +444,7 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN 5 */
 	initDisplay();
+	checkHardware();
   /* Infinite loop */
   for(;;)
   {

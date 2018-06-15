@@ -15,31 +15,51 @@ bool Display_clear(void){
 	return true;
 }
 
-bool Display_PrintStrCenter(uint8_t raw, char *data){
+bool Display_PrintStr(uint8_t raw, char *data, uint8_t align){
 	int len, pos;
 	char printStr[DISPLAY_SIZE_X];
 	
 	if(raw >= DISPLAY_SIZE_Y)
-		return false;
-	
-	
+		return false;	
 	
 	len = strlen(data);
-	if(len > DISPLAY_SIZE_X){
-		pos = (len - DISPLAY_SIZE_X) >> 1;
-		memcpy(printStr, data + pos, DISPLAY_SIZE_X); 
+	
+	if(align == DISPLAY_ALIGN_LEFT){
+		if(len >= DISPLAY_SIZE_X){
+			memcpy(printStr, data, DISPLAY_SIZE_X); 
+		}
+		else{
+			memset(printStr, ' ', DISPLAY_SIZE_X);
+			memcpy(printStr, data, len);
+		}
 	}
-	else if(len < DISPLAY_SIZE_X){
-		pos = (DISPLAY_SIZE_X - len) >> 1;
-		memset(printStr, ' ', DISPLAY_SIZE_X);
-		memcpy(printStr + pos, data, len); 
+	else if(align == DISPLAY_ALIGN_RIGHT){
 	}
 	else{
-		memcpy(printStr, data, DISPLAY_SIZE_X); 
-	}	
+		if(len > DISPLAY_SIZE_X){
+			pos = (len - DISPLAY_SIZE_X) >> 1;
+			memcpy(printStr, data + pos, DISPLAY_SIZE_X); 
+		}
+		else if(len < DISPLAY_SIZE_X){
+			pos = (DISPLAY_SIZE_X - len) >> 1;
+			memset(printStr, ' ', DISPLAY_SIZE_X);
+			memcpy(printStr + pos, data, len); 
+		}
+		else{
+			memcpy(printStr, data, DISPLAY_SIZE_X); 
+		}	
+	}
 	
 	lcdSetCursorPosition(0, raw);
 	lcdPrintStr((uint8_t*)printStr, DISPLAY_SIZE_X);
 	
 	return true;
+}
+
+bool Display_PrintStrCenter(uint8_t raw, char *data){
+	return Display_PrintStr(raw, data, DISPLAY_ALIGN_CENTER);
+}
+
+bool Display_PrintStrLeft(uint8_t raw, char *data){
+	return Display_PrintStr(raw, data, DISPLAY_ALIGN_LEFT);
 }
