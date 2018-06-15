@@ -55,6 +55,8 @@
 
 /* USER CODE BEGIN Includes */
 
+#include "display.h"
+
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -94,6 +96,13 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN 0 */
 
+void initDisplay(){
+	Display_init(&hi2c2);
+	
+	Display_PrintStrCenter(0, "Starting\0");
+	Display_PrintStrCenter(1, "My life is like a red red rose\0");
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -132,6 +141,8 @@ int main(void)
   MX_USART2_Init();
   MX_RNG_Init();
   /* USER CODE BEGIN 2 */
+	
+	printf("Start ChargeStationCentralCPU\n");
 
   /* USER CODE END 2 */
 
@@ -408,6 +419,8 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+
+
 /* USER CODE END 4 */
 
 /* StartDefaultTask function */
@@ -420,6 +433,7 @@ void StartDefaultTask(void const * argument)
   MX_LWIP_Init();
 
   /* USER CODE BEGIN 5 */
+	initDisplay();
   /* Infinite loop */
   for(;;)
   {
