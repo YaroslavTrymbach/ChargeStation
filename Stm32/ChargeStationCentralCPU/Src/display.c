@@ -2,9 +2,18 @@
 #include "lcd_hd44780_i2c.h"
 #include <string.h>
 
+#define DISPLAY_16x2
+
 #define DISPLAY_I2C_ADDRESS 0x27
+
+#ifdef DISPLAY_16x2
+#define DISPLAY_SIZE_Y      2
+#define DISPLAY_SIZE_X      16
+#else
 #define DISPLAY_SIZE_Y      4
 #define DISPLAY_SIZE_X      20
+#endif
+
 
 bool Display_init(I2C_HandleTypeDef *hi2c){
 	lcdInit(hi2c, DISPLAY_I2C_ADDRESS, DISPLAY_SIZE_Y , DISPLAY_SIZE_X);

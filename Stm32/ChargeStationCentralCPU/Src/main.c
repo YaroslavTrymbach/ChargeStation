@@ -57,6 +57,7 @@
 
 #include "display.h"
 #include "RFID.h"
+#include "rc522.h"
 
 /* USER CODE END Includes */
 
@@ -73,6 +74,8 @@ USART_HandleTypeDef husart2;
 UART_HandleTypeDef huart3;
 
 osThreadId defaultTaskHandle;
+
+uint8_t		str[MFRC522_MAX_LEN];
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -107,8 +110,9 @@ void initDisplay(){
 void checkHardware(){
 	
 	//Init RFID
-	if(!RFID_init(&hspi4)){
-		Display_PrintStrLeft(3, "ERROR: NO RFID\0");
+	RFID_init(&hspi4);
+	if(!(RFID_check_connection())){
+		Display_PrintStrLeft(1, "ERROR: NO RFID\0");
 	}
 }
 
@@ -443,11 +447,17 @@ void StartDefaultTask(void const * argument)
   MX_LWIP_Init();
 
   /* USER CODE BEGIN 5 */
-	initDisplay();
+	//initDisplay();
 	checkHardware();
+	
+	//RFID_start();
   /* Infinite loop */
   for(;;)
   {
+		if(MFRC522_Check(str) == MI_OK){
+			printf("Found card 0x%.2X%.2X%.2X%.2X\n", str[0], str[1], str[2], str[3]);
+			HAL_Delay(100);
+		}
     osDelay(1);
   }
   /* USER CODE END 5 */ 

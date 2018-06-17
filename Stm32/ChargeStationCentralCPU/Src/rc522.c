@@ -25,8 +25,12 @@
 // RST				3.3V				Reset pin (3.3V)
 // VCC				3.3V				3.3V power
 
+//#include "stm32f3xx_hal.h"
 #include "stm32f4xx_hal.h"
 #include "rc522.h"
+#include <stdio.h>
+
+#define CHIP_TYPE_VALUE 9
 
 #define cs_reset() 					HAL_GPIO_WritePin(chipSelectPort, chipSelectPin, GPIO_PIN_RESET)
 #define cs_set() 						HAL_GPIO_WritePin(chipSelectPort, chipSelectPin, GPIO_PIN_SET)
@@ -41,30 +45,32 @@ uint16_t chipSelectPin;
 
 // RC522
 
-uint8_t SPI1SendByte(uint8_t data) {
-	uint8_t writeCommand[1];
-	uint8_t readValue[1];
-	
-	writeCommand[0] = data;
-	HAL_SPI_TransmitReceive(hspi, writeCommand, readValue, 1, 10);
-	return readValue[0];
+bool SPI_SendByte(uint8_t inData) {
+	return (HAL_SPI_Transmit(hspi, &inData, 1, 10) == HAL_OK);
+}
+
+bool SPI_SendByteAndGet(uint8_t inData, uint8_t *outData) {
+	return (HAL_SPI_TransmitReceive(hspi, &inData, outData, 1, 10) == HAL_OK);
 }
 
 void SPI1_WriteReg(uint8_t address, uint8_t value) {
-	cs_reset();
-	SPI1SendByte(address);
-	SPI1SendByte(value);
-	cs_set();
+	if(hspi->Init.NSS == SPI_NSS_SOFT)
+		cs_reset();
+	SPI_SendByte(address);
+	SPI_SendByte(value);
+	if(hspi->Init.NSS == SPI_NSS_SOFT)
+		cs_set();
 }
 
-uint8_t SPI1_ReadReg(uint8_t address) {
-	uint8_t	val;
-
-	cs_reset();
-	SPI1SendByte(address);
-	val = SPI1SendByte(0x00);
-	cs_set();
-	return val;
+bool SPI_ReadReg(uint8_t address, uint8_t *value) {
+	bool res = false;
+	if(hspi->Init.NSS == SPI_NSS_SOFT)
+		cs_reset();
+	SPI_SendByte(address);
+	res = SPI_SendByteAndGet(0x00, value);
+	if(hspi->Init.NSS == SPI_NSS_SOFT)
+		cs_set();
+	return res;
 }
 
 void MFRC522_WriteRegister(uint8_t addr, uint8_t val) {
@@ -73,11 +79,29 @@ void MFRC522_WriteRegister(uint8_t addr, uint8_t val) {
 }
 
 uint8_t MFRC522_ReadRegister(uint8_t addr) {
-	uint8_t val;
+	uint8_t value;
 
 	addr = ((addr << 1) & 0x7E) | 0x80;
-	val = SPI1_ReadReg(addr);
-	return val;	
+	SPI_ReadReg(addr, &value);
+	return value;	
+}
+
+uint8_t MFRC522_CheckModule(void){
+	// Check if MFRC522 Module is present on I2C bus
+	uint8_t value = 0xFF;
+	if(!SPI_ReadReg(MFRC522_REG_VERSION, &value))
+		return MI_BUS_ERROR;
+	
+	if(value == 0xFF)
+		return MI_NO_CONNECTION;
+
+	// According to datasheet value of this register byte must be 0x91 or 0x92
+  // But I got 0x1B 	
+	/*if((value >> 4) != CHIP_TYPE_VALUE){
+		return MI_INVALID_CHIP_TYPE_ID;
+	}*/
+	
+	return MI_OK;	
 }
 
 uint8_t MFRC522_Check(uint8_t* id) {
@@ -98,11 +122,15 @@ uint8_t MFRC522_Compare(uint8_t* CardID, uint8_t* CompareID) {
 }
 
 void MFRC522_SetBitMask(uint8_t reg, uint8_t mask) {
-	MFRC522_WriteRegister(reg, MFRC522_ReadRegister(reg) | mask);
+	uint8_t value;
+	value = MFRC522_ReadRegister(reg);
+	MFRC522_WriteRegister(reg, value | mask);
 }
 
 void MFRC522_ClearBitMask(uint8_t reg, uint8_t mask){
-	MFRC522_WriteRegister(reg, MFRC522_ReadRegister(reg) & (~mask));
+	uint8_t value;
+	value = MFRC522_ReadRegister(reg);
+	MFRC522_WriteRegister(reg, value & (~mask));
 }
 
 uint8_t MFRC522_Request(uint8_t reqMode, uint8_t* TagType) {

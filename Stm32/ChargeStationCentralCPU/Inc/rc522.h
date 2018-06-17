@@ -10,6 +10,9 @@
 #define MI_OK													0
 #define MI_NOTAGERR										1
 #define MI_ERR												2
+#define MI_BUS_ERROR    							3
+#define MI_NO_CONNECTION 							4
+#define MI_INVALID_CHIP_TYPE_ID	  		5
 
 // MFRC522 Commands
 #define PCD_IDLE											0x00		// NO action; Cancel the current command
@@ -135,3 +138,4 @@ void MFRC522_Reset(void);
 void MFRC522_AntennaOn(void);
 void MFRC522_AntennaOff(void);
 void MFRC522_Halt(void);
+uint8_t MFRC522_CheckModule(void);
