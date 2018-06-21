@@ -1,0 +1,15 @@
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+chargestationcentralcpu\croutine.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stddef.h
+chargestationcentralcpu\croutine.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stdint.h
+chargestationcentralcpu\croutine.o: ../Inc/FreeRTOSConfig.h
+chargestationcentralcpu\croutine.o: ../Inc/main.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/croutine.h
+chargestationcentralcpu\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

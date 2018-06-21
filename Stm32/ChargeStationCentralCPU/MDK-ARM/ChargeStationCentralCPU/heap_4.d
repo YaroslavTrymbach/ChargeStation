@@ -1,0 +1,14 @@
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
+chargestationcentralcpu\heap_4.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stdlib.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+chargestationcentralcpu\heap_4.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stddef.h
+chargestationcentralcpu\heap_4.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stdint.h
+chargestationcentralcpu\heap_4.o: ../Inc/FreeRTOSConfig.h
+chargestationcentralcpu\heap_4.o: ../Inc/main.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+chargestationcentralcpu\heap_4.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

@@ -2,7 +2,7 @@
 #include "lcd_hd44780_i2c.h"
 #include <string.h>
 
-#define DISPLAY_16x2
+//#define DISPLAY_16x2
 
 #define DISPLAY_I2C_ADDRESS 0x27
 
@@ -21,6 +21,7 @@ bool Display_init(I2C_HandleTypeDef *hi2c){
 }
 
 bool Display_clear(void){
+	lcdDisplayClear();
 	return true;
 }
 

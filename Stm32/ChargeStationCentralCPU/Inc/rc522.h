@@ -24,7 +24,7 @@
 #define PCD_CALCCRC										0x03   	// CRC Calculate
 
 // Mifare_One card command word
-#define PICC_REQIDL										0x26   	// find the antenna area does not enter hibernation
+#define PICC_REQA 										0x26   	// find the antenna area does not enter hibernation
 #define PICC_REQALL										0x52   	// find all the cards antenna area
 #define PICC_ANTICOLL									0x93   	// anti-collision
 #define PICC_SElECTTAG								0x93   	// election card

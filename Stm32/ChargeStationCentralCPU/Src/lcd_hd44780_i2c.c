@@ -60,6 +60,7 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t co
     TickType_t xLastWakeTime;
 
     uint8_t lcdData = LCD_BIT_5x8DOTS;
+	  uint8_t waitCnt;
 
     lcdParams.hi2c      = hi2c;
     lcdParams.address   = address << 1;
@@ -79,8 +80,11 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t co
 
         xLastWakeTime = xTaskGetTickCount();
 
+				waitCnt = pdMS_TO_TICKS(10);
         while (HAL_I2C_GetState(lcdParams.hi2c) != HAL_I2C_STATE_READY) {
             vTaskDelay(1);
+					if(waitCnt-- == 0)
+						return false;
         }
 
         if (i == 2) {
@@ -101,8 +105,11 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t co
         return false;
     }
 
+		waitCnt = pdMS_TO_TICKS(10);
     while (HAL_I2C_GetState(lcdParams.hi2c) != HAL_I2C_STATE_READY) {
         vTaskDelay(1);
+			if(waitCnt-- == 0)
+						return false;
     }
 
     /* Lets set display params */

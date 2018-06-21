@@ -89,24 +89,20 @@ uint8_t MFRC522_ReadRegister(uint8_t addr) {
 uint8_t MFRC522_CheckModule(void){
 	// Check if MFRC522 Module is present on I2C bus
 	uint8_t value = 0xFF;
-	if(!SPI_ReadReg(MFRC522_REG_VERSION, &value))
-		return MI_BUS_ERROR;
+	value = MFRC522_ReadRegister(MFRC522_REG_VERSION);
 	
-	if(value == 0xFF)
-		return MI_NO_CONNECTION;
-
+	//printf("VersionReg = 0x%.2X\n", value);
+	
 	// According to datasheet value of this register byte must be 0x91 or 0x92
-  // But I got 0x1B 	
-	/*if((value >> 4) != CHIP_TYPE_VALUE){
-		return MI_INVALID_CHIP_TYPE_ID;
-	}*/
+	if((value & 0xF0) != 0x90)
+		return MI_NO_CONNECTION;
 	
 	return MI_OK;	
 }
 
 uint8_t MFRC522_Check(uint8_t* id) {
 	uint8_t status;
-	status = MFRC522_Request(PICC_REQIDL, id);							// Find cards, return card type
+	status = MFRC522_Request(PICC_REQA, id);							// Find cards, return card type
 	if (status == MI_OK) 
 		status = MFRC522_Anticoll(id);			// Card detected. Anti-collision, return card serial number 4 bytes
 	MFRC522_Halt();																					// Command card into hibernation 
@@ -174,11 +170,13 @@ uint8_t MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_t sendLen, uint
 	MFRC522_WriteRegister(MFRC522_REG_COMMAND, PCD_IDLE);
 
 	// Writing data to the FIFO
-	for (i = 0; i < sendLen; i++) MFRC522_WriteRegister(MFRC522_REG_FIFO_DATA, sendData[i]);
+	for (i = 0; i < sendLen; i++) 
+	  MFRC522_WriteRegister(MFRC522_REG_FIFO_DATA, sendData[i]);
 
 	// Execute the command
 	MFRC522_WriteRegister(MFRC522_REG_COMMAND, command);
-	if (command == PCD_TRANSCEIVE) MFRC522_SetBitMask(MFRC522_REG_BIT_FRAMING, 0x80);		// StartSend=1,transmission of data starts 
+	if (command == PCD_TRANSCEIVE) 
+		MFRC522_SetBitMask(MFRC522_REG_BIT_FRAMING, 0x80);		// StartSend=1,transmission of data starts 
 
 	// Waiting to receive data to complete
 	i = 2000;	// i according to the clock frequency adjustment, the operator M1 card maximum waiting time 25ms
@@ -187,23 +185,35 @@ uint8_t MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_t sendLen, uint
 		// Set1 TxIRq RxIRq IdleIRq HiAlerIRq LoAlertIRq ErrIRq TimerIRq
 		n = MFRC522_ReadRegister(MFRC522_REG_COMM_IRQ);
 		i--;
-	} while ((i!=0) && !(n&0x01) && !(n&waitIRq));
+	} while ((i != 0) && !(n & 0x01) && !(n & waitIRq));
 
 	MFRC522_ClearBitMask(MFRC522_REG_BIT_FRAMING, 0x80);																// StartSend=0
 
 	if (i != 0)  {
 		if (!(MFRC522_ReadRegister(MFRC522_REG_ERROR) & 0x1B)) {
-			status = MI_OK;
-			if (n & irqEn & 0x01) status = MI_NOTAGERR;
-			if (command == PCD_TRANSCEIVE) {
-				n = MFRC522_ReadRegister(MFRC522_REG_FIFO_LEVEL);
-				lastBits = MFRC522_ReadRegister(MFRC522_REG_CONTROL) & 0x07;
-				if (lastBits) *backLen = (n-1)*8+lastBits; else *backLen = n*8;
-				if (n == 0) n = 1;
-				if (n > MFRC522_MAX_LEN) n = MFRC522_MAX_LEN;
-				for (i = 0; i < n; i++) backData[i] = MFRC522_ReadRegister(MFRC522_REG_FIFO_DATA);		// Reading the received data in FIFO
+			if (n & irqEn & 0x01) 
+				status = MI_NOTAGERR;
+			else{
+				//printf("MI_OK. i = %d, n = 0x%.2X\n", i, n);
+				status = MI_OK;
+				if (command == PCD_TRANSCEIVE) {
+					n = MFRC522_ReadRegister(MFRC522_REG_FIFO_LEVEL);
+					lastBits = MFRC522_ReadRegister(MFRC522_REG_CONTROL) & 0x07;
+					if (lastBits) 
+						*backLen = (n-1)*8+lastBits; 
+					else 
+						*backLen = n*8;
+					if (n == 0) 
+						n = 1;
+					if (n > MFRC522_MAX_LEN)  
+						n = MFRC522_MAX_LEN;
+					for (i = 0; i < n; i++) 
+						backData[i] = MFRC522_ReadRegister(MFRC522_REG_FIFO_DATA);		// Reading the received data in FIFO
+				}
 			}
-		} else status = MI_ERR;
+		} 
+		else 
+			status = MI_ERR;
 	}
 	return status;
 }

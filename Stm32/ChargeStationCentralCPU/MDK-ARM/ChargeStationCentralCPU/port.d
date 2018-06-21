@@ -1,0 +1,13 @@
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/port.c
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+chargestationcentralcpu\port.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stddef.h
+chargestationcentralcpu\port.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stdint.h
+chargestationcentralcpu\port.o: ../Inc/FreeRTOSConfig.h
+chargestationcentralcpu\port.o: ../Inc/main.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+chargestationcentralcpu\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

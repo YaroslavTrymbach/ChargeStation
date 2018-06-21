@@ -1,0 +1,17 @@
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c
+chargestationcentralcpu\tasks.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stdlib.h
+chargestationcentralcpu\tasks.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\string.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+chargestationcentralcpu\tasks.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stddef.h
+chargestationcentralcpu\tasks.o: C:\Prog\Keil\ARM\ARMCC\Bin\..\include\stdint.h
+chargestationcentralcpu\tasks.o: ../Inc/FreeRTOSConfig.h
+chargestationcentralcpu\tasks.o: ../Inc/main.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
+chargestationcentralcpu\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/StackMacros.h

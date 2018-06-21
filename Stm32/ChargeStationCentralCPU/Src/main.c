@@ -58,6 +58,9 @@
 #include "display.h"
 #include "RFID.h"
 #include "rc522.h"
+#include "channel.h"
+#include "tasks.h"
+
 
 /* USER CODE END Includes */
 
@@ -70,15 +73,18 @@ RNG_HandleTypeDef hrng;
 
 SPI_HandleTypeDef hspi4;
 
-USART_HandleTypeDef husart2;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 osThreadId defaultTaskHandle;
 
-uint8_t		str[MFRC522_MAX_LEN];
+QueueHandle_t mainQueue;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+
+uint8_t str[16];
 
 /* USER CODE END PV */
 
@@ -89,7 +95,7 @@ static void MX_DMA_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SPI4_Init(void);
-static void MX_USART2_Init(void);
+static void MX_USART2_UART_Init(void);
 static void MX_RNG_Init(void);
 void StartDefaultTask(void const * argument);
 
@@ -114,6 +120,8 @@ void checkHardware(){
 	if(!(RFID_check_connection())){
 		Display_PrintStrLeft(1, "ERROR: NO RFID\0");
 	}
+	
+	Channel_init(&huart2);
 }
 
 
@@ -152,7 +160,7 @@ int main(void)
   MX_USART3_UART_Init();
   MX_I2C2_Init();
   MX_SPI4_Init();
-  MX_USART2_Init();
+  MX_USART2_UART_Init();
   MX_RNG_Init();
   /* USER CODE BEGIN 2 */
 	
@@ -161,7 +169,9 @@ int main(void)
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+	
+  mainQueue = xQueueCreate(32, sizeof(GeneralMessage));
+	
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -305,8 +315,8 @@ static void MX_SPI4_Init(void)
   hspi4.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi4.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi4.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi4.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi4.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi4.Init.NSS = SPI_NSS_SOFT;
+  hspi4.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi4.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi4.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi4.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -319,19 +329,18 @@ static void MX_SPI4_Init(void)
 }
 
 /* USART2 init function */
-static void MX_USART2_Init(void)
+static void MX_USART2_UART_Init(void)
 {
 
-  husart2.Instance = USART2;
-  husart2.Init.BaudRate = 115200;
-  husart2.Init.WordLength = USART_WORDLENGTH_8B;
-  husart2.Init.StopBits = USART_STOPBITS_1;
-  husart2.Init.Parity = USART_PARITY_NONE;
-  husart2.Init.Mode = USART_MODE_TX_RX;
-  husart2.Init.CLKPolarity = USART_POLARITY_LOW;
-  husart2.Init.CLKPhase = USART_PHASE_1EDGE;
-  husart2.Init.CLKLastBit = USART_LASTBIT_DISABLE;
-  if (HAL_USART_Init(&husart2) != HAL_OK)
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 38400;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -369,6 +378,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA1_Stream7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
@@ -398,10 +410,20 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(RFID_CS_GPIO_Port, RFID_CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : RFID_CS_Pin */
+  GPIO_InitStruct.Pin = RFID_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(RFID_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USER_Btn_Pin */
   GPIO_InitStruct.Pin = USER_Btn_Pin;
@@ -433,7 +455,63 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void toggleBlueLed(void){
+	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+}
 
+void processMessageFromRFID(GeneralMessage *message){
+	uint32_t cardId;
+	char s[32];
+	printf("Main task. Message from RFID is got\n");
+	switch(message->messageId){
+		case MESSAGE_FOUND_CARD:
+			cardId = message->param1;
+			printf("CardId 0x%.8X\n", cardId);
+		  Display_PrintStrCenter(0, "Card discovered");
+		  sprintf(s, "CardId 0x%.8X", cardId);
+		  Display_PrintStrLeft(1, s);
+			break;
+	}
+}
+
+void mainDispatcher(void){
+	uint32_t currentTick, lastLedTick;
+	GeneralMessage message;
+	
+	initDisplay();
+	checkHardware();
+	
+	Display_clear();
+	
+	//Channel_start();
+	
+	RFID_start(TASK_TAG_RFID, mainQueue);
+	
+	Display_PrintStrCenter(0, "Waiting\0");
+	
+	lastLedTick = HAL_GetTick(); 
+	
+	// Infinite loop 
+  for(;;)
+  {
+		
+		while(xQueueReceive(mainQueue, &message, 0) == pdPASS){
+			switch(message.sourceTag){
+				case TASK_TAG_RFID:
+				processMessageFromRFID(&message);
+				break;
+			}
+			
+		}
+		
+		currentTick = HAL_GetTick();
+		if((currentTick - lastLedTick) >= 500){
+			lastLedTick = currentTick;
+			toggleBlueLed();
+		}
+		osDelay(1);
+	}
+}
 
 /* USER CODE END 4 */
 
@@ -447,17 +525,19 @@ void StartDefaultTask(void const * argument)
   MX_LWIP_Init();
 
   /* USER CODE BEGIN 5 */
-	//initDisplay();
-	checkHardware();
+	mainDispatcher();
 	
-	//RFID_start();
+	
   /* Infinite loop */
   for(;;)
   {
-		if(MFRC522_Check(str) == MI_OK){
+		//RFID_check_connection();
+		//HAL_Delay(100);
+		/*if(MFRC522_Check(str) == MI_OK){
 			printf("Found card 0x%.2X%.2X%.2X%.2X\n", str[0], str[1], str[2], str[3]);
 			HAL_Delay(100);
-		}
+		}*/
+		
     osDelay(1);
   }
   /* USER CODE END 5 */ 

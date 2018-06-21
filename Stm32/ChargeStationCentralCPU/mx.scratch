@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
-<ProjectName>D:\ChargeStation\Git\chargestation\Stm32\ChargeStationCentralCPU\\ChargeStationCentralCPU</ProjectName>
+<ProjectName>D:\ChargeStation\Git\Stm32\ChargeStationCentralCPU\\ChargeStationCentralCPU</ProjectName>
 <ProjectNature>C</ProjectNature> 
 <CMSIS>..\Drivers\CMSIS</CMSIS>
 <HAL_Driver>C:\Users\Yaroslav\STM32Cube\Repository\STM32Cube_FW_F4_V1.21.0\Drivers\CMSIS</HAL_Driver>
@@ -35,7 +35,7 @@
     <usedDebug>true</usedDebug>
     	<debugprobe>swd</debugprobe>
     <optimization></optimization>
-    <icfloc>1</icfloc>
+    <icfloc>0</icfloc>
     <Adefines>
         <define></define>
     </Adefines>   
@@ -385,9 +385,6 @@
 						</file>
 						<file>
 							<name>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c</name>
-						</file>
-						<file>
-							<name>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_usart.c</name>
 						</file>
 						<file>
 							<name>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c</name>
