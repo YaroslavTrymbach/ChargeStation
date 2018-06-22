@@ -60,6 +60,7 @@
 #include "rc522.h"
 #include "channel.h"
 #include "tasks.h"
+#include "usbd_cdc_if.h"
 
 
 /* USER CODE END Includes */
@@ -476,6 +477,8 @@ void processMessageFromRFID(GeneralMessage *message){
 
 void mainDispatcher(void){
 	uint32_t currentTick, lastLedTick;
+	uint32_t lastSendTick;
+	char sendData[16];
 	GeneralMessage message;
 	
 	initDisplay();
@@ -490,6 +493,7 @@ void mainDispatcher(void){
 	Display_PrintStrCenter(0, "Waiting\0");
 	
 	lastLedTick = HAL_GetTick(); 
+	lastSendTick = lastLedTick;
 	
 	// Infinite loop 
   for(;;)
@@ -508,6 +512,12 @@ void mainDispatcher(void){
 		if((currentTick - lastLedTick) >= 500){
 			lastLedTick = currentTick;
 			toggleBlueLed();
+		}
+		
+		if((currentTick - lastSendTick) >= 1000){
+			lastSendTick = currentTick;
+			sprintf(sendData, "%.8X\r", lastSendTick);
+			CDC_Transmit_FS((uint8_t*)sendData, strlen(sendData));
 		}
 		osDelay(1);
 	}
@@ -529,6 +539,7 @@ void StartDefaultTask(void const * argument)
 	
 	
   /* Infinite loop */
+	/// !!! Сюда мы не должны доходить
   for(;;)
   {
 		//RFID_check_connection();
