@@ -1,0 +1,8 @@
+Драйвер для Windows XP был сделан на основе следующего документа:
+
+Migrating from RS-232 to USB Bridge Specification
+http://ww1.microchip.com/downloads/en/appnotes/doc4322.pdf
+
+
+Linux
+Под Linux порт определяется как устройство /dev/ttyACM0
