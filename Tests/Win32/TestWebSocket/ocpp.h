@@ -7,11 +7,35 @@ typedef char CiString25Type[26];
 typedef CiString20Type idToken;
 
 // Messages
-#define ACTION_UNKNOWN             0
-#define ACTION_AUTHORIZE           1
-#define ACTION_BOOT_NOTIFICATION   2
-#define ACTION_STATUS_NOTIFICATION 3
-#define ACTION_UNLOCK_CONNECTOR    27
+#define ACTION_UNKNOWN                         0
+#define ACTION_AUTHORIZE                       1
+#define ACTION_BOOT_NOTIFICATION               2
+#define ACTION_CANCEL_RESERVATION              3
+#define ACTION_CHANGE_AVAILABILITY             4
+#define ACTION_CHANGE_CONFIGURATION            5
+#define ACTION_CLEAR_CACHE                     6
+#define ACTION_CLEAR_CHARGING_PROFILE          7
+#define ACTION_DATA_TRANSFER                   8
+#define ACTION_DIAGNOSTICS_STATUS_NOTIFICATION 9 
+#define ACTION_FIRMWARE_STATUS_NOTIFICATION    10 
+#define ACTION_GET_COMPOSITE_SCHEDULE          11 
+#define ACTION_GET_CONFIGURATION               12 
+#define ACTION_GET_DIAGNOSTICS                 13
+#define ACTION_GET_LOCAL_LIST_VERSION          14
+#define ACTION_HEARTBEAT                       15
+#define ACTION_METER_VALUES                    16
+#define ACTION_REMOTE_START_TRANSACTION        17
+#define ACTION_REMOTE_STOP_TRANSACTION         18
+#define ACTION_RESERVE_NOW                     19
+#define ACTION_RESET                           20
+#define ACTION_SEND_LOCAL_LIST                 21
+#define ACTION_SET_CHARGING_PROFILE            22
+#define ACTION_START_TRANSACTION               23
+#define ACTION_STATUS_NOTIFICATION             24 
+#define ACTION_STOP_TRANSACTION                25
+#define ACTION_TRIGGER_MESSAGE                 26
+#define ACTION_UNLOCK_CONNECTOR                27
+#define ACTION_UPDATE_FIRMWARE                 28
 
 #define AUTHORIZATION_STATUS_UNKNOWN       0
 #define AUTHORIZATION_STATUS_ACCEPTED      1

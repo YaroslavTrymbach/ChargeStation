@@ -3,10 +3,34 @@
 
 const char* EMPTY_STRING = "\0";
 
-const char* ACTION_STR_AUTHORIZE           = "Authorize\0";
-const char* ACTION_STR_BOOT_NOTIFICATION   = "BootNotification\0";
-const char* ACTION_STR_STATUS_NOTIFICATION = "StatusNotification\0";
-const char* ACTION_STR_UNLOCK_CONNECTOR    = "UnlockConnector\0";
+const char* ACTION_STR_AUTHORIZE                       = "Authorize\0";
+const char* ACTION_STR_BOOT_NOTIFICATION               = "BootNotification\0";
+const char* ACTION_STR_CANCEL_RESERVATION              = "CancelReservation\0";
+const char* ACTION_STR_CHANGE_AVAILABILITY             = "ChangeAvailability\0";
+const char* ACTION_STR_CHANGE_CONFIGURATION            = "ChangeConfiguration\0";
+const char* ACTION_STR_CLEAR_CACHE                     = "ClearCache\0";
+const char* ACTION_STR_CLEAR_CHARGING_PROFILE          = "ClearChargingProfile\0";
+const char* ACTION_STR_DATA_TRANSFER                   = "DataTransfer\0";
+const char* ACTION_STR_DIAGNOSTICS_STATUS_NOTIFICATION = "DiagnosticsStatusNotification\0";
+const char* ACTION_STR_FIRMWARE_STATUS_NOTIFICATION    = "FirmwareStatusNotification\0";
+const char* ACTION_STR_GET_COMPOSITE_SCHEDULE          = "GetCompositSchedule\0";
+const char* ACTION_STR_GET_CONFIGURATION               = "GetConfiguration\0";
+const char* ACTION_STR_GET_DIAGNOSTICS                 = "\0";
+const char* ACTION_STR_GET_LOCAL_LIST_VERSION          = "\0";
+const char* ACTION_STR_HEARTBEAT                       = "\0";
+const char* ACTION_STR_METER_VALUES                    = "\0";
+const char* ACTION_STR_REMOTE_START_TRANSACTION        = "\0";
+const char* ACTION_STR_REMOTE_STOP_TRANSACTION         = "\0";
+const char* ACTION_STR_RESERVE_NOW                     = "\0";
+const char* ACTION_STR_RESET                           = "\0";
+const char* ACTION_STR_SEND_LOCAL_LIST                 = "\0";
+const char* ACTION_STR_SET_CHARGING_PROFILE            = "\0";
+const char* ACTION_STR_START_TRANSACTION               = "\0";
+const char* ACTION_STR_STATUS_NOTIFICATION             = "StatusNotification\0";
+const char* ACTION_STR_STOP_TRANSACTION                = "\0";
+const char* ACTION_STR_TRIGGER_MESSAGE                 = "\0";
+const char* ACTION_STR_UNLOCK_CONNECTOR                = "UnlockConnector\0";
+const char* ACTION_STR_UPDATE_FIRMWARE                 = "\0";
 
 const char* OCPP_PARAM_NAME_STR_CURRENT_TIME = "currentTime\0";
 const char* OCPP_PARAM_NAME_STR_INTERVAL     = "interval\0";
