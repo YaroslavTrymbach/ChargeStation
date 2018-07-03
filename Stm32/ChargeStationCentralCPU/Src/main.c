@@ -61,6 +61,8 @@
 #include "channel.h"
 #include "tasks.h"
 #include "usbd_cdc_if.h"
+#include "settings.h"
+#include "rng.h"
 
 
 /* USER CODE END Includes */
@@ -80,12 +82,13 @@ DMA_HandleTypeDef hdma_usart2_tx;
 
 osThreadId defaultTaskHandle;
 
-QueueHandle_t mainQueue;
-
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
+QueueHandle_t mainQueue;
 uint8_t str[16];
+uint32_t lastUserButtonPressTick = 0;
+ChargePointSetting *settings;
 
 /* USER CODE END PV */
 
@@ -452,6 +455,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -475,11 +482,26 @@ void processMessageFromRFID(GeneralMessage *message){
 	}
 }
 
+void testSaveSetting(){
+	printf("testSaveSetting\n");
+	sprintf(settings->ChargePointId, "SaveCP_%.8X", generateRnd32());
+	printf("New ChargePointID: %s\n", settings->ChargePointId);
+	if(Settings_save())
+		printf("Setting saving is success\n");
+	else
+		printf("Setting saving is failed\n");
+}
+
 void mainDispatcher(void){
 	uint32_t currentTick, lastLedTick;
 	uint32_t lastSendTick;
 	char sendData[16];
 	GeneralMessage message;
+	uint32_t btnPressCnt = 0;
+	
+	Settings_init();
+	settings = Settings_get();
+	printf("ChargePointID: %s\n", settings->ChargePointId);
 	
 	initDisplay();
 	checkHardware();
@@ -502,8 +524,12 @@ void mainDispatcher(void){
 		while(xQueueReceive(mainQueue, &message, 0) == pdPASS){
 			switch(message.sourceTag){
 				case TASK_TAG_RFID:
-				processMessageFromRFID(&message);
-				break;
+					processMessageFromRFID(&message);
+					break;
+				case TASK_TAG_USER_BUTTON:
+					//printf("User button is pressed %d\n", ++btnPressCnt);
+				  testSaveSetting();
+					break;
 			}
 			
 		}
@@ -523,6 +549,27 @@ void mainDispatcher(void){
 	}
 }
 
+void onUserButtonPressed(){
+	GeneralMessage message;
+	uint32_t tick;
+	tick = HAL_GetTick();
+	if((tick - lastUserButtonPressTick) >= 200){
+		lastUserButtonPressTick = tick;
+		message.sourceTag = TASK_TAG_USER_BUTTON;
+		//This function is called from Interrupt so use ISR version of xQueueSend
+		xQueueSendFromISR(mainQueue, &message, NULL);
+	}
+	
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	switch(GPIO_Pin){
+		case USER_Btn_Pin:
+			onUserButtonPressed();
+			break;
+	}
+}
+
 /* USER CODE END 4 */
 
 /* StartDefaultTask function */
@@ -532,7 +579,7 @@ void StartDefaultTask(void const * argument)
   MX_USB_DEVICE_Init();
 
   /* init code for LWIP */
-  MX_LWIP_Init();
+  //MX_LWIP_Init();
 
   /* USER CODE BEGIN 5 */
 	mainDispatcher();
