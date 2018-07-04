@@ -172,9 +172,6 @@ void sendWebSocketTest(){
 
 	jsonPackReqBootNotification(&rpcPacket, &request);
 
-	//rpcPacket.action = ACTION_BOOT_NOTIFICATION;
-	//rpcPacket.payloadLen = outLen;
-
 	sendMessage(&rpcPacket);
 }
 
@@ -478,6 +475,7 @@ bool initSocket(){
 
 int main(){
 	printf("TestWebSocket\n");
+	printf("Occp action string: %s\n", getActionString(ACTION_CANCEL_RESERVATION));
 	if(!initSocket()){
 		return 1;
 	}

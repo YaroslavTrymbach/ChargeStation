@@ -15,22 +15,22 @@ const char* ACTION_STR_DIAGNOSTICS_STATUS_NOTIFICATION = "DiagnosticsStatusNotif
 const char* ACTION_STR_FIRMWARE_STATUS_NOTIFICATION    = "FirmwareStatusNotification\0";
 const char* ACTION_STR_GET_COMPOSITE_SCHEDULE          = "GetCompositSchedule\0";
 const char* ACTION_STR_GET_CONFIGURATION               = "GetConfiguration\0";
-const char* ACTION_STR_GET_DIAGNOSTICS                 = "\0";
-const char* ACTION_STR_GET_LOCAL_LIST_VERSION          = "\0";
-const char* ACTION_STR_HEARTBEAT                       = "\0";
-const char* ACTION_STR_METER_VALUES                    = "\0";
-const char* ACTION_STR_REMOTE_START_TRANSACTION        = "\0";
-const char* ACTION_STR_REMOTE_STOP_TRANSACTION         = "\0";
-const char* ACTION_STR_RESERVE_NOW                     = "\0";
-const char* ACTION_STR_RESET                           = "\0";
-const char* ACTION_STR_SEND_LOCAL_LIST                 = "\0";
-const char* ACTION_STR_SET_CHARGING_PROFILE            = "\0";
-const char* ACTION_STR_START_TRANSACTION               = "\0";
+const char* ACTION_STR_GET_DIAGNOSTICS                 = "GetDiagnostics\0";
+const char* ACTION_STR_GET_LOCAL_LIST_VERSION          = "GetLocalListVersion\0";
+const char* ACTION_STR_HEARTBEAT                       = "Heartbeat\0";
+const char* ACTION_STR_METER_VALUES                    = "MeterValues\0";
+const char* ACTION_STR_REMOTE_START_TRANSACTION        = "RemoteStartTransaction\0";
+const char* ACTION_STR_REMOTE_STOP_TRANSACTION         = "RemoteStopTransaction\0";
+const char* ACTION_STR_RESERVE_NOW                     = "ReserveNow\0";
+const char* ACTION_STR_RESET                           = "Reset\0";
+const char* ACTION_STR_SEND_LOCAL_LIST                 = "SendLocalList\0";
+const char* ACTION_STR_SET_CHARGING_PROFILE            = "SetChargingProfile\0";
+const char* ACTION_STR_START_TRANSACTION               = "StartTransaction\0";
 const char* ACTION_STR_STATUS_NOTIFICATION             = "StatusNotification\0";
-const char* ACTION_STR_STOP_TRANSACTION                = "\0";
-const char* ACTION_STR_TRIGGER_MESSAGE                 = "\0";
+const char* ACTION_STR_STOP_TRANSACTION                = "StopTransaction\0";
+const char* ACTION_STR_TRIGGER_MESSAGE                 = "TriggerMessage\0";
 const char* ACTION_STR_UNLOCK_CONNECTOR                = "UnlockConnector\0";
-const char* ACTION_STR_UPDATE_FIRMWARE                 = "\0";
+const char* ACTION_STR_UPDATE_FIRMWARE                 = "UpdateFirmware\0";
 
 const char* OCPP_PARAM_NAME_STR_CURRENT_TIME = "currentTime\0";
 const char* OCPP_PARAM_NAME_STR_INTERVAL     = "interval\0";
@@ -66,26 +66,46 @@ const char* UNLOCK_STATUS_STR_UNLOCKED      = "Unlocked\0";
 const char* UNLOCK_STATUS_STR_UNLOCK_FAILED = "UnlockFailed\0";
 const char* UNLOCK_STATUS_STR_NOT_SUPPORTED = "NotSupported\0";
 
+#define CASE_ACTION_STR(name) case ACTION_##name: \
+	                              res = ACTION_STR_##name; \
+								  break
+
 const char *getActionString(int action){
 	const char* res = EMPTY_STRING;
 
-	switch(action){
-		case ACTION_BOOT_NOTIFICATION:
-			res = ACTION_STR_BOOT_NOTIFICATION;
-			break;
-		case ACTION_AUTHORIZE:
-			res = ACTION_STR_AUTHORIZE;
-			break;
-		case ACTION_STATUS_NOTIFICATION:
-			res = ACTION_STR_STATUS_NOTIFICATION;
-			break;
-		case ACTION_UNLOCK_CONNECTOR:
-			res = ACTION_STR_UNLOCK_CONNECTOR;
-			break;
+	switch(action){		
+		CASE_ACTION_STR(AUTHORIZE);
+		CASE_ACTION_STR(BOOT_NOTIFICATION);
+		CASE_ACTION_STR(CANCEL_RESERVATION);
+		CASE_ACTION_STR(CHANGE_AVAILABILITY);
+		CASE_ACTION_STR(CHANGE_CONFIGURATION);
+		CASE_ACTION_STR(CLEAR_CACHE);
+		CASE_ACTION_STR(CLEAR_CHARGING_PROFILE);
+		CASE_ACTION_STR(DATA_TRANSFER);
+		CASE_ACTION_STR(DIAGNOSTICS_STATUS_NOTIFICATION);
+		CASE_ACTION_STR(FIRMWARE_STATUS_NOTIFICATION);
+		CASE_ACTION_STR(GET_COMPOSITE_SCHEDULE);
+		CASE_ACTION_STR(GET_CONFIGURATION);
+		CASE_ACTION_STR(GET_DIAGNOSTICS);
+		CASE_ACTION_STR(GET_LOCAL_LIST_VERSION);
+		CASE_ACTION_STR(HEARTBEAT);
+		CASE_ACTION_STR(METER_VALUES);
+		CASE_ACTION_STR(REMOTE_START_TRANSACTION);
+		CASE_ACTION_STR(REMOTE_STOP_TRANSACTION);
+		CASE_ACTION_STR(RESERVE_NOW);
+		CASE_ACTION_STR(RESET);
+		CASE_ACTION_STR(SEND_LOCAL_LIST);
+		CASE_ACTION_STR(SET_CHARGING_PROFILE);
+		CASE_ACTION_STR(START_TRANSACTION);
+		CASE_ACTION_STR(STATUS_NOTIFICATION);
+		CASE_ACTION_STR(STOP_TRANSACTION);
+		CASE_ACTION_STR(TRIGGER_MESSAGE);
+		CASE_ACTION_STR(UNLOCK_CONNECTOR);
+		CASE_ACTION_STR(UPDATE_FIRMWARE);
 	}
-
 	return res;
 }
+
 
 const char *getChargePointErrorCodeString(int errorCode){
 	const char* res = EMPTY_STRING;
