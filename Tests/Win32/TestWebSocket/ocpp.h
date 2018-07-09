@@ -69,14 +69,21 @@ typedef CiString20Type idToken;
 #define UNLOCK_STATUS_UNLOCK_FAILED 2
 #define UNLOCK_STATUS_NOT_SUPPORTED 3
 
+typedef struct _RequestAuthorize{
+   idToken idTag;
+}RequestAuthorize;
+
 typedef struct _RequestBootNotification {
    CiString20Type chargePointModel;
    CiString20Type chargePointVendor;
 }RequestBootNotification;
 
-typedef struct _RequestAuthorize{
-   idToken idTag;
-}RequestAuthorize;
+typedef struct _RequestStartTransaction{
+	int connectorId;
+	idToken idTag;
+	int meterStart;
+	int reservationId;
+}RequestStartTransaction;
 
 typedef struct _RequestStatusNotification{
 	int connectorId;

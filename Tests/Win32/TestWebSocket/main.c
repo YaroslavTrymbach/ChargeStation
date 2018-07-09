@@ -9,6 +9,7 @@
 #include "cJson.h"
 #include "tasks.h"
 #include "ocpp-json.h"
+#include "chargePointTime.h"
 
 
 //#define SERVER_PORT_NO 19200
@@ -474,8 +475,13 @@ bool initSocket(){
 }
 
 int main(){
+	struct tm time;
 	printf("TestWebSocket\n");
 	printf("Occp action string: %s\n", getActionString(ACTION_CANCEL_RESERVATION));
+
+	getCurrentTime(&time);
+	printf("Current time: %.2d:%.2d:%.2d\n", time.tm_hour, time.tm_min, time.tm_sec);
+	
 	if(!initSocket()){
 		return 1;
 	}
