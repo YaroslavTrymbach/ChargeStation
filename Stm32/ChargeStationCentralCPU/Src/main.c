@@ -60,9 +60,10 @@
 #include "rc522.h"
 #include "channel.h"
 #include "tasks.h"
-#include "usbd_cdc_if.h"
+//#include "usbd_cdc_if.h"
 #include "settings.h"
 #include "rng.h"
+#include "serial_control.h"
 
 
 /* USER CODE END Includes */
@@ -511,6 +512,7 @@ void mainDispatcher(void){
 	//Channel_start();
 	
 	RFID_start(TASK_TAG_RFID, mainQueue);
+	SerialControl_start(TASK_TAG_SERIAL_CONTROL, mainQueue);
 	
 	Display_PrintStrCenter(0, "Waiting\0");
 	
@@ -543,7 +545,7 @@ void mainDispatcher(void){
 		if((currentTick - lastSendTick) >= 1000){
 			lastSendTick = currentTick;
 			sprintf(sendData, "%.8X\r", lastSendTick);
-			CDC_Transmit_FS((uint8_t*)sendData, strlen(sendData));
+			//CDC_Transmit_FS((uint8_t*)sendData, strlen(sendData));
 		}
 		osDelay(1);
 	}

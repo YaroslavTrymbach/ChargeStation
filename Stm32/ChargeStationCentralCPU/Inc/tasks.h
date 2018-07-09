@@ -1,8 +1,9 @@
 // Tags for tasks
 
-#define TASK_TAG_RFID        1
-#define TASK_TAG_SERVER      2
-#define TASK_TAG_USER_BUTTON 10
+#define TASK_TAG_RFID           1
+#define TASK_TAG_SERVER         2
+#define TASK_TAG_SERIAL_CONTROL 3
+#define TASK_TAG_USER_BUTTON    10
 
 typedef struct __GeneralMessageType
 {
