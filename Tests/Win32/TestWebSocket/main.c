@@ -1,5 +1,5 @@
 #include <stdio.h>
-//#include "webSocket.h"
+#include "webSocket.h"
 #include <winsock2.h>
 #include <windows.h>
 #include <string.h>
@@ -16,10 +16,14 @@
 //#define SERVER_HOST    "192.168.1.69"
 //#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
-#define SERVER_HOST    "192.168.1.63"
+//#define SERVER_HOST    "192.168.1.63"
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
+#define SERVER_HOST "192.168.77.7"
 #define SERVER_PORT_NO 8080
+
+#define SERVER_URI "/steve/websocket/CentralSystemService/"
+#define CHARGE_POINT_ID "Kvant0001"
 
 #define STATION_MODEL "YarModel777" //Must be accepted
 //#define STATION_MODEL "YarModelBad"
@@ -85,11 +89,17 @@ void setActiveProtocol(int newProtocol){
 
 
 bool makeWebsocketHandshake(){
+	bool res = false;
+	WebSocketConnectionParams params;
+	WebSocketHttpHeader answer;
 	printf("makeWebsocketHandshake\n");
 
-	setServerPort(SERVER_PORT_NO);
-	setServerHost(SERVER_HOST);
-	buf_cnt_out = fillHandshakeRequest(http_buf_out);
+	params.server_port = SERVER_PORT_NO;
+	strcpy(params.server_host, SERVER_HOST);
+	sprintf(params.uri, "%s%s", SERVER_URI, CHARGE_POINT_ID);
+	//setServerPort(SERVER_PORT_NO);
+	//setServerHost(SERVER_HOST);
+	buf_cnt_out = fillHandshakeRequest(&params, http_buf_out);
 
 	clear_http_buf_in();
 	setActiveProtocol(ACTIVE_PROTOCOL_HTTP);
@@ -108,9 +118,19 @@ bool makeWebsocketHandshake(){
 
 	printf("Handshake answer is got\n");
 
+	if(WebSocket_parseHttpAnswerHeader(http_buf_in, &answer)){
+		printf("StatusCode = %d\n", answer.StatusCode);
+		if(answer.StatusCode == 101){
+			res = true;
+		}
+	}
+
 	printf("%s", http_buf_in);
 
-	return true;
+	if(!res)
+		printf("Not accepted\n");
+
+	return res;
 }
 
 void sendMessage(RpcPacket* packet){

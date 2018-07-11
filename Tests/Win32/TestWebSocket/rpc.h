@@ -26,5 +26,3 @@ bool fillRpcCallData(RpcPacket *outPacket, char* outData, int* outLen);
 bool fillRpcCallResultData(RpcPacket *outPacket, char* outData, int* outLen);
 
 bool parseRpcInputData(char* data, int dataLen, RpcPacket *outPacket);
-
-//bool parseRpc
