@@ -64,7 +64,7 @@
 #include "settings.h"
 #include "rng.h"
 #include "serial_control.h"
-
+#include "chargePointTime.h"
 
 /* USER CODE END Includes */
 
@@ -74,6 +74,8 @@ DMA_HandleTypeDef hdma_i2c2_rx;
 DMA_HandleTypeDef hdma_i2c2_tx;
 
 RNG_HandleTypeDef hrng;
+
+RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi4;
 
@@ -90,6 +92,7 @@ QueueHandle_t mainQueue;
 uint8_t str[16];
 uint32_t lastUserButtonPressTick = 0;
 ChargePointSetting *settings;
+bool isNeedSetTime = true;
 
 /* USER CODE END PV */
 
@@ -102,6 +105,7 @@ static void MX_I2C2_Init(void);
 static void MX_SPI4_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_RNG_Init(void);
+static void MX_RTC_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -167,6 +171,7 @@ int main(void)
   MX_SPI4_Init();
   MX_USART2_UART_Init();
   MX_RNG_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 	
 	printf("Start ChargeStationCentralCPU\n");
@@ -229,6 +234,7 @@ void SystemClock_Config(void)
 
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
     /**Configure the main internal regulator output voltage 
     */
@@ -238,8 +244,9 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;
@@ -261,6 +268,13 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -305,6 +319,55 @@ static void MX_RNG_Init(void)
   if (HAL_RNG_Init(&hrng) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* RTC init function */
+static void MX_RTC_Init(void)
+{
+
+  RTC_TimeTypeDef sTime;
+  RTC_DateTypeDef sDate;
+
+    /**Initialize RTC Only 
+    */
+  hrtc.Instance = RTC;
+if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x32F2){
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Initialize RTC and set the Time and Date 
+    */
+  sTime.Hours = 0x0;
+  sTime.Minutes = 0x0;
+  sTime.Seconds = 0x0;
+  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+  sDate.Month = RTC_MONTH_JANUARY;
+  sDate.Date = 0x1;
+  sDate.Year = 0x0;
+
+  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    HAL_RTCEx_BKUPWrite(&hrtc,RTC_BKP_DR0,0x32F2);
   }
 
 }
@@ -493,6 +556,28 @@ void testSaveSetting(){
 		printf("Setting saving is failed\n");
 }
 
+void printCurrentDateTime(){
+	struct tm dt;
+	
+	if(isNeedSetTime){
+		dt.tm_mday = 11;
+		dt.tm_mon = 7;
+		dt.tm_year = 2018;
+	
+		dt.tm_hour = 15;
+		dt.tm_min = 41;
+		dt.tm_sec = 39;
+	
+		setCurrentTime(&dt);
+		
+		isNeedSetTime = false;
+	}
+	else{
+		getCurrentTime(&dt);
+		printf("DateTime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", dt.tm_mday, dt.tm_mon, dt.tm_year, dt.tm_hour, dt.tm_min, dt.tm_sec);
+	}
+}
+
 void mainDispatcher(void){
 	uint32_t currentTick, lastLedTick;
 	uint32_t lastSendTick;
@@ -530,7 +615,8 @@ void mainDispatcher(void){
 					break;
 				case TASK_TAG_USER_BUTTON:
 					//printf("User button is pressed %d\n", ++btnPressCnt);
-				  testSaveSetting();
+				  //testSaveSetting();
+				  printCurrentDateTime();
 					break;
 			}
 			

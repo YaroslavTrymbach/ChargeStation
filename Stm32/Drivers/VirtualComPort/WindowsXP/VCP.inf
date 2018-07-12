@@ -7,9 +7,14 @@ Provider=%KVANT%
 LayoutFile=layout.inf 
 DriverVer=10/15/1999,5.0.2153.1 
 [Manufacturer] 
-%KVANT%=KVANT 
+%KVANT%=KVANT,NTamd64 
 [KVANT] 
 %KVANT_CDC%=Reader, USB\VID_BEDA&PID_5740
+
+;Windows XP and later x64
+[KVANT.NTamd64]
+%KVANT_CDC%=Reader, USB\VID_BEDA&PID_5740
+
 [Reader_Install.NTx86] 
 ;Windows2000 
 [DestinationDirs] 
