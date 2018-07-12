@@ -24,6 +24,8 @@
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
 #define CHARGE_POINT_ID "Kvant0001"
+//#define CHARGE_POINT_ID "Kvant0002"
+
 
 #define STATION_MODEL "YarModel777" //Must be accepted
 //#define STATION_MODEL "YarModelBad"
@@ -273,11 +275,13 @@ void mainThread(){
 		return;
 	}
 
+	/*
 	//sendAuthorizationRequest();
 	for(i = 1; i <= 4; i++){
 		sendStatusNotification(i);
-	}
+	}*/
 
+	/*
 	while(true){
 		if(isMessageActive){
 			if(message.sourceTag == TASK_TAG_SERVER){
@@ -286,7 +290,7 @@ void mainThread(){
 			isMessageActive = false;
 		}
 		Sleep(5);
-	}
+	}*/
 
 	Sleep(3000);
 	closesocket(sock);
@@ -308,6 +312,10 @@ void processConfAuthorize(cJSON* json){
 void processConfBootNotification(cJSON* json){
 	ConfBootNotifiaction conf;
 	jsonUnpackConfBootNotification(json, &conf);
+
+	printf("Server datetime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", 
+		conf.currentTime.tm_mday, conf.currentTime.tm_mon, conf.currentTime.tm_year,
+		conf.currentTime.tm_hour, conf.currentTime.tm_min, conf.currentTime.tm_sec);
 
 	if(conf.status == REGISTRATION_STATUS_ACCEPTED){
 		printf("Station is accepted\n");

@@ -1,5 +1,6 @@
 #include "ocpp-json.h"
 #include <string.h>
+#include <stdlib.h>
 
 char* buf;
 int outCnt;
@@ -64,6 +65,56 @@ void addString(char* parName, const char* value){
 	strcpy(buf + outCnt, value);
 	outCnt += strlen(value);
 	buf[outCnt++] = '"';
+}
+
+void fillDateTimeFromString(dateTime *dt, const char* str){
+	char s[8];
+	int val;
+	// 2017-08-22T06:11:00.000Z
+	dt->tm_mday = 1;
+	dt->tm_mon = 1;
+	dt->tm_year = 2000;
+	dt->tm_hour = 0;
+	dt->tm_min = 0;
+	dt->tm_sec = 0;
+
+	if(strlen(str) < 20)
+		return;
+	if((str[4] != '-') || (str[7] != '-') || (str[10] != 'T'))
+		return;
+
+	//Year
+	strncpy(s, str, 4);
+	s[4] = '\0';
+	val = atoi(s);
+	if(val != 0)
+		dt->tm_year = val;
+
+	s[2] = '\0';
+
+	//Month
+	strncpy(s, str + 5, 2);
+	val = atoi(s);
+	if(val != 0)
+		dt->tm_mon = val;
+
+	//Day
+	strncpy(s, str + 8, 2);
+	val = atoi(s);
+	if(val != 0)
+		dt->tm_mday = val;
+
+	//Hour
+	strncpy(s, str + 11, 2);
+	dt->tm_hour = atoi(s);
+
+	//Minutes
+	strncpy(s, str + 14, 2);
+	dt->tm_min = atoi(s);
+
+	//Seconds
+	strncpy(s, str + 17, 2);
+	dt->tm_sec = atoi(s);
 }
 
 bool jsonPackReqBootNotification(RpcPacket *rpcPacket, RequestBootNotification *req){
@@ -133,6 +184,7 @@ bool jsonUnpackConfBootNotification(cJSON* json, ConfBootNotifiaction *conf){
 	while(jsonElement != NULL){
 		if(jsonElement->type == cJSON_String){
 			if(isParam(jsonElement->string, OCPP_PARAM_CURRENT_TIME)){
+				fillDateTimeFromString(&conf->currentTime, jsonElement->valuestring);
 			}
 			else if(isParam(jsonElement->string, OCPP_PARAM_STATUS)){
 				conf->status = occpGetRegistrationStatusFromString(jsonElement->valuestring);

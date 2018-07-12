@@ -1,8 +1,11 @@
 #pragma once
 
+#include <time.h>
+
 //
 typedef char CiString20Type[21];
 typedef char CiString25Type[26];
+typedef struct tm dateTime;
 
 typedef CiString20Type idToken;
 
@@ -107,7 +110,7 @@ typedef struct _ConfAuthorize{
 }ConfAuthorize;
 
 typedef struct _ConfBootNotifiaction{
-	int currentTime;
+	dateTime currentTime;
 	int interval;
 	int status;
 }ConfBootNotifiaction;
