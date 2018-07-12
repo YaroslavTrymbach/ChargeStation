@@ -188,7 +188,7 @@
           <Type>0</Type>
           <LineNumber>28</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134245458</Address>
+          <Address>134245802</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -199,7 +199,40 @@
           <ExecCommand></ExecCommand>
           <Expression>\\ChargeStationCentralCPU\../Src/chargePointTime.c\28</Expression>
         </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>86</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134243678</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\Src\serial_control.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\ChargeStationCentralCPU\../Src/serial_control.c\86</Expression>
+        </Bp>
       </Breakpoint>
+      <WatchWindow1>
+        <Ww>
+          <count>0</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>getBuf</ItemText>
+        </Ww>
+        <Ww>
+          <count>1</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>commandStr</ItemText>
+        </Ww>
+        <Ww>
+          <count>2</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>comStr</ItemText>
+        </Ww>
+      </WatchWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>
