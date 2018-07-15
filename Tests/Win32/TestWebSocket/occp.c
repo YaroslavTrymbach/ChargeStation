@@ -32,11 +32,18 @@ const char* ACTION_STR_TRIGGER_MESSAGE                 = "TriggerMessage\0";
 const char* ACTION_STR_UNLOCK_CONNECTOR                = "UnlockConnector\0";
 const char* ACTION_STR_UPDATE_FIRMWARE                 = "UpdateFirmware\0";
 
-const char* OCPP_PARAM_NAME_STR_CURRENT_TIME = "currentTime\0";
-const char* OCPP_PARAM_NAME_STR_INTERVAL     = "interval\0";
-const char* OCPP_PARAM_NAME_STR_STATUS       = "status\0";
-const char* OCPP_PARAM_NAME_STR_ID_TAG_INFO  = "idTagInfo\0";
-const char* OCPP_PARAM_NAME_STR_CONNECTOR_ID = "connectorId\0";
+const char* OCPP_PARAM_NAME_STR_CURRENT_TIME   = "currentTime\0";
+const char* OCPP_PARAM_NAME_STR_INTERVAL       = "interval\0";
+const char* OCPP_PARAM_NAME_STR_STATUS         = "status\0";
+const char* OCPP_PARAM_NAME_STR_ID_TAG         = "idTag\0";
+const char* OCPP_PARAM_NAME_STR_ID_TAG_INFO    = "idTagInfo\0";
+const char* OCPP_PARAM_NAME_STR_CONNECTOR_ID   = "connectorId\0";
+const char* OCPP_PARAM_NAME_STR_METER_START    = "meterStart\0";
+const char* OCPP_PARAM_NAME_STR_RESERVATION_ID = "reservationId\0";
+const char* OCPP_PARAM_NAME_STR_TIMESTAMP      = "timestamp\0";
+const char* OCPP_PARAM_NAME_STR_TRANSACTION_ID = "transactionId\0";
+const char* OCPP_PARAM_NAME_STR_METER_STOP     = "meterStop";
+const char* OCPP_PARAM_NAME_STR_REASON         = "reason";
 
 
 const char* AUTHORIZATION_STATUS_STR_ACCEPTED      = "Accepted\0";
@@ -69,6 +76,10 @@ const char* UNLOCK_STATUS_STR_NOT_SUPPORTED = "NotSupported\0";
 #define CASE_ACTION_STR(name) case ACTION_##name: \
 	                              res = ACTION_STR_##name; \
 								  break
+
+#define CASE_PARAM_STR(name) case OCPP_PARAM_##name: \
+	                             res = OCPP_PARAM_NAME_STR_##name; \
+			                     break
 
 const char *getActionString(int action){
 	const char* res = EMPTY_STRING;
@@ -155,20 +166,23 @@ const char *getUnlockStatusString(int status){
 	return res;
 }
 
-const char *occpGetParamNameString(int param){
+const char *ocppGetParamNameString(int param){
+	const char* res = EMPTY_STRING;
 	switch(param){
-		case OCPP_PARAM_CURRENT_TIME:
-			return OCPP_PARAM_NAME_STR_CURRENT_TIME;
-		case OCPP_PARAM_INTERVAL:
-			return OCPP_PARAM_NAME_STR_INTERVAL;
-		case OCPP_PARAM_STATUS:
-			return OCPP_PARAM_NAME_STR_STATUS;
-		case OCPP_PARAM_ID_TAG_INFO:
-			return OCPP_PARAM_NAME_STR_ID_TAG_INFO;
-		case OCPP_PARAM_CONNECTOR_ID:
-			return OCPP_PARAM_NAME_STR_CONNECTOR_ID;
+		CASE_PARAM_STR(CONNECTOR_ID);
+		CASE_PARAM_STR(CURRENT_TIME);
+		CASE_PARAM_STR(ID_TAG);
+		CASE_PARAM_STR(ID_TAG_INFO);
+		CASE_PARAM_STR(INTERVAL);
+		CASE_PARAM_STR(METER_START);
+		CASE_PARAM_STR(METER_STOP);
+		CASE_PARAM_STR(REASON);
+		CASE_PARAM_STR(RESERVATION_ID);
+		CASE_PARAM_STR(STATUS);			
+		CASE_PARAM_STR(TIMESTAMP);
+		CASE_PARAM_STR(TRANSACTION_ID);
 	}
-	return EMPTY_STRING;
+	return res;
 }
 
 int occpGetActionFromString(const char* s){

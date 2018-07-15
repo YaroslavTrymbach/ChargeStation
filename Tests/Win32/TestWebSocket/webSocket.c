@@ -74,6 +74,7 @@ bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, int* status){
 				break;
 			case INPUT_STATE_PAYLOAD_LENGTH:
 				d = data[inCnt++];
+				payloadWaitedSize = 0;
 				if(d == 127){
 					inputState = INPUT_STATE_PAYLOAD_LENGTH_EX;
 					payloadLengthBit = 32;

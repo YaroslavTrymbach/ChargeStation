@@ -10,6 +10,7 @@
 #include "tasks.h"
 #include "ocpp-json.h"
 #include "chargePointTime.h"
+#include "connector.h"
 
 
 //#define SERVER_PORT_NO 19200
@@ -32,6 +33,8 @@
 
 #define STATION_TAG "1234"
 //#define STATION_TAG "5678"
+
+#define CONNECTOR_NUM 4
 
 #define	WS_OK    0
 #define	WS_ERROR 1
@@ -74,6 +77,16 @@ bool isAuthorized = false;
 
 GeneralMessage message;
 bool isMessageActive = false;
+Connector connector[CONNECTOR_NUM];
+Connector *activeConnector;
+
+void initConnectors(void){
+	int i;
+	for(i = 0; i < CONNECTOR_NUM; i++){
+		connector[i].id = i + 1;
+		connector[i].transactionActive = false;
+	}
+}
 
 void finish(){
 	TerminateThread(hReadThread, 0);
@@ -242,6 +255,49 @@ void sendAuthorizationRequest(){
 	sendMessage(&rpcPacket);
 }
 
+void startTransaction(){
+	char jsonData[512];
+	RequestStartTransaction request;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send startTransaction request\n");
+	
+	activeConnector = &connector[1];
+	request.connectorId = activeConnector->id;
+	strcpy(request.idTag, STATION_TAG);
+	request.meterStart = 0;
+	request.useReservationId = false;
+	getCurrentTime(&request.timestamp);
+
+	jsonPackReqStartTransaction(&rpcPacket, &request);
+
+	sendMessage(&rpcPacket);
+}
+
+void stopTransaction(){
+	char jsonData[512];
+	RequestStopTransaction request;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send stopTransaction request\n");
+
+	request.transactionId = activeConnector->transactionId;
+	request.meterStop = 17;
+	getCurrentTime(&request.timestamp);
+	request.useIdTag = false;
+	request.useReason = false;
+
+	jsonPackReqStopTransaction(&rpcPacket, &request);
+
+	sendMessage(&rpcPacket);
+}
+
 void sendConfUnlockConnector(const char* uniqueId){
 	char jsonData[512];
 	ConfUnlockConnector conf;
@@ -260,7 +316,8 @@ void sendConfUnlockConnector(const char* uniqueId){
 }
 
 void mainThread(){
-	int i;
+	int i, cnt;
+	initConnectors();
 	if(!makeWebsocketHandshake()){
 		finish();
 		return;
@@ -275,13 +332,16 @@ void mainThread(){
 		return;
 	}
 
+	
+	sendAuthorizationRequest();
 	/*
-	//sendAuthorizationRequest();
 	for(i = 1; i <= 4; i++){
 		sendStatusNotification(i);
 	}*/
 
-	/*
+	startTransaction();
+
+	cnt = 0;
 	while(true){
 		if(isMessageActive){
 			if(message.sourceTag == TASK_TAG_SERVER){
@@ -290,11 +350,30 @@ void mainThread(){
 			isMessageActive = false;
 		}
 		Sleep(5);
-	}*/
+		cnt++;
+		if(cnt > 1600){
+			stopTransaction();
+			break;
+		}
+	}
 
 	Sleep(3000);
 	closesocket(sock);
 	Sleep(500);
+}
+
+void processConfStartTransaction(cJSON* json){
+	ConfStartTransaction conf;
+	jsonUnpackConfStartTransaction(json, &conf);
+
+	if(conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED){
+		printf("StartTransaction is accepted\n");
+		activeConnector->transactionActive = true;
+		activeConnector->transactionId = conf.transactionId;
+	}
+	else{
+		printf("StartTransaction is rejected\n");
+	}
 }
 
 void processConfAuthorize(cJSON* json){
@@ -377,6 +456,9 @@ void processRPCPacket(RpcPacket* packet){
 					break;
 				case ACTION_BOOT_NOTIFICATION:
 					processConfBootNotification(jsonRoot);
+					break;
+				case ACTION_START_TRANSACTION:
+					processConfStartTransaction(jsonRoot);
 					break;
 			}
 

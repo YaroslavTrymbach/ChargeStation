@@ -49,17 +49,29 @@ void addString20(char* parName, CiString20Type value){
 	buf[outCnt++] = '"';
 }
 
-void addInteger(char* parName, int value){
+void addInteger(const char* parName, int value){
     char s[16];
 	setParamName(parName);
 	sprintf(s, "%d", value);
-	//buf[outCnt++] = '"';
 	strcpy(buf + outCnt, s);
 	outCnt += strlen(s);
-	//buf[outCnt++] = '"';*/
 }
 
-void addString(char* parName, const char* value){
+void addDateTime(const char* parName, dateTime value){
+	char s[32];
+	setParamName(parName);
+	buf[outCnt++] = '"';
+
+	// 2017-08-22T06:11:00.000Z
+	sprintf(s, "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.000Z", 
+		value.tm_year, value.tm_mon, value.tm_mday, value.tm_hour, value.tm_min, value.tm_sec);
+	strcpy(buf + outCnt, s);
+	outCnt += strlen(s);
+
+	buf[outCnt++] = '"';
+}
+
+void addString(const char* parName, const char* value){
 	setParamName(parName);
 	buf[outCnt++] = '"';
 	strcpy(buf + outCnt, value);
@@ -130,6 +142,41 @@ bool jsonPackReqBootNotification(RpcPacket *rpcPacket, RequestBootNotification *
 	return true;
 }
 
+bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *req){
+	rpcPacket->action = ACTION_START_TRANSACTION;
+
+	openJsonFormation(rpcPacket->payload);
+	addInteger(ocppGetParamNameString(OCPP_PARAM_CONNECTOR_ID), req->connectorId);
+	addIdToken(ocppGetParamNameString(OCPP_PARAM_ID_TAG), req->idTag);
+	addInteger(ocppGetParamNameString(OCPP_PARAM_METER_START), req->meterStart);
+	addDateTime(ocppGetParamNameString(OCPP_PARAM_TIMESTAMP), req->timestamp);
+
+	if(req->useReservationId)
+		addInteger(ocppGetParamNameString(OCPP_PARAM_RESERVATION_ID), req->reservationId);
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
+bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *req){
+	rpcPacket->action = ACTION_STOP_TRANSACTION;
+
+	openJsonFormation(rpcPacket->payload);
+	if(req->useIdTag)
+		addIdToken(ocppGetParamNameString(OCPP_PARAM_ID_TAG), req->idTag);
+	addInteger(ocppGetParamNameString(OCPP_PARAM_METER_STOP), req->meterStop);
+	addDateTime(ocppGetParamNameString(OCPP_PARAM_TIMESTAMP), req->timestamp);
+	addInteger(ocppGetParamNameString(OCPP_PARAM_TRANSACTION_ID), req->transactionId);
+
+	if(req->useReason)
+		addInteger(ocppGetParamNameString(OCPP_PARAM_REASON), req->reason);
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool jsonPackReqStatusNotification(RpcPacket *rpcPacket, RequestStatusNotification *req){
 	rpcPacket->action = ACTION_STATUS_NOTIFICATION;
 
@@ -138,8 +185,6 @@ bool jsonPackReqStatusNotification(RpcPacket *rpcPacket, RequestStatusNotificati
 	addInteger("connectorId", req->connectorId);
 	addString("errorCode", getChargePointErrorCodeString(req->errorCode));
 	addString("status", getChargePointStatusString(req->status));
-
-	//addIdToken("idTag", req->idTag);
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;
@@ -172,7 +217,7 @@ bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf
 bool isParam(const char *s, int paramName){
 	const char *name;
 	bool res;
-	name = occpGetParamNameString(paramName);
+	name = ocppGetParamNameString(paramName);
 	res = (strcmp(s, name) == 0);
 	return res;
 }
@@ -226,6 +271,27 @@ bool jsonUnpackConfBootAuthorize(cJSON* json, ConfAuthorize *conf){
 		if(jsonElement->type == cJSON_Object){
 			if(isParam(jsonElement->string, OCPP_PARAM_ID_TAG_INFO)){
 				jsonUnpackParamIdTagInfo(jsonElement, &(conf->idTagInfo));
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+	return true;
+}
+
+bool jsonUnpackConfStartTransaction(cJSON* json, ConfStartTransaction *conf){
+	cJSON* jsonElement;
+	jsonElement = json->child;
+
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_Object){
+			if(isParam(jsonElement->string, OCPP_PARAM_ID_TAG_INFO)){
+				jsonUnpackParamIdTagInfo(jsonElement, &(conf->idTagInfo));
+			}
+		}
+		else if(jsonElement->type == cJSON_Number){
+			if(isParam(jsonElement->string, OCPP_PARAM_TRANSACTION_ID)){
+				conf->transactionId = jsonElement->valueint;
 			}
 		}
 		jsonElement = jsonElement->next;

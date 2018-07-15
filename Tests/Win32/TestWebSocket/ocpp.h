@@ -1,5 +1,11 @@
 #pragma once
 
+#ifndef _WIN32
+#include <stdbool.h>
+#else
+#include "defTypes.h"
+#endif
+
 #include <time.h>
 
 //
@@ -85,7 +91,9 @@ typedef struct _RequestStartTransaction{
 	int connectorId;
 	idToken idTag;
 	int meterStart;
+	dateTime timestamp;
 	int reservationId;
+	bool useReservationId;
 }RequestStartTransaction;
 
 typedef struct _RequestStatusNotification{
@@ -94,12 +102,23 @@ typedef struct _RequestStatusNotification{
 	int status;
 }RequestStatusNotification;
 
+typedef struct _RequestStopTransaction{
+	idToken idTag;
+	int meterStop;
+	dateTime timestamp;
+	int transactionId;
+	int reason;
+	//MeterValue transactionData;
+	bool useIdTag;
+	bool useReason;
+}RequestStopTransaction;
+
 typedef struct _RequestUnlockConnector{
 	int connectorId;
 }RequestUnlockConnector;
 
 typedef struct _IdTagInfo{
-	int expiryDate;
+	dateTime expiryDate;
 	idToken parentIdTag;
 	int status;
 
@@ -115,23 +134,41 @@ typedef struct _ConfBootNotifiaction{
 	int status;
 }ConfBootNotifiaction;
 
+typedef struct _ConfStartTransaction{
+	IdTagInfo idTagInfo;
+	int transactionId;
+}ConfStartTransaction;
+
+typedef struct _ConfStopTransaction{
+	IdTagInfo idTagInfo;
+	bool useIdTagInfo;
+}
+
 typedef struct _ConfUnlockConnector{
 	int status;
 }ConfUnlockConnector;
 
 
-#define OCPP_PARAM_CURRENT_TIME  0
-#define OCPP_PARAM_INTERVAL      1
-#define OCPP_PARAM_STATUS        2
-#define OCPP_PARAM_ID_TAG_INFO   3
-#define OCPP_PARAM_CONNECTOR_ID  4
+#define OCPP_PARAM_CURRENT_TIME   0
+#define OCPP_PARAM_INTERVAL       1
+#define OCPP_PARAM_STATUS         2
+#define OCPP_PARAM_ID_TAG_INFO    3
+#define OCPP_PARAM_CONNECTOR_ID   4
+#define OCPP_PARAM_ID_TAG         5
+#define OCPP_PARAM_METER_START    6
+#define OCPP_PARAM_RESERVATION_ID 7
+#define OCPP_PARAM_TIMESTAMP      8
+#define OCPP_PARAM_TRANSACTION_ID 9
+#define OCPP_PARAM_METER_STOP     10
+#define OCPP_PARAM_REASON         11
+
 
 const char *getActionString(int action);
 const char *getChargePointErrorCodeString(int errorCode);
 const char *getChargePointStatusString(int status);
 const char *getUnlockStatusString(int status);
 
-const char *occpGetParamNameString(int param);
+const char *ocppGetParamNameString(int param);
 
 int occpGetActionFromString(const char* s);
 int occpGetRegistrationStatusFromString(const char* s);
