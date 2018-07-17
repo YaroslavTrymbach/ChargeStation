@@ -65,6 +65,7 @@
 #include "rng.h"
 #include "serial_control.h"
 #include "chargePointTime.h"
+#include "net.h"
 
 /* USER CODE END Includes */
 
@@ -598,6 +599,7 @@ void mainDispatcher(void){
 	
 	RFID_start(TASK_TAG_RFID, mainQueue);
 	SerialControl_start(TASK_TAG_SERIAL_CONTROL, mainQueue);
+	NET_start(TASK_TAG_NET, mainQueue);
 	
 	Display_PrintStrCenter(0, "Waiting\0");
 	

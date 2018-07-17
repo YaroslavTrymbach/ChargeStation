@@ -6,8 +6,8 @@
 #include "tasks.h"
 
 osThreadId pollingTaskHandle;
-QueueHandle_t hQueue;
-uint8_t hTaskTag;
+static QueueHandle_t hQueue;
+static uint8_t hTaskTag;
 
 uint32_t lastSelectedCardId = 0;
 bool isCardSelected = false;

@@ -1,0 +1,1 @@
+void logStr(char* s);

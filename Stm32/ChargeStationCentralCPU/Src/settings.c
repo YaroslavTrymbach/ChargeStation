@@ -7,6 +7,8 @@
 
 #define ADDRESS_CPU_UNIQUE_ID 0x1FFF7A10
 
+#define DEF_DHCP_ENABLED true
+
 ChargePointSetting workSettings;
 
 const void *flashStartAddress = (void*)FLASH_SECTOR_PTR;
@@ -16,6 +18,10 @@ void setDefValues(void){
 	uint32_t *p;
 	p = (uint32_t*)ADDRESS_CPU_UNIQUE_ID;
 	sprintf(workSettings.ChargePointId, "ChargePoint%.8X", *p);
+	workSettings.isDHCPEnabled = DEF_DHCP_ENABLED;
+	memset(workSettings.LocalIp, 0x00 , 4);
+	memset(workSettings.NetMask, 0x00 , 4);
+	memset(workSettings.GetewayIp, 0x00 , 4);
 }
 
 void Settings_init(void){

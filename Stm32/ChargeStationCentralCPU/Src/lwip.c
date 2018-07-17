@@ -57,6 +57,9 @@
 
 /* USER CODE BEGIN 0 */
 
+#include <string.h>
+#include "settings.h"
+
 /* USER CODE END 0 */
 /* Private function prototypes -----------------------------------------------*/
 /* ETH Variables initialization ----------------------------------------------*/
@@ -77,6 +80,54 @@ uint8_t GATEWAY_ADDRESS[4];
 
 /* USER CODE BEGIN 2 */
 
+void MX_LWIP_InitMod(void)
+{
+	ChargePointSetting *settings;
+	
+	settings = Settings_get();
+	
+	/* IP addresses initialization */
+	if(settings->isDHCPEnabled){
+		memset(IP_ADDRESS, 0x00, 4);
+		memset(NETMASK_ADDRESS, 0x00, 4);
+		memset(GATEWAY_ADDRESS, 0x00, 4);
+	}
+	else{
+		memcpy(IP_ADDRESS, settings->LocalIp, 4);
+		memcpy(NETMASK_ADDRESS, settings->NetMask, 4);
+		memcpy(GATEWAY_ADDRESS, settings->GetewayIp, 4);
+	}
+  
+  /* Initilialize the LwIP stack with RTOS */
+  tcpip_init( NULL, NULL );
+
+  /* IP addresses initialization without DHCP (IPv4) */
+  IP4_ADDR(&ipaddr, IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2], IP_ADDRESS[3]);
+  IP4_ADDR(&netmask, NETMASK_ADDRESS[0], NETMASK_ADDRESS[1] , NETMASK_ADDRESS[2], NETMASK_ADDRESS[3]);
+  IP4_ADDR(&gw, GATEWAY_ADDRESS[0], GATEWAY_ADDRESS[1], GATEWAY_ADDRESS[2], GATEWAY_ADDRESS[3]);
+
+  /* add the network interface (IPv4/IPv6) with RTOS */
+  netif_add(&gnetif, &ipaddr, &netmask, &gw, NULL, &ethernetif_init, &tcpip_input);
+
+  /* Registers the default network interface */
+  netif_set_default(&gnetif);
+
+  if (netif_is_link_up(&gnetif))
+  {
+    /* When the netif is fully configured this function must be called */
+    netif_set_up(&gnetif);
+  }
+  else
+  {
+    /* When the netif link is down this function must be called */
+    netif_set_down(&gnetif);
+  }
+
+	if(settings->isDHCPEnabled)
+		dhcp_start(&gnetif);
+}
+
+
 /* USER CODE END 2 */
 
 /**
@@ -96,7 +147,7 @@ void MX_LWIP_Init(void)
   GATEWAY_ADDRESS[0] = 192;
   GATEWAY_ADDRESS[1] = 168;
   GATEWAY_ADDRESS[2] = 1;
-  GATEWAY_ADDRESS[3] = 1;
+  GATEWAY_ADDRESS[3] = 254;
   
   /* Initilialize the LwIP stack with RTOS */
   tcpip_init( NULL, NULL );

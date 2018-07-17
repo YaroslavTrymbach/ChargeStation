@@ -736,6 +736,46 @@
               <FileType>1</FileType>
               <FilePath>..\Src\chargePointTime.c</FilePath>
             </File>
+            <File>
+              <FileName>net.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\net.c</FilePath>
+            </File>
+            <File>
+              <FileName>log.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\log.c</FilePath>
+            </File>
+            <File>
+              <FileName>webSocket.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\webSocket.c</FilePath>
+            </File>
+            <File>
+              <FileName>base64.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\base64.c</FilePath>
+            </File>
+            <File>
+              <FileName>rpc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\rpc.c</FilePath>
+            </File>
+            <File>
+              <FileName>occp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\occp.c</FilePath>
+            </File>
+            <File>
+              <FileName>cJSON.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\cJSON.c</FilePath>
+            </File>
+            <File>
+              <FileName>ocpp-json.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\ocpp-json.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

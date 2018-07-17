@@ -3,8 +3,11 @@
 #include <cmsis_os.h>
 #include "usbd_cdc_if.h"
 #include "chargePointTime.h"
+#include "settings.h"
+#include "lwip/netif.h"
 
-const char* STR_OK = "OK";
+const char* STR_OK = "\r\nOK\r\n";
+const char* STR_NEW_LINE_OK = "\r\nOK";
 
 #define GET_BUF_SIZE 256
 #define MAX_COMMAND_LENGTH 32
@@ -32,7 +35,14 @@ QueueHandle_t hSerialControlGetCharQueue = NULL;
 
 #define COMMAND_UNKNOWN 0
 
-#define COMMAND_EX_TIME 1
+#define COMMAND_EX_TIME     1
+#define COMMAND_EX_LOCAL_IP 2
+
+const char* STR_EMPTY = "";
+const char* COMMAND_STR_EX_TIME     = "TIME\0";
+const char* COMMAND_STR_EX_LOCAL_IP = "LOCALIP\0";
+
+extern struct netif gnetif;
 
 void strupr(char *s){
 	int i, len;
@@ -51,11 +61,31 @@ int getCommandExFromStr(char *comStr){
 	strupr(comStr);
 	if(strcmp(comStr, "TIME") == 0)
 		return COMMAND_EX_TIME;
+	if(strcmp(comStr, "LOCALIP") == 0)
+		return COMMAND_EX_LOCAL_IP;
 	return COMMAND_UNKNOWN;
 }
 
-
 void sendString(const char *s){
+	CDC_Transmit_FS((uint8_t*)s, strlen(s));
+}
+
+#define CASE_COMMAND_EX_STR(name) case COMMAND_EX_##name: \
+	                                  comStr = COMMAND_STR_EX_##name; \
+								                    break
+
+void sendReadResultString(int command, const char *s){
+	char sendStr[256];
+	const  char *comStr = STR_EMPTY;
+	switch(command){
+		CASE_COMMAND_EX_STR(TIME);
+		CASE_COMMAND_EX_STR(LOCAL_IP);
+	}
+	sprintf(sendStr, "\r\n+%s: %s\r\nOK\r\n", comStr, s);
+	sendString(sendStr);
+}
+
+void sendString2(const char *s){
 	char sendStr[256];
 	sprintf(sendStr, "\r\n%s\r\n", s);
 	CDC_Transmit_FS((uint8_t*)sendStr, strlen(sendStr));
@@ -63,7 +93,7 @@ void sendString(const char *s){
 
 void sendError(const char *errS){
 	char s[64];
-	sprintf(s, "ERROR! %s", errS);
+	sprintf(s, "\r\nERROR! %s\r\n", errS);
 	sendString(s);
 }
 
@@ -77,9 +107,29 @@ void sendTime(){
 	char s[64];
 	struct tm t;
 	getCurrentTime(&t);
-	sprintf(s, "+TIME: %.4d-%.2d-%.2d %.2d:%.2d:%.2d", 
+	sprintf(s, "%.4d-%.2d-%.2d %.2d:%.2d:%.2d", 
 	           t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
-	sendString(s);
+	sendReadResultString(COMMAND_EX_TIME, s);
+	/*sprintf(s, "+TIME: %.4d-%.2d-%.2d %.2d:%.2d:%.2d", 
+	           t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+	strcat(s, STR_NEW_LINE_OK);
+	sendString(s);*/
+}
+
+void sendLocalIp(){
+	char s[64];
+	unsigned char ip[4];
+	ChargePointSetting* st;
+	st = Settings_get();
+	if(st->isDHCPEnabled){
+		memcpy(ip, &gnetif.ip_addr, 4);
+		sprintf(s, "1, %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+	}
+	else{
+		sprintf(s, "0, %d.%d.%d.%d", 
+		  st->LocalIp[0], st->LocalIp[1], st->LocalIp[2], st->LocalIp[3]);
+	}
+	sendReadResultString(COMMAND_EX_LOCAL_IP, s);
 }
 
 void processCommandExRead(int command){
@@ -87,9 +137,10 @@ void processCommandExRead(int command){
 		case COMMAND_EX_TIME:
 			sendTime();
 			break;
+		case COMMAND_EX_LOCAL_IP:
+			sendLocalIp();
+			break;
 	}
-	
-	sendOK();
 }
 
 void processLine(void){
