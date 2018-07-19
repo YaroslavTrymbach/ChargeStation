@@ -12,6 +12,8 @@ const char* STR_NEW_LINE_OK = "\r\nOK";
 #define GET_BUF_SIZE 256
 #define MAX_COMMAND_LENGTH 32
 
+#define getTickCount() pdMS_TO_TICKS(xTaskGetTickCount())
+
 char getBuf[GET_BUF_SIZE];
 int getCnt = 0;
 char commandStr[MAX_COMMAND_LENGTH];
@@ -20,12 +22,14 @@ char params[GET_BUF_SIZE - MAX_COMMAND_LENGTH];
 osThreadId serialControlTaskHandle;
 QueueHandle_t hMainQueue;
 QueueHandle_t hSerialControlGetCharQueue = NULL;
+static uint8_t hTaskTag;
 
 #define sendOK() sendString(STR_OK)
 
 #define ERROR_STR_UNKNOWN_COMMAND    "Unknown command"
 #define ERROR_STR_INVALID_PARAMETERS "Invalid parameters"
 #define ERROR_STR_BUFFER_OVERFLOW    "Buffer overflow"
+#define ERROR_STR_EXEC_FAILED        "Execution if failed"
 
 #define COMMAND_TYPE_STANDARD 0
 #define COMMAND_TYPE_TEST     1   
@@ -35,12 +39,17 @@ QueueHandle_t hSerialControlGetCharQueue = NULL;
 
 #define COMMAND_UNKNOWN 0
 
-#define COMMAND_EX_TIME     1
-#define COMMAND_EX_LOCAL_IP 2
+#define COMMAND_EX_TIME          1
+#define COMMAND_EX_LOCAL_IP      2
+#define COMMAND_EX_SAVE_SETTINGS 3
+
+#define DELIM_COMMA ','
+#define DELIM_POINT '.'
 
 const char* STR_EMPTY = "";
-const char* COMMAND_STR_EX_TIME     = "TIME\0";
-const char* COMMAND_STR_EX_LOCAL_IP = "LOCALIP\0";
+const char* COMMAND_STR_EX_TIME          = "TIME\0";
+const char* COMMAND_STR_EX_LOCAL_IP      = "LOCALIP\0";
+const char* COMMAND_STR_EX_SAVE_SETTINGS = "SAVESETTINGS\0";
 
 extern struct netif gnetif;
 
@@ -53,21 +62,130 @@ void strupr(char *s){
 	}
 }
 
+bool charToInt(const char c, int *value){
+	if((c < 0x30) || (c > 0x39))
+		return false;
+	*value = c - 0x30;
+	return true;
+}
+
+bool strToIntWithTrim(const char *s, int *value){
+#define STATE_START 0
+#define STATE_SIGN	1 
+#define STATE_DIGIT 2
+#define STATE_END	  3
+	int len, state, res, i, d;
+  bool isNeg, isFailed;
+	char c;
+  len	= strlen(s);
+	res = 0;
+	isNeg = false;
+	isFailed = false;
+	state = STATE_START;
+  for(i = 0; i < len; i++){
+		c = s[i];
+		switch(state){
+			case STATE_START:
+				if(charToInt(c, &d)){
+					res = d;
+					state = STATE_DIGIT;
+				}
+				else if(c == '-'){
+					isNeg = true;
+					state = STATE_SIGN;
+				}
+				else if(c != ' '){
+					isFailed = true;
+				}
+				break;
+			case STATE_SIGN:
+				//Only digit permitted
+			  if(charToInt(c, &d)){
+					res = d;
+					state = STATE_DIGIT;
+				}
+				else{
+					isFailed = true;
+				}
+				break;	
+			case STATE_DIGIT:
+				if(charToInt(c, &d)){
+					res *= 10;
+					res += d;
+				}
+				else if(c == ' '){
+					state = STATE_END;
+				}
+				else{
+					isFailed = true;
+				}
+				break;
+			case STATE_END:
+				//Only spaces is permitted
+			  if(c != ' ')
+					isFailed = true;
+				break;
+		}
+		if(isFailed)
+			break;
+	}		
+	
+	if(isFailed || (state < STATE_DIGIT))
+		return false;
+	
+	if(isNeg)
+		res = res * (-1);
+	
+	*value = res;
+	
+	return true;
+}
+
 int getCommandFromStr(char *comStr){
 	return COMMAND_UNKNOWN;
 }
 
+
 int getCommandExFromStr(char *comStr){
+#define CHECK_COMMAND(name) if(strcmp(comStr, COMMAND_STR_EX_##name) == 0) \
+		                          return COMMAND_EX_##name 
+				
 	strupr(comStr);
+															
 	if(strcmp(comStr, "TIME") == 0)
 		return COMMAND_EX_TIME;
 	if(strcmp(comStr, "LOCALIP") == 0)
 		return COMMAND_EX_LOCAL_IP;
+	CHECK_COMMAND(SAVE_SETTINGS);
+	
 	return COMMAND_UNKNOWN;
 }
 
 void sendString(const char *s){
-	CDC_Transmit_FS((uint8_t*)s, strlen(s));
+#define CHUNK_MAX_SIZE 60	
+	int len, cnt, chunk;
+	uint32_t startTick;
+	
+	//such as COM-port is virtual with size of package 64 bytes
+	//it is need to split send string on chunks
+	
+	startTick = getTickCount();
+	len = strlen(s); 
+	cnt = 0;
+	while(cnt < len){
+		chunk = len - cnt;
+		if(chunk > CHUNK_MAX_SIZE)
+			chunk = CHUNK_MAX_SIZE;
+		if(CDC_IsTxFree()){
+			CDC_Transmit_FS((uint8_t*)(s + cnt), chunk);		
+			cnt += chunk;
+		}
+		else{
+			if((getTickCount() - startTick) >= 5){
+				break;
+			}
+		}
+	}
 }
 
 #define CASE_COMMAND_EX_STR(name) case COMMAND_EX_##name: \
@@ -118,18 +236,136 @@ void sendTime(){
 
 void sendLocalIp(){
 	char s[64];
-	unsigned char ip[4];
+	unsigned char ip[3][4];
 	ChargePointSetting* st;
 	st = Settings_get();
 	if(st->isDHCPEnabled){
-		memcpy(ip, &gnetif.ip_addr, 4);
-		sprintf(s, "1, %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+		memcpy(ip[0], &gnetif.ip_addr, 4);
+		sprintf(s, "1, %d.%d.%d.%d", ip[0][0], ip[0][1], ip[0][2], ip[0][3]);
 	}
 	else{
-		sprintf(s, "0, %d.%d.%d.%d", 
-		  st->LocalIp[0], st->LocalIp[1], st->LocalIp[2], st->LocalIp[3]);
+		sprintf(s, "0, %d.%d.%d.%d, %d.%d.%d.%d, %d.%d.%d.%d", 
+		  st->LocalIp[0], st->LocalIp[1], st->LocalIp[2], st->LocalIp[3],
+		  st->NetMask[0], st->NetMask[1], st->NetMask[2], st->NetMask[3],
+		  st->GetewayIp[0], st->GetewayIp[1], st->GetewayIp[2], st->GetewayIp[3]);
 	}
 	sendReadResultString(COMMAND_EX_LOCAL_IP, s);
+}
+
+char* getParam(char **spar, char chPDiv){
+	char *pdest;
+	char *sres;
+	
+	sres = *spar;
+	pdest = strchr(sres, chPDiv);
+	if( pdest != NULL )
+	{
+		*pdest= '\0';
+		*spar = pdest + 1;
+	} 
+	else 
+		*spar += strlen(sres);
+
+	return sres;
+}
+
+bool getParamInt(char **spar, char chPDiv, int *value){
+	char *s;
+	s = getParam(spar, chPDiv);
+	if(s == NULL)
+		return false;
+	
+	return strToIntWithTrim(s, value);
+}
+
+bool getParamIp(char **spar, char chPDiv, unsigned char *value){
+	char *s;
+	int i, iVal;
+	s = getParam(spar, chPDiv);
+	if(s == NULL)
+		return false;
+	
+	for(i = 0; i < 4; i++){
+		if(!getParamInt(&s, DELIM_POINT, &iVal))
+			return false;
+		if((iVal < 0) || (iVal > 255))
+			return false;
+		value[i] = iVal;
+	}
+	return true;
+}
+
+
+void writeLocalIp(char *arg){
+	int iVal, i;
+	bool dhcpEnabled;
+	unsigned char ip[3][4];
+	ChargePointSetting* st;
+	GeneralMessage message;
+	
+	// Waiting string
+  // 0, XXX.XXX.XXX.XXX, XXX.XXX.XXX.XXX, XXX.XXX.XXX.XXX
+	
+	//Get dhcp server enabling
+	if(!getParamInt(&arg, DELIM_COMMA, &iVal)){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	//printf("iVal = %d\n", iVal);
+	
+	if(iVal == 0){
+		dhcpEnabled = false;
+	}
+	else if(iVal == 1){
+		dhcpEnabled = true;
+	}
+	else{
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	if(!dhcpEnabled){
+		//Ip, Netmask and Gateway is need
+		for(i = 0; i < 3; i++){
+			if(!getParamIp(&arg, DELIM_COMMA, ip[i])){
+				sendError(ERROR_STR_INVALID_PARAMETERS);
+				return;
+			}				
+		}
+	}
+	
+	sendOK();
+	
+	st = Settings_get();
+	st->isDHCPEnabled = dhcpEnabled;
+	if(!st->isDHCPEnabled){
+		memcpy(st->LocalIp, ip[0], 4);
+		memcpy(st->NetMask, ip[1], 4);
+		memcpy(st->GetewayIp, ip[2], 4);
+	}
+	
+	//Send message to central process
+	message.sourceTag = hTaskTag;
+	message.messageId = MESSAGE_SER_CONTROL_SET_LOCAL_IP;
+	xQueueSend(hMainQueue, &message, 10);
+}
+
+void execSaveSettings(){
+	if(Settings_save()){
+		sendOK();
+	}
+	else{
+		sendError(ERROR_STR_EXEC_FAILED);
+	}
+}
+
+void processCommandExWrite(int command, char *arg){
+	switch(command){
+		case COMMAND_EX_LOCAL_IP:
+			writeLocalIp(arg);
+			break;
+	}
 }
 
 void processCommandExRead(int command){
@@ -143,11 +379,21 @@ void processCommandExRead(int command){
 	}
 }
 
+void processCommandExExec(int command){
+	switch(command){
+		case COMMAND_EX_SAVE_SETTINGS:
+			execSaveSettings();
+			break;
+	}
+}
+
 void processLine(void){
+#define ARG_SIZE 128	
 	int commandType = COMMAND_TYPE_STANDARD;
 	int commandLen;
 	int command;
 	char *p;
+	char *arg;
 	printf("Line is get: %s\n", getBuf);
 	
 	if(getCnt == 0){
@@ -200,6 +446,13 @@ void processLine(void){
 		switch(commandType){
 			case COMMAND_TYPE_READ:
 				processCommandExRead(command);
+				break;
+			case COMMAND_TYPE_WRITE:
+				arg = p + 1; 
+				processCommandExWrite(command, arg);
+				break;
+			case COMMAND_TYPE_EXEC:
+				processCommandExExec(command);
 				break;
 		}
 	}
@@ -288,6 +541,7 @@ void serialControlThread(void const * argument){
 
 void SerialControl_start(uint8_t taskTag, QueueHandle_t queue){
 	hMainQueue = queue;
+	hTaskTag = taskTag;
   osThreadDef(SerialControlTask, serialControlThread, osPriorityNormal, 0, 256);
   serialControlTaskHandle = osThreadCreate(osThread(SerialControlTask), NULL);
 }

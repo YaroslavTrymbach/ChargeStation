@@ -547,6 +547,15 @@ void processMessageFromRFID(GeneralMessage *message){
 	}
 }
 
+void processMessageFromSerialControl(GeneralMessage *message){
+	printf("Main task. Message from SerialControl is got\n");
+	switch(message->messageId){
+		case MESSAGE_SER_CONTROL_SET_LOCAL_IP:
+			NET_changeLocalIp();
+			break;
+	}
+}
+
 void testSaveSetting(){
 	printf("testSaveSetting\n");
 	sprintf(settings->ChargePointId, "SaveCP_%.8X", generateRnd32());
@@ -618,7 +627,11 @@ void mainDispatcher(void){
 				case TASK_TAG_USER_BUTTON:
 					//printf("User button is pressed %d\n", ++btnPressCnt);
 				  //testSaveSetting();
-				  printCurrentDateTime();
+				  //printCurrentDateTime();
+				  NET_test();
+					break;
+				case TASK_TAG_SERIAL_CONTROL:
+					processMessageFromSerialControl(&message);
 					break;
 			}
 			

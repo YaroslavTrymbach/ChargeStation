@@ -111,6 +111,8 @@ void MX_LWIP_InitMod(void)
 
   /* Registers the default network interface */
   netif_set_default(&gnetif);
+	
+	netif_set_link_callback(&gnetif, ethernetif_update_config);
 
   if (netif_is_link_up(&gnetif))
   {

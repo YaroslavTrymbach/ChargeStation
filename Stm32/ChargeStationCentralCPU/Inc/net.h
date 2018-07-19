@@ -3,3 +3,7 @@
 #include <queue.h>
 
 void NET_start(uint8_t taskTag, QueueHandle_t queue);
+
+void NET_changeLocalIp(void);
+
+void NET_test(void);

@@ -13,6 +13,7 @@
 #include "ocpp-json.h"
 #include "cJSON.h"
 #include "settings.h"
+#include "netConn.h"
 
 #define SERVER_HOST_DEF "192.168.1.69"
 
@@ -54,6 +55,8 @@ int ActiveProtocol = ACTIVE_PROTOCOL_NONE;
 bool httpBufOverflow = false;
 
 SemaphoreHandle_t hGetEvent;
+
+extern struct netif gnetif;
 
 void clear_http_buf_in(){
 	buf_pos_in = http_buf_in;
@@ -236,9 +239,11 @@ void netThread(void const * argument){
 	
 	logStr("startNetTask\r\n");
 	
+	NET_CONN_init();
 	//MX_LWIP_Init();
-	MX_LWIP_InitMod();
-/*	
+	//MX_LWIP_InitMod();
+	/*
+	
 	hGetEvent = xSemaphoreCreateBinary();
 	
 	logStr("Socket init\r\n");
@@ -334,4 +339,24 @@ void NET_start(uint8_t taskTag, QueueHandle_t queue){
 	
 	osThreadDef(netTask, netThread, osPriorityNormal, 0, 1024);
   hNetThread = osThreadCreate(osThread(netTask), NULL);
+}
+
+void NET_changeLocalIp(void){
+	NET_CONN_change_local_ip();
+}
+
+void NET_test(void){
+	uint32_t phyreg;
+	printf("NET_test\n");
+	HAL_ETH_ReadPHYRegister(&heth, PHY_BSR, &phyreg);
+	if (phyreg & PHY_LINKED_STATUS){
+		printf("Link is on\n");
+	}
+	else{
+		printf("Link is off\n");
+	}
+}
+
+void ethernetif_notify_conn_changed(struct netif *netif){
+	printf("ethernetif_notify_conn_changed\n");
 }

@@ -776,6 +776,16 @@
               <FileType>1</FileType>
               <FilePath>..\Src\ocpp-json.c</FilePath>
             </File>
+            <File>
+              <FileName>netEth.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\netEth.c</FilePath>
+            </File>
+            <File>
+              <FileName>netConn.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\netConn.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
