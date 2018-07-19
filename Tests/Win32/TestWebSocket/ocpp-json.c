@@ -71,6 +71,14 @@ void addDateTime(const char* parName, dateTime value){
 	buf[outCnt++] = '"';
 }
 
+void addString50list(const char* parName, const* CiString50TypeListItem){
+	setParamName(parName);
+	buf[outCnt++] = '[';
+	//strcpy(buf + outCnt, value);
+	//outCnt += strlen(value);
+	buf[outCnt++] = ']';
+}
+
 void addString(const char* parName, const char* value){
 	setParamName(parName);
 	buf[outCnt++] = '"';
@@ -214,6 +222,17 @@ bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf
 	return true;
 }
 
+bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	//addString("status", getUnlockStatusString(conf->status));
+	addString50list(ocppGetParamNameString(OCPP_PARAM_UNKNOWN_KEY), conf->unknownKey);
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool isParam(const char *s, int paramName){
 	const char *name;
 	bool res;
@@ -314,4 +333,30 @@ bool jsonUnpackReqUnlockConnector(cJSON* json, RequestUnlockConnector *req){
 	}
 	return true;
 }
+
+bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req){
+	cJSON* jsonElement;
+	cJSON* jsonIter;
+	jsonElement = json->child;
+	req->keySize = 0;
+
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_Array){
+			if(isParam(jsonElement->string, OCPP_PARAM_KEY)){
+				jsonIter = jsonElement->child;
+				while(jsonIter != NULL){
+				//req->connectorId = jsonElement->valueint;
+					strcpy(req->key[req->keySize++], jsonIter->valuestring);
+					if(req->keySize >= CONFIGURATION_GET_MAX_KEYS)
+						break;
+					jsonIter = jsonIter->next;
+				}
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+	return true;
+}
+
 

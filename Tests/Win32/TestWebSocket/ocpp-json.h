@@ -14,10 +14,14 @@ bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *
 bool jsonPackReqStatusNotification(RpcPacket *rpcPacket, RequestStatusNotification *req);
 bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *req);
 
+bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf);
 bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf);
 
 bool jsonUnpackConfBootNotification(cJSON* json, ConfBootNotifiaction *conf);
 bool jsonUnpackConfBootAuthorize(cJSON* json, ConfAuthorize *conf);
 bool jsonUnpackConfStartTransaction(cJSON* json, ConfStartTransaction *conf);
 
+//Request from Server
+bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req);
 bool jsonUnpackReqUnlockConnector(cJSON* json, RequestUnlockConnector *req);
+

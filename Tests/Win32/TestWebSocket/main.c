@@ -18,9 +18,11 @@
 //#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
 //#define SERVER_HOST    "192.168.1.63"
+#define SERVER_HOST    "192.168.1.64"
+//#define SERVER_HOST    "192.168.1.65"
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
-#define SERVER_HOST "192.168.77.7"
+//#define SERVER_HOST "192.168.77.7"
 #define SERVER_PORT_NO 8080
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
@@ -339,7 +341,7 @@ void mainThread(){
 		sendStatusNotification(i);
 	}*/
 
-	startTransaction();
+	//startTransaction();
 
 	cnt = 0;
 	while(true){
@@ -352,8 +354,8 @@ void mainThread(){
 		Sleep(5);
 		cnt++;
 		if(cnt > 1600){
-			stopTransaction();
-			break;
+			//stopTransaction();
+			//break;
 		}
 	}
 
@@ -403,6 +405,59 @@ void processConfBootNotification(cJSON* json){
 	else{
 		printf("Station is rejected\n");
 	}
+}
+
+void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
+	int i;
+	RequestGetConfiguration request;
+	
+	char jsonData[512];
+	ConfGetConfiguration conf;
+	RpcPacket rpcPacket;
+	CiString50TypeListItem *lastUnKey;
+	CiString50TypeListItem *unKey;
+
+	jsonUnpackReqGetConfiguration(json, &request);
+
+	printf("GetConfiguration. Cnt = %d\n", request.keySize);
+	
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	conf.unknownKey = NULL;
+	conf.configurationKey = NULL;
+	for(i = 0; i < request.keySize; i++){
+		printf("Key %d: %s\n", i + 1, request.key[i]);
+
+		//UnknowKey
+		unKey = malloc(sizeof(CiString50TypeListItem));
+		unKey->next = NULL;
+		strcpy(unKey->data, request.key[i]);
+		if(conf.unknownKey == NULL){
+			conf.unknownKey = unKey;
+		}
+		else{
+			lastUnKey->next = unKey;
+		}
+		lastUnKey = unKey;
+		
+	}
+
+	printf("send GetConfiguration confirmation\n");
+	
+	jsonPackConfGetConfiguration(&rpcPacket, &conf);
+
+	//Free memory in conf
+	unKey = conf.unknownKey;
+	while(unKey != NULL){
+		lastUnKey = unKey;
+		unKey = lastUnKey->next;
+		free(lastUnKey);
+	}
+
+	sendConfMessage(&rpcPacket);
 }
 
 void processReqUnlockConnector(RpcPacket* packet, cJSON* json){
@@ -468,6 +523,9 @@ void processRPCPacket(RpcPacket* packet){
 	else if (packet->messageType == MES_TYPE_CALL){
 		//Запрос от сервера
 		switch(packet->action){
+			case ACTION_GET_CONFIGURATION:
+				processReqGetConfiguration(packet, jsonRoot);
+				break;
 			case ACTION_UNLOCK_CONNECTOR:
 				processReqUnlockConnector(packet, jsonRoot);
 				break;

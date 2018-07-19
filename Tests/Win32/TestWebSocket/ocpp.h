@@ -11,9 +11,13 @@
 //
 typedef char CiString20Type[21];
 typedef char CiString25Type[26];
+typedef char CiString50Type[51];
 typedef struct tm dateTime;
 
 typedef CiString20Type idToken;
+
+//Configuration constant
+#define CONFIGURATION_GET_MAX_KEYS 16
 
 // Messages
 #define ACTION_UNKNOWN                         0
@@ -78,14 +82,35 @@ typedef CiString20Type idToken;
 #define UNLOCK_STATUS_UNLOCK_FAILED 2
 #define UNLOCK_STATUS_NOT_SUPPORTED 3
 
+typedef struct _CiString50TypeListItem{
+	CiString50Type data;
+	struct _CiString50TypeListItem *next;
+}CiString50TypeListItem;
+
 typedef struct _RequestAuthorize{
    idToken idTag;
 }RequestAuthorize;
+
+typedef struct _KeyValue{
+	CiString50Type key;
+	bool readonly;
+	CiString50Type value;
+}KeyValue;
+
+typedef struct _KeyValueListItem{
+	KeyValue data;
+	struct _KeyValueListItem *next;
+}KeyValueListItem;
 
 typedef struct _RequestBootNotification {
    CiString20Type chargePointModel;
    CiString20Type chargePointVendor;
 }RequestBootNotification;
+
+typedef struct _RequestGetConfiguration{
+	int keySize;
+	CiString50Type key[CONFIGURATION_GET_MAX_KEYS];
+}RequestGetConfiguration;
 
 typedef struct _RequestStartTransaction{
 	int connectorId;
@@ -134,6 +159,11 @@ typedef struct _ConfBootNotifiaction{
 	int status;
 }ConfBootNotifiaction;
 
+typedef struct _ConfGetConfiguration{
+	KeyValueListItem *configurationKey;
+	CiString50TypeListItem *unknownKey;
+}ConfGetConfiguration;
+
 typedef struct _ConfStartTransaction{
 	IdTagInfo idTagInfo;
 	int transactionId;
@@ -142,7 +172,7 @@ typedef struct _ConfStartTransaction{
 typedef struct _ConfStopTransaction{
 	IdTagInfo idTagInfo;
 	bool useIdTagInfo;
-}
+}ConfStopTransaction;
 
 typedef struct _ConfUnlockConnector{
 	int status;
@@ -161,7 +191,8 @@ typedef struct _ConfUnlockConnector{
 #define OCPP_PARAM_TRANSACTION_ID 9
 #define OCPP_PARAM_METER_STOP     10
 #define OCPP_PARAM_REASON         11
-
+#define OCPP_PARAM_KEY            12
+#define OCPP_PARAM_UNKNOWN_KEY    13
 
 const char *getActionString(int action);
 const char *getChargePointErrorCodeString(int errorCode);
