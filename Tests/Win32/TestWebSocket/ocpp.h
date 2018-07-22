@@ -12,6 +12,7 @@
 typedef char CiString20Type[21];
 typedef char CiString25Type[26];
 typedef char CiString50Type[51];
+typedef char CiString500Type[501];
 typedef struct tm dateTime;
 
 typedef CiString20Type idToken;
@@ -82,6 +83,19 @@ typedef CiString20Type idToken;
 #define UNLOCK_STATUS_UNLOCK_FAILED 2
 #define UNLOCK_STATUS_NOT_SUPPORTED 3
 
+#define CONFIG_KEY_UNKNOWN                            0
+#define CONFIG_KEY_ALLOW_OFLINE_TX_FOR_UNKNOWN_ID     1
+#define CONFIG_KEY_AUTHORIZATION_CACHE_ENABLED        2
+#define CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS       3
+#define CONFIG_KEY_BLINK_REPEAT                       4
+#define CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL        5
+#define CONFIG_KEY_CONNECTION_TIMEOUT                 6
+#define CONFIG_KEY_CONNECTOR_PHASE_ROTATION           7
+#define CONFIG_KEY_CONNECTOR_PHASE_ROTATION_MAX_LENGH 8
+#define CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS         9
+#define CONFIG_KEY_HEARTBEAT_INTERVAL                 10
+#define CONFIG_KEY_LIGHT_INTENSITY                    11
+
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
 	struct _CiString50TypeListItem *next;
@@ -94,7 +108,8 @@ typedef struct _RequestAuthorize{
 typedef struct _KeyValue{
 	CiString50Type key;
 	bool readonly;
-	CiString50Type value;
+	CiString500Type *value;
+	bool vauleIsSet;
 }KeyValue;
 
 typedef struct _KeyValueListItem{
@@ -179,20 +194,23 @@ typedef struct _ConfUnlockConnector{
 }ConfUnlockConnector;
 
 
-#define OCPP_PARAM_CURRENT_TIME   0
-#define OCPP_PARAM_INTERVAL       1
-#define OCPP_PARAM_STATUS         2
-#define OCPP_PARAM_ID_TAG_INFO    3
-#define OCPP_PARAM_CONNECTOR_ID   4
-#define OCPP_PARAM_ID_TAG         5
-#define OCPP_PARAM_METER_START    6
-#define OCPP_PARAM_RESERVATION_ID 7
-#define OCPP_PARAM_TIMESTAMP      8
-#define OCPP_PARAM_TRANSACTION_ID 9
-#define OCPP_PARAM_METER_STOP     10
-#define OCPP_PARAM_REASON         11
-#define OCPP_PARAM_KEY            12
-#define OCPP_PARAM_UNKNOWN_KEY    13
+#define OCPP_PARAM_CURRENT_TIME      0
+#define OCPP_PARAM_INTERVAL          1
+#define OCPP_PARAM_STATUS            2
+#define OCPP_PARAM_ID_TAG_INFO       3
+#define OCPP_PARAM_CONNECTOR_ID      4
+#define OCPP_PARAM_ID_TAG            5
+#define OCPP_PARAM_METER_START       6
+#define OCPP_PARAM_RESERVATION_ID    7
+#define OCPP_PARAM_TIMESTAMP         8
+#define OCPP_PARAM_TRANSACTION_ID    9
+#define OCPP_PARAM_METER_STOP        10
+#define OCPP_PARAM_REASON            11
+#define OCPP_PARAM_KEY               12
+#define OCPP_PARAM_UNKNOWN_KEY       13
+#define OCPP_PARAM_CONFIGURATION_KEY 14
+#define OCPP_PARAM_VALUE             15
+#define OCPP_PARAM_READONLY          16
 
 const char *getActionString(int action);
 const char *getChargePointErrorCodeString(int errorCode);
@@ -202,5 +220,11 @@ const char *getUnlockStatusString(int status);
 const char *ocppGetParamNameString(int param);
 
 int occpGetActionFromString(const char* s);
+int occpConfigKeyFromString(const char* s);
 int occpGetRegistrationStatusFromString(const char* s);
 int occpGetAuthorizationStatusFromString(const char* s);
+
+void occpFreeCiString50TypeList(CiString50TypeListItem *list);
+void occpFreeKeyValueList(KeyValueListItem *list);
+
+KeyValueListItem* occpCreateKeyValueInt(int key, bool readonly, int value);

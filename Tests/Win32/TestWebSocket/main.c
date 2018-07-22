@@ -18,11 +18,11 @@
 //#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
 //#define SERVER_HOST    "192.168.1.63"
-#define SERVER_HOST    "192.168.1.64"
+//#define SERVER_HOST    "192.168.1.64"
 //#define SERVER_HOST    "192.168.1.65"
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
-//#define SERVER_HOST "192.168.77.7"
+#define SERVER_HOST "192.168.77.7"
 #define SERVER_PORT_NO 8080
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
@@ -416,6 +416,9 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	RpcPacket rpcPacket;
 	CiString50TypeListItem *lastUnKey;
 	CiString50TypeListItem *unKey;
+	KeyValueListItem *lastConfKey;
+	KeyValueListItem *confKey;
+	bool keyPassed;
 
 	jsonUnpackReqGetConfiguration(json, &request);
 
@@ -431,17 +434,38 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	for(i = 0; i < request.keySize; i++){
 		printf("Key %d: %s\n", i + 1, request.key[i]);
 
-		//UnknowKey
-		unKey = malloc(sizeof(CiString50TypeListItem));
-		unKey->next = NULL;
-		strcpy(unKey->data, request.key[i]);
-		if(conf.unknownKey == NULL){
-			conf.unknownKey = unKey;
+		keyPassed = true;
+		switch(occpGetConfigKeyFromString(request.key[i])){
+			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
+				confKey = occpCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
+				break;
+			default:
+				keyPassed = false;
+		}
+
+		if(keyPassed){
+			//Add to configuration key
+			if(conf.configurationKey == NULL){
+				conf.configurationKey = confKey;
+			}
+			else{
+				lastConfKey->next = unKey;
+			}
+			lastConfKey = unKey;			
 		}
 		else{
-			lastUnKey->next = unKey;
+			//Add to unknowKey
+			unKey = malloc(sizeof(CiString50TypeListItem));
+			unKey->next = NULL;
+			strcpy(unKey->data, request.key[i]);
+			if(conf.unknownKey == NULL){
+				conf.unknownKey = unKey;
+			}
+			else{
+				lastUnKey->next = unKey;
+			}
+			lastUnKey = unKey;
 		}
-		lastUnKey = unKey;
 		
 	}
 
@@ -450,12 +474,8 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	jsonPackConfGetConfiguration(&rpcPacket, &conf);
 
 	//Free memory in conf
-	unKey = conf.unknownKey;
-	while(unKey != NULL){
-		lastUnKey = unKey;
-		unKey = lastUnKey->next;
-		free(lastUnKey);
-	}
+	occpFreeKeyValueList(conf.configurationKey);
+	occpFreeCiString50TypeList(conf.unknownKey);
 
 	sendConfMessage(&rpcPacket);
 }

@@ -8,6 +8,12 @@ bool isWaitFirstElement;
 
 #define addIdToken addString20 
 
+#define paramStr(param) ocppGetParamNameString(OCPP_PARAM_##param)
+
+const char* BOOLEAN_STR_FALSE = "false\0";
+const char* BOOLEAN_STR_TRUE  = "true\0";
+
+
 void openJsonFormation(char* outBuf){
 	buf = outBuf;
 	outCnt = 0;
@@ -40,6 +46,22 @@ void setParamName(char* parName){
 	buf[outCnt++] = ':';
 }
 
+void addValueString(char* value, int max_cnt){
+	buf[outCnt++] = '"';
+	if(max_cnt > 0){
+		value[max_cnt] = '\0';
+		strncpy(buf + outCnt, value, max_cnt);
+	}
+	else{
+		strcpy(buf + outCnt, value);
+	}
+	outCnt += strlen(value);
+	buf[outCnt++] = '"';
+}
+
+#define addValueString20(value) addValueString(value, 20)
+#define addValueString50(value) addValueString(value, 50)
+
 void addString20(char* parName, CiString20Type value){
 	setParamName(parName);
 	buf[outCnt++] = '"';
@@ -47,6 +69,11 @@ void addString20(char* parName, CiString20Type value){
 	strncpy(buf + outCnt, value, 20);
 	outCnt += strlen(value);
 	buf[outCnt++] = '"';
+}
+
+void addString50(char* parName, CiString50Type value){
+	setParamName(parName);
+	addValueString50(value);
 }
 
 void addInteger(const char* parName, int value){
@@ -71,11 +98,53 @@ void addDateTime(const char* parName, dateTime value){
 	buf[outCnt++] = '"';
 }
 
-void addString50list(const char* parName, const* CiString50TypeListItem){
+void addString50list(const char* parName, const CiString50TypeListItem *list){
+	CiString50TypeListItem* item;
+	bool firstElement = true;
 	setParamName(parName);
 	buf[outCnt++] = '[';
+
+	item = list;
+	while(item != NULL){
+		if(firstElement)
+			firstElement = false;
+		else
+			buf[outCnt++] = ',';
+		addValueString50(item->data);
+		item = item->next;
+	}
+
 	//strcpy(buf + outCnt, value);
 	//outCnt += strlen(value);
+	buf[outCnt++] = ']';
+}
+
+void addKeyValue(const KeyValueListItem *item){
+	isWaitFirstElement = true;
+	buf[outCnt++] = '{';
+	addString50(paramStr(KEY), item->data.key);
+	if(item->data.vauleIsSet){
+	}
+	buf[outCnt++] = '}';
+}
+
+void addKeyValueList(const char* parName, const KeyValueListItem *list){
+	KeyValueListItem* item;
+	bool firstElement = true;
+	setParamName(parName);
+	buf[outCnt++] = '[';
+
+	item = list;
+	while(item != NULL){
+		if(firstElement)
+			firstElement = false;
+		else
+			buf[outCnt++] = ',';
+		addKeyValue(item);
+		//addValueString50(item->data);
+		item = item->next;
+	}
+
 	buf[outCnt++] = ']';
 }
 
@@ -227,6 +296,7 @@ bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *co
 
 	//addString("status", getUnlockStatusString(conf->status));
 	addString50list(ocppGetParamNameString(OCPP_PARAM_UNKNOWN_KEY), conf->unknownKey);
+	addKeyValueList(ocppGetParamNameString(OCPP_PARAM_CONFIGURATION_KEY), conf->configurationKey);
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;
