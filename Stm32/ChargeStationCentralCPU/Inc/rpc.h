@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef _WIN32
 #include <stdbool.h>
 #include <stdint.h>
@@ -6,6 +8,10 @@
 #endif
 
 #define RPC_GUID_MAX_LENGTH 36
+
+#define MES_TYPE_CALL       '2'
+#define MES_TYPE_CALLRESULT '3'
+#define MES_TYPE_CALLERROR  '4'
 
 typedef struct _RpcPacket{
 	uint8_t messageType;
@@ -16,8 +22,7 @@ typedef struct _RpcPacket{
 	uint32_t payloadSize; //Size of buffer;
 }RpcPacket;
 
-bool fillRpcCallData(int action, char* payload, int payloadLen, char* outData, int* outLen);
+bool fillRpcCallData(RpcPacket *outPacket, char* outData, int* outLen);
+bool fillRpcCallResultData(RpcPacket *outPacket, char* outData, int* outLen);
 
 bool parseRpcInputData(char* data, int dataLen, RpcPacket *outPacket);
-
-//bool parseRpc

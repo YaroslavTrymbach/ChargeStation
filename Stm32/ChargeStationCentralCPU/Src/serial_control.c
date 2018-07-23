@@ -39,19 +39,29 @@ static uint8_t hTaskTag;
 
 #define COMMAND_UNKNOWN 0
 
-#define COMMAND_EX_TIME          1
-#define COMMAND_EX_LOCAL_IP      2
-#define COMMAND_EX_SAVE_SETTINGS 3
+#define COMMAND_EX_TIME            1
+#define COMMAND_EX_LOCAL_IP        2
+#define COMMAND_EX_SAVE_SETTINGS   3
+#define COMMAND_EX_SERVER_HOST     4
+#define COMMAND_EX_SERVER_PORT     5
+#define COMMAND_EX_SERVER_URI      6
+#define COMMAND_EX_CHARGE_POINT_ID 7
 
 #define DELIM_COMMA ','
 #define DELIM_POINT '.'
 
 const char* STR_EMPTY = "";
-const char* COMMAND_STR_EX_TIME          = "TIME\0";
-const char* COMMAND_STR_EX_LOCAL_IP      = "LOCALIP\0";
-const char* COMMAND_STR_EX_SAVE_SETTINGS = "SAVESETTINGS\0";
+const char* COMMAND_STR_EX_TIME            = "TIME\0";
+const char* COMMAND_STR_EX_LOCAL_IP        = "LOCALIP\0";
+const char* COMMAND_STR_EX_SAVE_SETTINGS   = "SAVESETTINGS\0";
+const char* COMMAND_STR_EX_SERVER_HOST     = "SERVERHOST\0";
+const char* COMMAND_STR_EX_SERVER_PORT     = "SERVERPORT\0";
+const char* COMMAND_STR_EX_SERVER_URI      = "SERVERURI\0";
+const char* COMMAND_STR_EX_CHARGE_POINT_ID = "CHARGEPOINTID\0";
 
 extern struct netif gnetif;
+
+void sendMessage(int mesId);
 
 void strupr(char *s){
 	int i, len;
@@ -152,11 +162,13 @@ int getCommandExFromStr(char *comStr){
 				
 	strupr(comStr);
 															
-	if(strcmp(comStr, "TIME") == 0)
-		return COMMAND_EX_TIME;
-	if(strcmp(comStr, "LOCALIP") == 0)
-		return COMMAND_EX_LOCAL_IP;
+	CHECK_COMMAND(TIME);
+	CHECK_COMMAND(LOCAL_IP);
 	CHECK_COMMAND(SAVE_SETTINGS);
+	CHECK_COMMAND(SERVER_HOST);
+	CHECK_COMMAND(SERVER_PORT);
+	CHECK_COMMAND(SERVER_URI);
+	CHECK_COMMAND(CHARGE_POINT_ID);
 	
 	return COMMAND_UNKNOWN;
 }
@@ -198,6 +210,9 @@ void sendReadResultString(int command, const char *s){
 	switch(command){
 		CASE_COMMAND_EX_STR(TIME);
 		CASE_COMMAND_EX_STR(LOCAL_IP);
+		CASE_COMMAND_EX_STR(SERVER_HOST);
+		CASE_COMMAND_EX_STR(SERVER_PORT);
+		CASE_COMMAND_EX_STR(SERVER_URI);
 	}
 	sprintf(sendStr, "\r\n+%s: %s\r\nOK\r\n", comStr, s);
 	sendString(sendStr);
@@ -295,13 +310,21 @@ bool getParamIp(char **spar, char chPDiv, unsigned char *value){
 	return true;
 }
 
+void sendMessage(int mesId){
+	GeneralMessage message;
+	
+	//Send message to central process
+	message.sourceTag = hTaskTag;
+	message.messageId = mesId;
+	xQueueSend(hMainQueue, &message, 10);
+}
 
 void writeLocalIp(char *arg){
 	int iVal, i;
 	bool dhcpEnabled;
 	unsigned char ip[3][4];
 	ChargePointSetting* st;
-	GeneralMessage message;
+	
 	
 	// Waiting string
   // 0, XXX.XXX.XXX.XXX, XXX.XXX.XXX.XXX, XXX.XXX.XXX.XXX
@@ -344,11 +367,78 @@ void writeLocalIp(char *arg){
 		memcpy(st->NetMask, ip[1], 4);
 		memcpy(st->GetewayIp, ip[2], 4);
 	}
+
+	sendMessage(MESSAGE_SER_CONTROL_SET_LOCAL_IP);
+}
+
+void writeServerHost(char *arg){
+	ChargePointSetting* st;
 	
-	//Send message to central process
-	message.sourceTag = hTaskTag;
-	message.messageId = MESSAGE_SER_CONTROL_SET_LOCAL_IP;
-	xQueueSend(hMainQueue, &message, 10);
+	if(strlen(arg) >= SIZE_SERVER_HOST){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	sendOK();
+	
+	st = Settings_get();
+	strcpy(st->serverHost, arg);
+	
+	sendMessage(MESSAGE_SER_CONTROL_SET_SERVER_HOST);
+}
+
+void writeServerPort(char *arg){
+	ChargePointSetting* st;
+	int iVal;
+	
+	if(!getParamInt(&arg, DELIM_COMMA, &iVal)){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	if((iVal < 0) || (iVal > 65535)){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	sendOK();
+	
+	st = Settings_get();
+	st->serverPort = iVal;
+	
+	sendMessage(MESSAGE_SER_CONTROL_SET_SERVER_PORT);
+}
+
+void writeServerURI(char *arg){
+	ChargePointSetting* st;
+	
+	if(strlen(arg) >= SIZE_SERVER_URI){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	sendOK();
+	
+	st = Settings_get();
+	strcpy(st->serverUri, arg);
+	
+	sendMessage(MESSAGE_SER_CONTROL_SET_SERVER_URI);
+}
+
+void writeChargePointID(char *arg){
+	ChargePointSetting* st;
+	
+	if(strlen(arg) >= SIZE_CHARGE_POINT_ID){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	sendOK();
+	
+	st = Settings_get();
+	strcpy(st->ChargePointId, arg);
+	
+	sendMessage(MESSAGE_SER_CONTROL_SET_CHARGE_POINT_ID);
 }
 
 void execSaveSettings(){
@@ -365,18 +455,56 @@ void processCommandExWrite(int command, char *arg){
 		case COMMAND_EX_LOCAL_IP:
 			writeLocalIp(arg);
 			break;
+		case COMMAND_EX_SERVER_HOST:
+			writeServerHost(arg);
+			break;
+		case COMMAND_EX_SERVER_PORT:
+			writeServerPort(arg);
+			break;
+		case COMMAND_EX_SERVER_URI:
+			writeServerURI(arg);
+			break;
+		case COMMAND_EX_CHARGE_POINT_ID:
+			writeChargePointID(arg);
+			break;
 	}
 }
 
 void processCommandExRead(int command){
+	ChargePointSetting* st;
+	char *answerStr;
+	char s[16];
+	
 	switch(command){
 		case COMMAND_EX_TIME:
 			sendTime();
-			break;
+		  return;
 		case COMMAND_EX_LOCAL_IP:
 			sendLocalIp();
+		  return;
+		case COMMAND_EX_SERVER_HOST:
+			st = Settings_get();
+		  answerStr = st->serverHost;
 			break;
+		case COMMAND_EX_SERVER_URI:
+			st = Settings_get();
+			answerStr = st->serverUri;
+			break;
+		case COMMAND_EX_SERVER_PORT:
+			st = Settings_get();
+		  sprintf(s, "%d", st->serverPort);
+		  answerStr = s;
+			break;
+		case COMMAND_EX_CHARGE_POINT_ID:
+			st = Settings_get();
+			answerStr = st->ChargePointId;
+			break;
+		
+		default:
+			return;
 	}
+	
+	sendReadResultString(command, answerStr);
 }
 
 void processCommandExExec(int command){

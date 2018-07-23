@@ -5,6 +5,8 @@
 #include <string.h>
 #include "deftypes.h"
 #include "ocpp.h"
+#include "ocppConfiguration.h"
+#include "ocppConfigurationDef.h"
 #include "rpc.h"
 #include "cJson.h"
 #include "tasks.h"
@@ -18,11 +20,11 @@
 //#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
 //#define SERVER_HOST    "192.168.1.63"
-//#define SERVER_HOST    "192.168.1.64"
+#define SERVER_HOST    "192.168.1.64"
 //#define SERVER_HOST    "192.168.1.65"
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
-#define SERVER_HOST "192.168.77.7"
+//#define SERVER_HOST "192.168.77.7"
 #define SERVER_PORT_NO 8080
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
@@ -81,6 +83,10 @@ GeneralMessage message;
 bool isMessageActive = false;
 Connector connector[CONNECTOR_NUM];
 Connector *activeConnector;
+
+OcppConfigurationVaried ocppConfVaried;
+OcppConfigurationFixed ocppConfFixed;
+OcppConfigurationRestrict ocppConfRestrict;
 
 void initConnectors(void){
 	int i;
@@ -319,6 +325,7 @@ void sendConfUnlockConnector(const char* uniqueId){
 
 void mainThread(){
 	int i, cnt;
+	fillOcppConfigurationWithDefValues(&ocppConfVaried, &ocppConfFixed, &ocppConfRestrict);
 	initConnectors();
 	if(!makeWebsocketHandshake()){
 		finish();
@@ -436,6 +443,10 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 
 		keyPassed = true;
 		switch(occpGetConfigKeyFromString(request.key[i])){
+			case CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS:
+				confKey = occpCreateKeyValueBool(CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS, ocppConfRestrict.authorizeRemoteTxRequestsReadOnly, 
+					ocppConfRestrict.authorizeRemoteTxRequestsReadOnly ? ocppConfFixed.authorizeRemoteTxRequests:  ocppConfVaried.authorizeRemoteTxRequests); 
+				break;
 			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
 				confKey = occpCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
 				break;
@@ -449,9 +460,9 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 				conf.configurationKey = confKey;
 			}
 			else{
-				lastConfKey->next = unKey;
+				lastConfKey->next = confKey;
 			}
-			lastConfKey = unKey;			
+			lastConfKey = confKey;			
 		}
 		else{
 			//Add to unknowKey

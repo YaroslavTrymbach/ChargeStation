@@ -1,6 +1,7 @@
 #include "webSocket.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "base64.h"
 #include "rng.h"
 
@@ -25,11 +26,18 @@
 #define INPUT_STATE_PAYLOAD_LENGTH_EX 2
 #define INPUT_STATE_PAYLOAD           4
 
+typedef struct _LineSearch{
+	char* Line;
+	char* Next;
+}LineSearch;
+
 char head_str[64];
 char *req_ptr;
 int req_size;
+
+/*
 int server_port = 80;
-char server_host[SERVER_HOST_SIZE];
+char server_host[SERVER_HOST_SIZE];*/
 
 uint8_t payload[MAX_PAYLOAD_SIZE];
 int payloadLengthBit = 32;
@@ -66,6 +74,7 @@ bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, int* status){
 				break;
 			case INPUT_STATE_PAYLOAD_LENGTH:
 				d = data[inCnt++];
+				payloadWaitedSize = 0;
 				if(d == 127){
 					inputState = INPUT_STATE_PAYLOAD_LENGTH_EX;
 					payloadLengthBit = 32;
@@ -110,17 +119,9 @@ bool WebSocket_GetInputPayload(uint8_t *data, int *outLen){
 	return true;
 }
 
-void setServerPort(int port){
-	server_port = port;
-}
-
-void setServerHost(char *host){
-	strncpy(server_host, host, SERVER_HOST_SIZE);
-}
-
-void addStartLine(){
+void addStartLine(char *uri){
 	int len;
-	sprintf(head_str, "GET %s HTTP/1.1\r\n", "/");
+	sprintf(head_str, "GET %s HTTP/1.1\r\n", uri);
 	len = strlen(head_str);
 	strncpy(req_ptr, head_str, len);
 	req_size += len;
@@ -143,14 +144,14 @@ void addHeader(char *header, char *value){
 	req_ptr += len;
 }
 
-int fillHandshakeRequest(char *buf){
+int fillHandshakeRequest(WebSocketConnectionParams *params, char *buf){
 	char valueStr[128];
 	char *base64str;
 	int base64len;
 	req_ptr = buf;
 	req_size = 0;
-	addStartLine();
-	sprintf(valueStr, "%s:%d", server_host, server_port);
+	addStartLine(params->uri);
+	sprintf(valueStr, "%s:%d", params->server_host, params->server_port);
 	addHeader(HEADER_HOST, valueStr);
 	addHeader(HEADER_UPGRADE, "websocket");
 	addHeader(HEADER_CONNECTION, "Upgrade");
@@ -209,6 +210,54 @@ WebSocketStatus fillWebSocketClientSendData(char* inData, int inLen, char* outDa
 
 	*outLen = cnt;
 	return WS_OK;
+}
+
+bool getNextLine(char **data, char *line){
+	char *p;
+	int len;
+	p = strstr(*data, "\r\n");
+	if(p == NULL)
+		return false;
+	len = p - *data;
+	strncpy(line, *data, len);
+	line[len] = '\0';
+	*data = p + 2;
+	return true;
+}
+
+bool parseStatusLine(char* data, WebSocketHttpHeader* outHeader){
+	char *p1, *p2;
+	char codeStr[4];
+	int code;
+	p1 = strchr(data, ' ');
+	if(p1 == NULL)
+		return false;
+	p1 += 1;
+	p2 = strchr(p1, ' ');
+	if(p2 == NULL)
+		return false;
+	if((p2 - p1) != 3)
+		return false;
+	strncpy(codeStr, p1, 3);
+	codeStr[3] = '\0';
+	code = atoi(codeStr);
+	if(code != 0)
+		outHeader->StatusCode = code;
+	return true;
+}
+
+bool WebSocket_parseHttpAnswerHeader(char* data, WebSocketHttpHeader* outHeader){
+	char line[256];
+	char **p;
+	outHeader->StatusCode = 0;
+	p = &data;
+	if(!getNextLine(p, line))
+		return false;
+
+	if(!parseStatusLine(line, outHeader))
+		return false;
+
+	return true;
 }
 
 void foo(void){

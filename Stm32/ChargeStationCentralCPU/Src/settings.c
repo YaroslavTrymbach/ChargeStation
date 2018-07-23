@@ -8,6 +8,9 @@
 #define ADDRESS_CPU_UNIQUE_ID 0x1FFF7A10
 
 #define DEF_DHCP_ENABLED true
+#define DEF_SERVER_HOST "0.0.0.0"
+#define DEF_SERVER_URI "/"
+#define DEF_SERVER_PORT 8080
 
 ChargePointSetting workSettings;
 
@@ -22,6 +25,9 @@ void setDefValues(void){
 	memset(workSettings.LocalIp, 0x00 , 4);
 	memset(workSettings.NetMask, 0x00 , 4);
 	memset(workSettings.GetewayIp, 0x00 , 4);
+	strcpy(workSettings.serverHost, DEF_SERVER_HOST);
+	strcpy(workSettings.serverUri, DEF_SERVER_URI);
+	workSettings.serverPort = DEF_SERVER_PORT;
 }
 
 void Settings_init(void){

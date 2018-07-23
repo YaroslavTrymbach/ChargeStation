@@ -53,6 +53,8 @@ char *buf_pos_out = http_buf_out;
 //bool waitHttp = false;
 int ActiveProtocol = ACTIVE_PROTOCOL_NONE;
 bool httpBufOverflow = false;
+bool webSocketConnected = false;
+
 
 SemaphoreHandle_t hGetEvent;
 
@@ -68,6 +70,54 @@ void setActiveProtocol(int newProtocol){
 	ActiveProtocol = newProtocol;
 }
 
+bool makeWebsocketHandshake(){
+	bool res = false;
+	WebSocketConnectionParams params;
+	WebSocketHttpHeader answer;
+	ChargePointSetting *st;
+	printf("makeWebsocketHandshake\n");
+	
+	st = Settings_get();
+
+	params.server_port = st->serverPort;
+	strcpy(params.server_host, st->serverHost);
+	sprintf(params.uri, "%s%s", st->serverUri, st->ChargePointId);
+	buf_cnt_out = fillHandshakeRequest(&params, http_buf_out);
+
+	clear_http_buf_in();
+	setActiveProtocol(ACTIVE_PROTOCOL_HTTP);
+
+	//send(sock, http_buf_out, buf_cnt_out, 0);
+	NET_CONN_send(http_buf_out, buf_cnt_out);
+	
+	if(xSemaphoreTake(hGetEvent, pdMS_TO_TICKS(1000)) != pdPASS){
+		printf("Handshake answer is not got\n");
+		return false;
+	}
+
+	if(httpBufOverflow){
+		printf("httpBufOverflow\n");
+		return false;
+	}
+
+	printf("Handshake answer is got\n");
+
+	if(WebSocket_parseHttpAnswerHeader(http_buf_in, &answer)){
+		printf("StatusCode = %d\n", answer.StatusCode);
+		if(answer.StatusCode == 101){
+			res = true;
+		}
+	}
+
+	//printf("%s", http_buf_in);
+
+	if(!res)
+		printf("Not accepted\n");
+
+	return res;
+}
+
+/*
 bool makeWebsocketHandshake(){
 	logStr("makeWebsocketHandshake\r\n");
 
@@ -96,7 +146,7 @@ bool makeWebsocketHandshake(){
 	logStr(http_buf_in);
 
 	return true;
-}
+}*/
 
 bool connectToServer(void){
 	return true;
@@ -204,7 +254,7 @@ void runReadThread(){
 }
 
 void sendWebSocketTest(){
-	char inData[256];
+/*	char inData[256];
 	char outData[256];
 	char rpcData[256];
 	int outLen;
@@ -216,8 +266,7 @@ void sendWebSocketTest(){
 
 	jsonPackReqBootNotification(&request, inData, &outLen);
 	
-	//strcpy(inData, "{\"chargePointVendor\":\"YarikVendor\",\"chargePointModel\":\"YarikModel\"}");
-	fillRpcCallData(ACTION_BOOT_NOTIFICATION, inData, outLen, rpcData, &outLen);
+//	fillRpcCallData(ACTION_BOOT_NOTIFICATION, inData, outLen, rpcData, &outLen);
 	
 	if(fillWebSocketClientSendData(rpcData, outLen, outData, &outLen) != WS_OK){
 		logStr("fillWebSocketClientSendData failed\r\n");
@@ -225,26 +274,31 @@ void sendWebSocketTest(){
 	}
 	
 	send(sock, outData, outLen, 0);	
-	logStr("WebSocket data is send\r\n");
-
+	logStr("WebSocket data is send\r\n");*/
 }
 
 void netThread(void const * argument){
-  struct sockaddr_in server;
 	int res;
+	uint32_t tick;
 	char s[256];
-	char buf[256];	
+	char buf[256];
+	int webSocketLastTryConnectionTick = 0;
+  ChargePointSetting* st;	
+	st = Settings_get();
 	
 	//osDelay(50);
 	
 	logStr("startNetTask\r\n");
 	
 	NET_CONN_init();
+	NET_CONN_setRemoteHost(st->serverHost);
+	NET_CONN_setRemotePort(st->serverPort);
+	
+	hGetEvent = xSemaphoreCreateBinary();
+	
 	//MX_LWIP_Init();
 	//MX_LWIP_InitMod();
 	/*
-	
-	hGetEvent = xSemaphoreCreateBinary();
 	
 	logStr("Socket init\r\n");
 	//Create socket
@@ -285,12 +339,27 @@ void netThread(void const * argument){
 	}*/
 	
 	for(;;){
-    osDelay(1000);
+		if(!NET_CONN_isConnected()){
+			if(NET_CONN_connect()){
+				printf("Connected to server\n");
+			}
+			else{
+				osDelay(100);
+			}
+		}
+		
+		if(NET_CONN_isConnected() && (!webSocketConnected)){
+			tick = HAL_GetTick();
+			if((tick - webSocketLastTryConnectionTick) >= 1000){
+				webSocketLastTryConnectionTick = tick;
+				webSocketConnected = makeWebsocketHandshake();
+			}
+		}
+    osDelay(10);
 		//send(sock, s, strlen(s), 0);
   }
 	
 
-  /* USER CODE END startNetTask */
 }
 
 static void init(void *arg){

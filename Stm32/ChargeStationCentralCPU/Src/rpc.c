@@ -3,10 +3,6 @@
 #include "ocpp.h"
 #include <string.h>
 
-#define MES_TYPE_CALL       '2'
-#define MES_TYPE_CALLRESULT '3'
-#define MES_TYPE_CALLERROR  '4'
-
 #define PARAM_NONE      0
 #define PARAM_UNIQUE_ID 1
 #define PARAM_ACTION    2
@@ -30,6 +26,7 @@ bool fixParsedParam(RpcPacket *outPacket){
 			strcpy(outPacket->uniqueId, parsedStr);  
 			break;
 		case PARAM_ACTION:
+			outPacket->action = occpGetActionFromString(parsedStr);
 			break;
 	}
 	return true;
@@ -58,6 +55,9 @@ void setNextParsedParam(uint8_t mesType){
 				case PARAM_UNIQUE_ID:
 					setParsedParam(PARAM_ACTION);
 					break;
+				case PARAM_ACTION:
+					setParsedParam(PARAM_PAYLOAD);
+					break;
 				default:
 					setParsedParam(PARAM_NONE);
 			}
@@ -79,10 +79,15 @@ void setNextParsedParam(uint8_t mesType){
 }
 
 
-bool fillRpcCallData(int action, char* payload, int payloadLen, char* outData, int* outLen){
+bool fillRpcCallData(RpcPacket *outPacket, char* outData, int* outLen){
 	int cnt = 0;
-	char GUID[RPC_GUID_MAX_LENGTH];
-	const char* actionStr = getActionString(action);
+	//char GUID[RPC_GUID_MAX_LENGTH];
+	const char* actionStr = getActionString(outPacket->action);
+
+	if(outPacket->payloadLen > outPacket->payloadSize){
+		*outLen = 0;
+		return false;
+	}
 
 	outData[cnt++] = '[';
 
@@ -91,8 +96,8 @@ bool fillRpcCallData(int action, char* payload, int payloadLen, char* outData, i
 	strcpy(outData + cnt, ",\"");
 	cnt += 2;
 	//GUID
-	generateGUID(GUID);
-	strncpy(outData + cnt, GUID, RPC_GUID_MAX_LENGTH);
+	generateGUID(outPacket->uniqueId);
+	strncpy(outData + cnt, outPacket->uniqueId, RPC_GUID_MAX_LENGTH);
 	cnt += 36;
 	strcpy(outData + cnt, "\",\"");
 	cnt += 3;
@@ -102,13 +107,44 @@ bool fillRpcCallData(int action, char* payload, int payloadLen, char* outData, i
 	strcpy(outData + cnt, "\",");
 	cnt += 2;
 	//Payload
-	memcpy(outData + cnt, payload, payloadLen);
-	cnt += payloadLen;
+	memcpy(outData + cnt, outPacket->payload, outPacket->payloadLen);
+	cnt += outPacket->payloadLen;
 	outData[cnt++] = ']';
 
 	*outLen = cnt;
 	return true;
 }
+
+bool fillRpcCallResultData(RpcPacket *outPacket, char* outData, int* outLen){
+	int cnt = 0;
+	const char* actionStr = getActionString(outPacket->action);
+
+	if(outPacket->payloadLen > outPacket->payloadSize){
+		*outLen = 0;
+		return false;
+	}
+
+	outData[cnt++] = '[';
+
+	//MessageTypeId
+	outData[cnt++] = MES_TYPE_CALLRESULT;
+	strcpy(outData + cnt, ",\"");
+	cnt += 2;
+	//GUID
+	strncpy(outData + cnt, outPacket->uniqueId, RPC_GUID_MAX_LENGTH);
+	cnt += 36;
+	strcpy(outData + cnt, "\",");
+	cnt += 2;
+	//Payload
+	memcpy(outData + cnt, outPacket->payload, outPacket->payloadLen);
+	cnt += outPacket->payloadLen;
+	outData[cnt++] = ']';
+
+	*outLen = cnt;
+	return true;
+}
+
+
 
 bool parseRpcInputData(char* data, int dataLen, RpcPacket *outPacket){
 	char *p;

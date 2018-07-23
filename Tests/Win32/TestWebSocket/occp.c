@@ -1,5 +1,8 @@
 #include "ocpp.h"
-#include "string.h"
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "ocppConfiguration.h"
 
 const char* EMPTY_STRING = "\0";
 
@@ -32,18 +35,6 @@ const char* ACTION_STR_TRIGGER_MESSAGE                 = "TriggerMessage\0";
 const char* ACTION_STR_UNLOCK_CONNECTOR                = "UnlockConnector\0";
 const char* ACTION_STR_UPDATE_FIRMWARE                 = "UpdateFirmware\0";
 
-const char* CONFIG_KEY_STR_ALLOW_OFLINE_TX_FOR_UNKNOWN_ID     = "AllowOfflineTxForUnknownId";
-const char* CONFIG_KEY_STR_AUTHORIZATION_CACHE_ENABLED        = "AuthorizationCacheEnabled";
-const char* CONFIG_KEY_STR_AUTHORIZE_REMOTE_TX_REQUESTS       = "AuthorizeRemoteTxRequests";
-const char* CONFIG_KEY_STR_BLINK_REPEAT                       = "BlinkRepeat";
-const char* CONFIG_KEY_STR_CLOCK_ALIGNED_DATA_INTERVAL        = "ClockAlignedDataInterval";
-const char* CONFIG_KEY_STR_CONNECTION_TIMEOUT                 = "ConnectionTimeOut";
-const char* CONFIG_KEY_STR_CONNECTOR_PHASE_ROTATION           = "ConnectorPhaseRotation";
-const char* CONFIG_KEY_STR_CONNECTOR_PHASE_ROTATION_MAX_LENGH = "ConnectorPhaseRotationMaxLength";
-const char* CONFIG_KEY_STR_GET_CONFIGURATION_MAX_KEYS         = "GetConfigurationMaxKeys";
-const char* CONFIG_KEY_STR_HEARTBEAT_INTERVAL                 = "HeartbeatInterval";
-const char* CONFIG_KEY_STR_LIGHT_INTENSITY                    = "LightIntensity";
-
 const char* OCPP_PARAM_NAME_STR_CURRENT_TIME      = "currentTime\0";
 const char* OCPP_PARAM_NAME_STR_INTERVAL          = "interval\0";
 const char* OCPP_PARAM_NAME_STR_STATUS            = "status\0";
@@ -62,9 +53,6 @@ const char* OCPP_PARAM_NAME_STR_CONFIGURATION_KEY = "configurationKey";
 const char* OCPP_PARAM_NAME_STR_VALUE             = "value";
 const char* OCPP_PARAM_NAME_STR_READONLY          = "readonly";
 //const char* OCPP_PARAM_NAME_STR_ = "";
-
-#define OCPP_PARAM_ VALUE             15
-#define OCPP_PARAM_ READONLY          16
 
 
 const char* AUTHORIZATION_STATUS_STR_ACCEPTED      = "Accepted\0";
@@ -93,6 +81,9 @@ const char* CHARGE_POINT_STATUS_STR_FAULTED        = "Faulted\0";
 const char* UNLOCK_STATUS_STR_UNLOCKED      = "Unlocked\0";
 const char* UNLOCK_STATUS_STR_UNLOCK_FAILED = "UnlockFailed\0";
 const char* UNLOCK_STATUS_STR_NOT_SUPPORTED = "NotSupported\0";
+
+#define BOOLEAN_STR_FALSE "false\0"
+#define BOOLEAN_STR_TRUE  "true\0"
 
 #define CASE_ACTION_STR(name) case ACTION_##name: \
 	                              res = ACTION_STR_##name; \
@@ -134,31 +125,6 @@ const char *getActionString(int action){
 		CASE_ACTION_STR(TRIGGER_MESSAGE);
 		CASE_ACTION_STR(UNLOCK_CONNECTOR);
 		CASE_ACTION_STR(UPDATE_FIRMWARE);
-	}
-	return res;
-}
-
-const char *getConfigKeyString(int configKey){
-
-#define CASE_CONFIG_KEY_STR(name) case CONFIG_KEY_##name: \
-	                                res = CONFIG_KEY_STR_##name; \
-								    break
-
-	const char* res = EMPTY_STRING;
-
-	switch(configKey){	
-		CASE_CONFIG_KEY_STR(ALLOW_OFLINE_TX_FOR_UNKNOWN_ID);
-		CASE_CONFIG_KEY_STR(AUTHORIZATION_CACHE_ENABLED);
-		CASE_CONFIG_KEY_STR(AUTHORIZE_REMOTE_TX_REQUESTS);
-		CASE_CONFIG_KEY_STR(BLINK_REPEAT);
-		CASE_CONFIG_KEY_STR(CLOCK_ALIGNED_DATA_INTERVAL);
-		CASE_CONFIG_KEY_STR(CONNECTION_TIMEOUT);
-		CASE_CONFIG_KEY_STR(CONNECTOR_PHASE_ROTATION);
-		CASE_CONFIG_KEY_STR(CONNECTOR_PHASE_ROTATION_MAX_LENGH);
-		CASE_CONFIG_KEY_STR(GET_CONFIGURATION_MAX_KEYS);
-		CASE_CONFIG_KEY_STR(HEARTBEAT_INTERVAL);
-		CASE_CONFIG_KEY_STR(LIGHT_INTENSITY);
-		//CASE_CONFIG_KEY_STR();
 	}
 	return res;
 }
@@ -274,26 +240,6 @@ int occpGetActionFromString(const char* s){
 	return ACTION_UNKNOWN;
 }
 
-int occpGetConfigKeyFromString(const char* s){
-
-#define CHECK_CONFIG_KEY(name) if(strcmp(s, CONFIG_KEY_STR_##name) == 0) \
-		                     return CONFIG_KEY_##name;
-
-	CHECK_CONFIG_KEY(ALLOW_OFLINE_TX_FOR_UNKNOWN_ID);
-	CHECK_CONFIG_KEY(AUTHORIZATION_CACHE_ENABLED);
-	CHECK_CONFIG_KEY(AUTHORIZE_REMOTE_TX_REQUESTS);
-	CHECK_CONFIG_KEY(BLINK_REPEAT);
-	CHECK_CONFIG_KEY(CLOCK_ALIGNED_DATA_INTERVAL);
-	CHECK_CONFIG_KEY(CONNECTION_TIMEOUT);
-	CHECK_CONFIG_KEY(CONNECTOR_PHASE_ROTATION);
-	CHECK_CONFIG_KEY(CONNECTOR_PHASE_ROTATION_MAX_LENGH);
-	CHECK_CONFIG_KEY(GET_CONFIGURATION_MAX_KEYS);
-	CHECK_CONFIG_KEY(HEARTBEAT_INTERVAL);
-	CHECK_CONFIG_KEY(LIGHT_INTENSITY);
-
-	return CONFIG_KEY_UNKNOWN;
-}
-
 int occpGetRegistrationStatusFromString(const char* s){
 	if(strcmp(s, REGISTRATION_STATUS_STR_ACCEPTED) == 0)
 		return REGISTRATION_STATUS_ACCEPTED;
@@ -344,7 +290,7 @@ void occpFreeKeyValueList(KeyValueListItem *list){
 
 KeyValueListItem* occpCreateKeyValueItem(int key, bool readonly){
 	KeyValueListItem *item = malloc(sizeof(KeyValueListItem));
-	strcpy(item->data.key, getConfigKeyString(key));
+	strcpy(item->data.key, ocppGetConfigKeyString(key));
 	item->data.readonly = readonly;
 	item->data.vauleIsSet = false;
 	item->next = NULL;
@@ -355,6 +301,14 @@ KeyValueListItem* occpCreateKeyValueInt(int key, bool readonly, int value){
 	KeyValueListItem *item = occpCreateKeyValueItem(key, readonly);
 	item->data.value = malloc(16); //For integer value it's enough
 	sprintf(item->data.value, "%d", value);
+	item->data.vauleIsSet = true;
+	return item;
+}
+
+KeyValueListItem* occpCreateKeyValueBool(int key, bool readonly, bool value){
+	KeyValueListItem *item = occpCreateKeyValueItem(key, readonly);
+	item->data.value = malloc(8); //For bool value it's enough
+	strcpy(item->data.value, value ? BOOLEAN_STR_TRUE : BOOLEAN_STR_FALSE);
 	item->data.vauleIsSet = true;
 	return item;
 }

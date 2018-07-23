@@ -202,6 +202,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ocppConfiguration.c"
+				>
+			</File>
+			<File
+				RelativePath=".\ocppConfigurationDef.c"
+				>
+			</File>
+			<File
 				RelativePath=".\rng.c"
 				>
 			</File>
@@ -245,6 +253,14 @@
 			</File>
 			<File
 				RelativePath=".\ocpp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ocppConfiguration.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ocppConfigurationDef.h"
 				>
 			</File>
 			<File

@@ -5,5 +5,23 @@
 #endif
 
 #include "ocpp.h"
+#include "rpc.h"
+#include "cJSON.h"
 
-bool jsonPackReqBootNotification(struct RequestBootNotificatation *req, char* outBuf, int* outLen);
+bool jsonPackReqAuthorize(RpcPacket *rpcPacket, RequestAuthorize *req);
+bool jsonPackReqBootNotification(RpcPacket *rpcPacket, RequestBootNotification *req);
+bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *req);
+bool jsonPackReqStatusNotification(RpcPacket *rpcPacket, RequestStatusNotification *req);
+bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *req);
+
+bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf);
+bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf);
+
+bool jsonUnpackConfBootNotification(cJSON* json, ConfBootNotifiaction *conf);
+bool jsonUnpackConfBootAuthorize(cJSON* json, ConfAuthorize *conf);
+bool jsonUnpackConfStartTransaction(cJSON* json, ConfStartTransaction *conf);
+
+//Request from Server
+bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req);
+bool jsonUnpackReqUnlockConnector(cJSON* json, RequestUnlockConnector *req);
+

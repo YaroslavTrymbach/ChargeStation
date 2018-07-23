@@ -786,6 +786,16 @@
               <FileType>1</FileType>
               <FilePath>..\Src\netConn.c</FilePath>
             </File>
+            <File>
+              <FileName>ocppConfiguration.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\ocppConfiguration.c</FilePath>
+            </File>
+            <File>
+              <FileName>ocppConfigurationDef.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\ocppConfigurationDef.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

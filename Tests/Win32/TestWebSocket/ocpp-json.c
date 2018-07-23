@@ -13,6 +13,8 @@ bool isWaitFirstElement;
 const char* BOOLEAN_STR_FALSE = "false\0";
 const char* BOOLEAN_STR_TRUE  = "true\0";
 
+void addString(const char* parName, const char* value);
+
 
 void openJsonFormation(char* outBuf){
 	buf = outBuf;
@@ -35,7 +37,7 @@ void checkWaitFirstElement(){
 	}
 }
 
-void setParamName(char* parName){
+void setParamName(const char* parName){
 	checkWaitFirstElement();
 
 	buf[outCnt++] = '"';
@@ -62,16 +64,27 @@ void addValueString(char* value, int max_cnt){
 #define addValueString20(value) addValueString(value, 20)
 #define addValueString50(value) addValueString(value, 50)
 
-void addString20(char* parName, CiString20Type value){
+void addBoolean(const char* parName, bool value){
+	const char *valueStr;
+	setParamName(parName);
+	valueStr = (value) ? BOOLEAN_STR_TRUE : BOOLEAN_STR_FALSE;
+	strcpy(buf + outCnt, valueStr);
+	outCnt += strlen(valueStr);
+}
+
+void addString20(const char* parName, CiString20Type value){
+	/*
 	setParamName(parName);
 	buf[outCnt++] = '"';
 	value[20] = '\0';
 	strncpy(buf + outCnt, value, 20);
 	outCnt += strlen(value);
-	buf[outCnt++] = '"';
+	buf[outCnt++] = '"';*/
+	setParamName(parName);
+	addValueString20(value);
 }
 
-void addString50(char* parName, CiString50Type value){
+void addString50(const char* parName, CiString50Type value){
 	setParamName(parName);
 	addValueString50(value);
 }
@@ -98,7 +111,7 @@ void addDateTime(const char* parName, dateTime value){
 	buf[outCnt++] = '"';
 }
 
-void addString50list(const char* parName, const CiString50TypeListItem *list){
+void addString50list(const char* parName, CiString50TypeListItem *list){
 	CiString50TypeListItem* item;
 	bool firstElement = true;
 	setParamName(parName);
@@ -119,16 +132,18 @@ void addString50list(const char* parName, const CiString50TypeListItem *list){
 	buf[outCnt++] = ']';
 }
 
-void addKeyValue(const KeyValueListItem *item){
+void addKeyValue(KeyValueListItem *item){
 	isWaitFirstElement = true;
 	buf[outCnt++] = '{';
 	addString50(paramStr(KEY), item->data.key);
+	addBoolean(paramStr(READONLY), item->data.readonly);
 	if(item->data.vauleIsSet){
+		addString(paramStr(VALUE), item->data.value);
 	}
 	buf[outCnt++] = '}';
 }
 
-void addKeyValueList(const char* parName, const KeyValueListItem *list){
+void addKeyValueList(const char* parName, KeyValueListItem *list){
 	KeyValueListItem* item;
 	bool firstElement = true;
 	setParamName(parName);
