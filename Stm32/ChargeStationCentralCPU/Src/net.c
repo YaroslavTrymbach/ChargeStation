@@ -14,21 +14,16 @@
 #include "cJSON.h"
 #include "settings.h"
 #include "netConn.h"
-
-#define SERVER_HOST_DEF "192.168.1.69"
+#include "device.h"
 
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 5 )
 #define READ_THREAD_PRIO (tskIDLE_PRIORITY + 5)
 
 static QueueHandle_t hQueue;
 static uint8_t hTaskTag;
-
-int sock;
-struct netconn *conn;
   
 int remote_port = 19201;
 char remote_host[64];
-ip_addr_t destIPaddr;
 
 osThreadId hNetThread;
 osThreadId hReadThread;
@@ -54,11 +49,17 @@ char *buf_pos_out = http_buf_out;
 int ActiveProtocol = ACTIVE_PROTOCOL_NONE;
 bool httpBufOverflow = false;
 bool webSocketConnected = false;
+bool stationAccepted = false;
 
+int SendCallAction = 0;
+char* SendCallId[37];
 
 SemaphoreHandle_t hGetEvent;
+SemaphoreHandle_t hCallAnswerEvent;
 
 extern struct netif gnetif;
+
+void sendMessageToServer(RpcPacket* packet);
 
 void clear_http_buf_in(){
 	buf_pos_in = http_buf_in;
@@ -110,46 +111,106 @@ bool makeWebsocketHandshake(){
 	}
 
 	//printf("%s", http_buf_in);
-
-	if(!res)
+	if(res){
+		setActiveProtocol(ACTIVE_PROTOCOL_WEBSOCKET);
+		WebSocket_ClearInBuffer();
+	}
+	else
 		printf("Not accepted\n");
 
 	return res;
 }
 
-/*
-bool makeWebsocketHandshake(){
-	logStr("makeWebsocketHandshake\r\n");
-
-	setServerPort(remote_port);
-	setServerHost(remote_host);
-	buf_cnt_out = fillHandshakeRequest(http_buf_out);
-
-	clear_http_buf_in();
-	setActiveProtocol(ACTIVE_PROTOCOL_HTTP);
-
-	send(sock, http_buf_out, buf_cnt_out, 0);
-
-	if(xSemaphoreTake(hGetEvent, pdMS_TO_TICKS(1000)) != pdPASS){
-		logStr("Handshake answer is not got\n");
-		return false;
-	}
-
-	if(httpBufOverflow){
-		logStr("httpBufOverflow\r\n");
-		return false;
-	}
-
-	logStr("Handshake answer is got\r\n");
-
-	
-	logStr(http_buf_in);
-
-	return true;
-}*/
 
 bool connectToServer(void){
 	return true;
+}
+
+void sendPongFrame(char* appData, int appDataLen){
+	char outData[512];
+	int outLen;
+
+	if(fillWebSocketPongData(appData, appDataLen, outData, &outLen) != WS_OK){
+		printf("fillWebSocketPongData failed\n");
+		return;
+	}
+
+	NET_CONN_send(outData, outLen);
+}
+
+
+void sendMessageToServer(RpcPacket* packet){
+	char outData[512];
+	char rpcData[512];
+	int outLen;
+
+	fillRpcCallData(packet, rpcData, &outLen);
+
+	SendCallAction = packet->action;
+	memcpy(SendCallId, packet->uniqueId, 37);
+	
+	if(fillWebSocketClientSendData(rpcData, outLen, outData, &outLen) != WS_OK){
+		printf("fillWebSocketClientSendData failed\n");
+		return;
+	}
+	
+	NET_CONN_send(outData, outLen);
+	printf("WebSocket data is send\n");
+
+	if(xSemaphoreTake(hCallAnswerEvent, pdMS_TO_TICKS(1000)) != pdPASS){
+		printf("CallAnswer is not got\n");
+		return;
+	}
+	
+	printf("Call answer is got\n");
+}
+
+void processRPCPacket(RpcPacket* packet){
+	cJSON* jsonRoot;
+	cJSON* jsonElement;
+	//if(rpcPacket.messageType == 
+
+	jsonRoot = cJSON_Parse2((char*)packet->payload);
+
+	if(jsonRoot == NULL){
+		printf("JSON parisng failed");
+		return;
+	}
+
+	if(packet->messageType == MES_TYPE_CALLRESULT){
+		if(memcmp(packet->uniqueId, SendCallId, 36) == 0){
+			printf("Get call result\n");
+		
+			switch(SendCallAction){
+				case ACTION_AUTHORIZE:
+					//processConfAuthorize(jsonRoot);
+					break;
+				case ACTION_BOOT_NOTIFICATION:
+					//processConfBootNotification(jsonRoot);
+					break;
+				case ACTION_START_TRANSACTION:
+					//processConfStartTransaction(jsonRoot);
+					break;
+			}
+
+			xSemaphoreGive(hCallAnswerEvent);
+		}
+	}
+	else if (packet->messageType == MES_TYPE_CALL){
+		//Запрос от сервера
+		switch(packet->action){
+			case ACTION_GET_CONFIGURATION:
+				//processReqGetConfiguration(packet, jsonRoot);
+				break;
+			case ACTION_UNLOCK_CONNECTOR:
+				//processReqUnlockConnector(packet, jsonRoot);
+				break;
+		}
+
+	}
+
+	cJSON_Delete2(jsonRoot);
+
 }
 
 void readThread(void const * argument){
@@ -160,8 +221,9 @@ void readThread(void const * argument){
 	char bufWS[512];
 	char bufRPC[512];
 	RpcPacket rpcPacket;
-	cJSON* jsonRoot;
-	cJSON* jsonElement;
+	//cJSON* jsonRoot;
+	//cJSON* jsonElement;
+	WebSocketInputDataState webSocketState;
 	
 	logStr("StartReadThread\r\n");
 	
@@ -169,7 +231,8 @@ void readThread(void const * argument){
 	rpcPacket.payloadSize = 512;
 	
 	while(true){
-		res = recv(sock, buf, 64, 0);
+		res = NET_CONN_recv(buf, 500);
+		//res = recv(sock, buf, 500, 0);
 		if(res > 0){
 			buf[res] = '\0';
 		}
@@ -199,41 +262,30 @@ void readThread(void const * argument){
 			}
 		}
 		else if(ActiveProtocol == ACTIVE_PROTOCOL_WEBSOCKET){
-			if(WebSocket_ProcessInputData(buf, res, &status)){
-				if(status == WS_PROCESS_STATUS_FINISHED){
-					printf("WebSocket frame is got\n");
-					WebSocket_GetInputPayloadData(bufWS, 512, &size);
-					printf("Frame size is %d\n", size);
-					
-					if(parseRpcInputData(bufWS, size, &rpcPacket)){
-						printf("RPC parsing good\n");
-						printf("MesType %c Id %s, payloadLength %d\n", rpcPacket.messageType, rpcPacket.uniqueId, rpcPacket.payloadLen);
-						printf("Payload: %s\n", rpcPacket.payload);
-						
-						jsonRoot = cJSON_Parse2((char*)rpcPacket.payload);
-
-						printf("JSON is parsed\n");
-
-						jsonElement = jsonRoot->child;
-
-						while(jsonElement != NULL){
-							if(jsonElement->type == cJSON_String){
-								printf("Field: %s, Value: %s\n", jsonElement->string, jsonElement->valuestring);
-							}
-							else if(jsonElement->type == cJSON_Number){
-								printf("Field: %s, Value: %d\n", jsonElement->string, jsonElement->valueint);
-							}
-							else{
-								printf("Field: %s\n", jsonElement->string);
-							}
-							jsonElement = jsonElement->next;
-						}
-
-						cJSON_Delete2(jsonRoot);
+			if(WebSocket_ProcessInputData(buf, res, &webSocketState)){
+				if(webSocketState.status == WS_PROCESS_STATUS_FINISHED){
+					if(webSocketState.opCode == WEB_SOCKET_OPCODE_PING){
+						printf("WebSocket get ping\n");
+						WebSocket_GetInputPayloadData(bufWS, 512, &size);
+						sendPongFrame(bufWS, size);
 					}
 					else{
-						printf("RPC parsing failed!\n");
+						printf("WebSocket frame is got\n");
+						WebSocket_GetInputPayloadData(bufWS, 512, &size);
+						printf("Frame size is %d\n", size);
+						
+						if(parseRpcInputData(bufWS, size, &rpcPacket)){
+							printf("RPC parsing good\n");
+							printf("MesType %c Id %s, payloadLength %d\n", rpcPacket.messageType, rpcPacket.uniqueId, rpcPacket.payloadLen);
+							printf("Payload: %s\n", rpcPacket.payload);
+
+							processRPCPacket(&rpcPacket);
+						}
+						else{
+							printf("RPC parsing failed!\n");
+						}
 					}
+					WebSocket_ClearInBuffer();
 				}
 			}
 			else{
@@ -242,39 +294,42 @@ void readThread(void const * argument){
 		}
 		else{
 		  sprintf(s, "Recv. res = %d. data = %s\n", res, buf);
-		  logStr(s);
+		  printf(s);
 		}
 	}
 	
 }
 
-void runReadThread(){
+bool createReadThread(){
 	osThreadDef(readTask, readThread, osPriorityNormal, 0, 1024);
   hReadThread = osThreadCreate(osThread(readTask), NULL);
+	if(hReadThread != NULL)
+		osThreadSuspend(hReadThread);
+	return (hReadThread != NULL);
 }
 
-void sendWebSocketTest(){
-/*	char inData[256];
-	char outData[256];
-	char rpcData[256];
+void runReadThread(){
+	osThreadResume(hReadThread);
+}
+
+void sendBootNotification(){
+	char jsonData[512];
+	
 	int outLen;
-	struct RequestBootNotificatation request;
-	logStr("sendWebSocketTest\r\n");
+	RequestBootNotification request;
+	RpcPacket rpcPacket;
 
-	strcpy(request.chargePointVendor, "Stm32JSONVendor");
-	strcpy(request.chargePointModel, "Stm32JSONModel");
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
 
-	jsonPackReqBootNotification(&request, inData, &outLen);
-	
-//	fillRpcCallData(ACTION_BOOT_NOTIFICATION, inData, outLen, rpcData, &outLen);
-	
-	if(fillWebSocketClientSendData(rpcData, outLen, outData, &outLen) != WS_OK){
-		logStr("fillWebSocketClientSendData failed\r\n");
-		return;
-	}
-	
-	send(sock, outData, outLen, 0);	
-	logStr("WebSocket data is send\r\n");*/
+	printf("sendBootNotification\n");
+
+	strcpy(request.chargePointVendor, CHARGE_POINT_VENDOR);
+	strcpy(request.chargePointModel, CHARGE_POINT_MODEL);
+
+	jsonPackReqBootNotification(&rpcPacket, &request);
+
+	sendMessageToServer(&rpcPacket);
 }
 
 void netThread(void const * argument){
@@ -295,53 +350,16 @@ void netThread(void const * argument){
 	NET_CONN_setRemotePort(st->serverPort);
 	
 	hGetEvent = xSemaphoreCreateBinary();
-	
-	//MX_LWIP_Init();
-	//MX_LWIP_InitMod();
-	/*
-	
-	logStr("Socket init\r\n");
-	//Create socket
-  sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sock == -1){
-		logStr("Could not create socket\r\n");
-		return;
-  }
-  logStr("Socket created\r\n");
-	
-	strcpy(remote_host, SERVER_HOST_DEF); 
-	
-	server.sin_addr.s_addr = inet_addr(remote_host);
-  server.sin_family = AF_INET;
-  server.sin_port = htons( remote_port );
-	
-	sprintf(s, "Try to connect to %s:%d\r\n", remote_host, remote_port);
-	logStr(s);
- 
-  //Connect to remote server
-  if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0){
-       logStr("connect failed\r\n");
-       return;
-  }
-     
-  logStr("Connected\r\n");
-	
-	strcpy(s, "12345");
-	//send(sock, s, strlen(s), 0);
-	
-	runReadThread();
-	
-	if(makeWebsocketHandshake()){
-		osDelay(1);
-		setActiveProtocol(ACTIVE_PROTOCOL_WEBSOCKET);
-		WebSocket_ClearInBuffer();
-		sendWebSocketTest();
-	}*/
+	hCallAnswerEvent = xSemaphoreCreateBinary(); 
+	if(!createReadThread()){
+		printf("NET createReadThread failed. FreeHeap = %d\n", xPortGetFreeHeapSize());
+	}
 	
 	for(;;){
 		if(!NET_CONN_isConnected()){
 			if(NET_CONN_connect()){
 				printf("Connected to server\n");
+				runReadThread();
 			}
 			else{
 				osDelay(100);
@@ -355,52 +373,16 @@ void netThread(void const * argument){
 				webSocketConnected = makeWebsocketHandshake();
 			}
 		}
+		
+		if(webSocketConnected && (!stationAccepted)){
+			sendBootNotification();
+			stationAccepted = true; //!Debug
+		}
     osDelay(10);
 		//send(sock, s, strlen(s), 0);
   }
-	
-
 }
 
-static void init(void *arg){
-	int res;
-	char s[256];
-	
-	logStr("Init function\r\n");
-	
-	/*
-	logStr("Socket init\r\n");
-	//Create socket
-  sock = socket(AF_INET , SOCK_STREAM , 0);
-  if (sock == -1){
-		logStr("Could not create socket\r\n");
-		return false;
-  }
-  logStr("Socket created\r\n");*/
-	
-	// Create a new TCP connection handle 
-  /*conn = netconn_new(NETCONN_TCP);
-	if(conn == NULL){
-		logStr("Failed create conn\r\n");
-		return;
-	}
-	logStr("New connection is created\r\n");
-	
-	IP4_ADDR( &destIPaddr, 192, 168, 1, 69);
-	
-	res = netconn_connect(conn, &destIPaddr, remote_port);
-	//res = 1;
-	
-	if(res == ERR_OK){
-		logStr("Connected\r\n");
-	}
-	else{
-		sprintf(s, "Connected failed. Res = %d\r\n", res);
-		logStr(s);
-	}*/
-	
-	//return true;
-}
 
 void NET_start(uint8_t taskTag, QueueHandle_t queue){
 	hTaskTag = taskTag;

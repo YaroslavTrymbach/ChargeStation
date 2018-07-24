@@ -10,12 +10,18 @@ extern struct netif gnetif;
 int remotePort;
 char remoteHost[64];
 bool isConnected = false;
-int e_sock;
+int e_sock = - 1;
+
+void NET_ETH_close(void){
+	close(e_sock);
+	e_sock = -1;
+	isConnected = false;
+}
 
 void NET_ETH_init(void){
 	MX_LWIP_InitMod();
 	
-	e_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	//e_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 }
 
 void NET_ETH_change_local_ip(void){
@@ -48,12 +54,19 @@ bool NET_ETH_isConnected(void){
 bool NET_ETH_connect(void){
 	struct sockaddr_in server;
 	
+	if(e_sock == -1){
+		e_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if(e_sock == -1)
+			return false;
+	}
+	
 	server.sin_addr.s_addr = inet_addr(remoteHost);
   server.sin_family = AF_INET;
   server.sin_port = htons(remotePort);
 	
 	if (connect(e_sock , (struct sockaddr *)&server , sizeof(server)) < 0){
-       return false;
+			NET_ETH_close();
+      return false;
   }
 	
 	isConnected = true;
@@ -78,7 +91,24 @@ int NET_ETH_send(const void *data, int size){
 	
 	if(res == -1){
 		if(errno == ECONNRESET){
-			isConnected = false;
+			NET_ETH_close();
+		}
+	}
+	
+	return res;
+}
+
+int NET_ETH_recv(void *data, int size){
+	int res;
+	
+	if(!isConnected)
+		return -1;
+	
+	res = recv(e_sock, data, size, 0);
+	
+	if(res == -1){
+		if(errno == ECONNRESET){
+			NET_ETH_close();
 		}
 	}
 	

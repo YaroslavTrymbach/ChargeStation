@@ -15,8 +15,7 @@
 #define EMPTY_LINE "\r\n"
 
 #define WS_HEAD_MASK_FIN         0x80
-#define WS_HAED_MASK_OPCODE_TEXT 0x01
-#define WS_HAED_MASKED           0x80
+#define WS_HEAD_MASKED           0x80
 
 #define SERVER_HOST_SIZE 64
 #define MAX_PAYLOAD_SIZE 512
@@ -60,20 +59,21 @@ void WebSocket_ClearInBuffer(){
 	inputState = INPUT_STATE_START;
 }
 
-bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, int* status){
+bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, WebSocketInputDataState *state){
 	int inCnt = 0;
 	int inLeft, waitedLeft;
 	uint8_t d;
 	int chunkSize;
-	*status = WS_PROCESS_STATUS_WAITING;
+	state->status = WS_PROCESS_STATUS_WAITING;
 	while(inCnt < dataLen){
 		switch(inputState){
 			case INPUT_STATE_START:
 				d = data[inCnt++];
+				state->opCode = (d & 0x0F);
 				inputState = INPUT_STATE_PAYLOAD_LENGTH;
 				break;
 			case INPUT_STATE_PAYLOAD_LENGTH:
-				d = data[inCnt++];
+				d = (data[inCnt++] & 0x7F);
 				payloadWaitedSize = 0;
 				if(d == 127){
 					inputState = INPUT_STATE_PAYLOAD_LENGTH_EX;
@@ -85,7 +85,14 @@ bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, int* status){
 				}
 				else{
 					payloadWaitedSize = d;
-					inputState = INPUT_STATE_PAYLOAD;
+					if(payloadWaitedSize > 0)
+						inputState = INPUT_STATE_PAYLOAD;
+					else{
+						//No data
+						state->status = WS_PROCESS_STATUS_FINISHED;
+						return true;
+					}
+
 				}
 				break;
 			case INPUT_STATE_PAYLOAD_LENGTH_EX:
@@ -104,7 +111,7 @@ bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, int* status){
 				inCnt += chunkSize;
 				payloadGetCnt += chunkSize;
 				if(payloadGetCnt >= payloadWaitedSize){
-					*status = WS_PROCESS_STATUS_FINISHED;
+					state->status = WS_PROCESS_STATUS_FINISHED;
 					return true;
 				}
 				break;
@@ -177,15 +184,46 @@ void applyMask(char* buf, int len, uint32_t mask){
 	}
 }
 
+WebSocketStatus fillWebSocketPongData(char* inData, int inLen, char* outData, int *outLen){
+	int cnt = 0;
+	uint32_t mask;
+	bool useMask = true;
+	outData[cnt++] = WS_HEAD_MASK_FIN | WEB_SOCKET_OPCODE_PONG;
+	if(inLen < 126){
+		outData[cnt++] = (inLen & 0x7F);
+	}
+	else{
+		outData[cnt++] = 0x7E;
+		outData[cnt++] = (inLen >> 8) & 0xFF;
+		outData[cnt++] = inLen & 0xFF;
+	}
+
+	if(useMask){
+		outData[1] |= WS_HEAD_MASKED;
+		mask = generateRnd32();
+
+		memcpy(outData + cnt, &mask, 4);
+		cnt += 4;
+
+		applyMask(inData, inLen, mask);
+	}
+
+	memcpy(outData + cnt, inData, inLen);
+	cnt += inLen;
+
+	*outLen = cnt;
+	return WS_OK;
+}
+
 WebSocketStatus fillWebSocketClientSendData(char* inData, int inLen, char* outData, int *outLen){
 	int cnt = 0;
 	uint32_t mask;
-	outData[cnt++] = WS_HEAD_MASK_FIN | WS_HAED_MASK_OPCODE_TEXT;
+	outData[cnt++] = WS_HEAD_MASK_FIN | WEB_SOCKET_OPCODE_TEXT;
 	if(inLen < 126){
-		outData[cnt++] = WS_HAED_MASKED | (inLen & 0x7F);
+		outData[cnt++] = WS_HEAD_MASKED | (inLen & 0x7F);
 	}
 	else{
-		outData[cnt++] = WS_HAED_MASKED | 0x7E;
+		outData[cnt++] = WS_HEAD_MASKED | 0x7E;
 		//memcpy(outData + cnt, &inLen, 2);
 		//cnt += 2;
 

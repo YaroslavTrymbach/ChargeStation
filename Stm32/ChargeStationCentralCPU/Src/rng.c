@@ -10,6 +10,7 @@ uint32_t generateRnd32(void){
 }
 
 void generateGUID(char *GUID){
-	sprintf(GUID, "%.4xf3b0-c87a-4ec5-a0a4-721f5b884abe", generateRnd32());
+	
+	sprintf(GUID, "%.8x-c87a-4ec5-a0a4-721f5b884abe", generateRnd32());
 	//strncpy(GUID, "c817f3b0-c87a-4ec5-a0a4-721f5b884abe", 36);
 }

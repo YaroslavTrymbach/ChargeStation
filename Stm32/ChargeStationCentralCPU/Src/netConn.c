@@ -58,3 +58,11 @@ int NET_CONN_send(const void *data, int size){
 	}
 	return 0;
 }
+
+int NET_CONN_recv(void *data, int size){
+	switch(connType){
+		case CONN_TYPE_ETH:
+			return NET_ETH_recv(data, size);
+	}
+	return 0;
+}

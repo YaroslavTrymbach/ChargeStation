@@ -606,7 +606,7 @@ void mainDispatcher(void){
 	
 	//Channel_start();
 	
-	RFID_start(TASK_TAG_RFID, mainQueue);
+	//RFID_start(TASK_TAG_RFID, mainQueue);
 	SerialControl_start(TASK_TAG_SERIAL_CONTROL, mainQueue);
 	NET_start(TASK_TAG_NET, mainQueue);
 	

@@ -16,3 +16,4 @@ void NET_ETH_setRemoteHost(char *host);
 void NET_ETH_setRemotePort(int port);
 
 int NET_ETH_send(const void *data, int size);
+int NET_ETH_recv(void *data, int size);

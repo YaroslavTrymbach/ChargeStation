@@ -17,7 +17,7 @@
 
 //#define SERVER_PORT_NO 19200
 //#define SERVER_HOST    "192.168.1.69"
-//#define SERVER_PORT_NO 19201
+#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
 //#define SERVER_HOST    "192.168.1.63"
 #define SERVER_HOST    "192.168.1.64"
@@ -25,7 +25,7 @@
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
 //#define SERVER_HOST "192.168.77.7"
-#define SERVER_PORT_NO 8080
+//#define SERVER_PORT_NO 8080
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
 #define CHARGE_POINT_ID "Kvant0001"
@@ -154,6 +154,17 @@ bool makeWebsocketHandshake(){
 		printf("Not accepted\n");
 
 	return res;
+}
+
+void sendPongFrame(char* appData, int appDataLen){
+	char outData[512];
+	int outLen;
+
+	if(fillWebSocketPongData(appData, appDataLen, outData, &outLen) != WS_OK){
+		printf("fillWebSocketPongData failed\n");
+		return;
+	}
+	send(sock, outData, outLen, 0);	
 }
 
 void sendMessage(RpcPacket* packet){
@@ -578,6 +589,7 @@ void readThread(){
 	char bufRPC[512];
 	char *sp;
 	RpcPacket rpcPacket;
+	WebSocketInputDataState webSocketState;
 
 	rpcPacket.payload = (unsigned char*)bufRPC;
 	rpcPacket.payloadSize = 512;
@@ -613,23 +625,30 @@ void readThread(){
 			}
 		}
 		else if(ActiveProtocol == ACTIVE_PROTOCOL_WEBSOCKET){
-			if(WebSocket_ProcessInputData(buf, res, &status)){
-				if(status == WS_PROCESS_STATUS_FINISHED){
-					printf("WebSocket frame is got\n");
-					WebSocket_GetInputPayloadData(bufWS, 512, &size);
-					printf("Frame size is %d\n", size);
-					
-					if(parseRpcInputData(bufWS, size, &rpcPacket)){
-						printf("RPC parsing good\n");
-						printf("MesType %c Id %s, payloadLength %d\n", rpcPacket.messageType, rpcPacket.uniqueId, rpcPacket.payloadLen);
-						printf("Payload: %s\n", rpcPacket.payload);
-
-						processRPCPacket(&rpcPacket);
+			if(WebSocket_ProcessInputData(buf, res, &webSocketState)){
+				if(webSocketState.status == WS_PROCESS_STATUS_FINISHED){
+					if(webSocketState.opCode == WEB_SOCKET_OPCODE_PING){
+						printf("WebSocket get ping\n");
+						WebSocket_GetInputPayloadData(bufWS, 512, &size);
+						sendPongFrame(bufWS, size);
 					}
 					else{
-						printf("RPC parsing failed!\n");
+						printf("WebSocket frame is got\n");
+						WebSocket_GetInputPayloadData(bufWS, 512, &size);
+						printf("Frame size is %d\n", size);
+						
+						if(parseRpcInputData(bufWS, size, &rpcPacket)){
+							printf("RPC parsing good\n");
+							printf("MesType %c Id %s, payloadLength %d\n", rpcPacket.messageType, rpcPacket.uniqueId, rpcPacket.payloadLen);
+							printf("Payload: %s\n", rpcPacket.payload);
+
+							processRPCPacket(&rpcPacket);
+						}
+						else{
+							printf("RPC parsing failed!\n");
+						}
 					}
-					WebSocket_ClearInBuffer();	
+					WebSocket_ClearInBuffer();
 				}
 			}
 			else{

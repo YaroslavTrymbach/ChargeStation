@@ -188,7 +188,7 @@
           <Type>0</Type>
           <LineNumber>415</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134317976</Address>
+          <Address>134319672</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -198,38 +198,6 @@
           <Filename>..\Src\serial_control.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\ChargeStationCentralCPU\../Src/serial_control.c\415</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>342</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134279236</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\Src\net.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\ChargeStationCentralCPU\../Src/net.c\342</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>55</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134240118</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\Src\netEth.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\ChargeStationCentralCPU\../Src/netEth.c\55</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -249,6 +217,14 @@
           <ItemText>comStr</ItemText>
         </Ww>
       </WatchWindow1>
+      <MemoryWindow1>
+        <Mm>
+          <WinNumber>1</WinNumber>
+          <SubType>0</SubType>
+          <ItemText>0x200023e0</ItemText>
+          <AccSizeX>0</AccSizeX>
+        </Mm>
+      </MemoryWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>
