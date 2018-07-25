@@ -11,6 +11,7 @@ void NET_ETH_change_local_ip(void);
 
 bool NET_ETH_isConnected(void);
 bool NET_ETH_connect(void);
+bool NET_ETH_disconnect(void);
 
 void NET_ETH_setRemoteHost(char *host);
 void NET_ETH_setRemotePort(int port);

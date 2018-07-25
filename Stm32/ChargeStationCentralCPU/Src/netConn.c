@@ -35,6 +35,14 @@ bool NET_CONN_connect(void){
 	return false;
 }
 
+bool NET_CONN_disconnect(void){
+	switch(connType){
+		case CONN_TYPE_ETH:
+			return NET_ETH_disconnect();
+	}
+	return false;
+}
+
 void NET_CONN_setRemoteHost(char *host){
 	switch(connType){
 		case CONN_TYPE_ETH:

@@ -66,6 +66,7 @@
 #include "serial_control.h"
 #include "chargePointTime.h"
 #include "net.h"
+#include "netConn.h"
 
 /* USER CODE END Includes */
 
@@ -549,9 +550,18 @@ void processMessageFromRFID(GeneralMessage *message){
 
 void processMessageFromSerialControl(GeneralMessage *message){
 	printf("Main task. Message from SerialControl is got\n");
+	ChargePointSetting* st;	
 	switch(message->messageId){
 		case MESSAGE_SER_CONTROL_SET_LOCAL_IP:
 			NET_changeLocalIp();
+			break;
+		case MESSAGE_SER_CONTROL_SET_SERVER_HOST:
+			st = Settings_get();
+			NET_CONN_setRemoteHost(st->serverHost);
+			break;
+		case MESSAGE_SER_CONTROL_SET_SERVER_PORT:
+			st = Settings_get();
+			NET_CONN_setRemotePort(st->serverPort);
 			break;
 	}
 }
@@ -564,6 +574,12 @@ void testSaveSetting(){
 		printf("Setting saving is success\n");
 	else
 		printf("Setting saving is failed\n");
+}
+
+void testReconnect(){
+	NetInputMessage mes;
+	mes.messageId = NET_INPUT_MESSAGE_RECONNECT;
+	NET_sendInputMessage(&mes);
 }
 
 void printCurrentDateTime(){
@@ -628,7 +644,8 @@ void mainDispatcher(void){
 					//printf("User button is pressed %d\n", ++btnPressCnt);
 				  //testSaveSetting();
 				  //printCurrentDateTime();
-				  NET_test();
+				  //NET_test();
+				  testReconnect();
 					break;
 				case TASK_TAG_SERIAL_CONTROL:
 					processMessageFromSerialControl(&message);

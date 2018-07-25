@@ -4,6 +4,7 @@
 #include "usbd_cdc_if.h"
 #include "chargePointTime.h"
 #include "settings.h"
+#include "net.h"
 #include "lwip/netif.h"
 
 const char* STR_OK = "\r\nOK\r\n";
@@ -46,6 +47,7 @@ static uint8_t hTaskTag;
 #define COMMAND_EX_SERVER_PORT     5
 #define COMMAND_EX_SERVER_URI      6
 #define COMMAND_EX_CHARGE_POINT_ID 7
+#define COMMAND_EX_RECONNECT       8
 
 #define DELIM_COMMA ','
 #define DELIM_POINT '.'
@@ -58,6 +60,7 @@ const char* COMMAND_STR_EX_SERVER_HOST     = "SERVERHOST\0";
 const char* COMMAND_STR_EX_SERVER_PORT     = "SERVERPORT\0";
 const char* COMMAND_STR_EX_SERVER_URI      = "SERVERURI\0";
 const char* COMMAND_STR_EX_CHARGE_POINT_ID = "CHARGEPOINTID\0";
+const char* COMMAND_STR_EX_RECONNECT       = "RECONNECT\0";
 
 extern struct netif gnetif;
 
@@ -169,6 +172,7 @@ int getCommandExFromStr(char *comStr){
 	CHECK_COMMAND(SERVER_PORT);
 	CHECK_COMMAND(SERVER_URI);
 	CHECK_COMMAND(CHARGE_POINT_ID);
+	CHECK_COMMAND(RECONNECT);
 	
 	return COMMAND_UNKNOWN;
 }
@@ -450,6 +454,13 @@ void execSaveSettings(){
 	}
 }
 
+void execReconnect(){
+	NetInputMessage mes;
+	mes.messageId = NET_INPUT_MESSAGE_RECONNECT;
+	NET_sendInputMessage(&mes);
+	sendOK();
+}
+
 void processCommandExWrite(int command, char *arg){
 	switch(command){
 		case COMMAND_EX_LOCAL_IP:
@@ -511,6 +522,9 @@ void processCommandExExec(int command){
 	switch(command){
 		case COMMAND_EX_SAVE_SETTINGS:
 			execSaveSettings();
+			break;
+		case COMMAND_EX_RECONNECT:
+			execReconnect();
 			break;
 	}
 }

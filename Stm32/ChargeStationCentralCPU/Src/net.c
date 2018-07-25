@@ -15,6 +15,7 @@
 #include "settings.h"
 #include "netConn.h"
 #include "device.h"
+#include "chargePointTime.h"
 
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 5 )
 #define READ_THREAD_PRIO (tskIDLE_PRIORITY + 5)
@@ -27,6 +28,8 @@ char remote_host[64];
 
 osThreadId hNetThread;
 osThreadId hReadThread;
+
+QueueHandle_t hNetInputQueue = NULL;
 
 #define ACTIVE_PROTOCOL_NONE      0
 #define ACTIVE_PROTOCOL_HTTP      1
@@ -51,11 +54,17 @@ bool httpBufOverflow = false;
 bool webSocketConnected = false;
 bool stationAccepted = false;
 
+int bootNotificationInterval = 10000;
+int retryWebSocketHandshakeInterval = 15000;
+
 int SendCallAction = 0;
 char* SendCallId[37];
 
 SemaphoreHandle_t hGetEvent;
 SemaphoreHandle_t hCallAnswerEvent;
+SemaphoreHandle_t hReadThreadSuspendEvent;
+
+bool isReadThreadNeedSuspend = false;
 
 extern struct netif gnetif;
 
@@ -165,6 +174,27 @@ void sendMessageToServer(RpcPacket* packet){
 	printf("Call answer is got\n");
 }
 
+void processConfBootNotification(cJSON* json){
+	ConfBootNotifiaction conf;
+	jsonUnpackConfBootNotification(json, &conf);
+
+	printf("Server datetime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", 
+		conf.currentTime.tm_mday, conf.currentTime.tm_mon, conf.currentTime.tm_year,
+		conf.currentTime.tm_hour, conf.currentTime.tm_min, conf.currentTime.tm_sec);
+
+	if(conf.status == REGISTRATION_STATUS_ACCEPTED){
+		printf("Station is accepted\n");
+		//Synchronize time
+		setCurrentTime(&conf.currentTime);
+		
+		stationAccepted = true;
+	}
+	else{
+		printf("Station is rejected\n");
+		bootNotificationInterval = conf.interval*1000;
+	}
+}
+
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
 	cJSON* jsonElement;
@@ -186,7 +216,7 @@ void processRPCPacket(RpcPacket* packet){
 					//processConfAuthorize(jsonRoot);
 					break;
 				case ACTION_BOOT_NOTIFICATION:
-					//processConfBootNotification(jsonRoot);
+					processConfBootNotification(jsonRoot);
 					break;
 				case ACTION_START_TRANSACTION:
 					//processConfStartTransaction(jsonRoot);
@@ -231,14 +261,26 @@ void readThread(void const * argument){
 	rpcPacket.payloadSize = 512;
 	
 	while(true){
+		if(isReadThreadNeedSuspend){
+			printf("ReadThread suspend\n");
+			xSemaphoreGive(hReadThreadSuspendEvent);
+			osThreadSuspend(NULL);
+		}
 		res = NET_CONN_recv(buf, 500);
-		//res = recv(sock, buf, 500, 0);
+
 		if(res > 0){
 			buf[res] = '\0';
 		}
 		else{
-			logStr("ConnectionIsClosed\r\n");
-			return;
+			if(res == 0){
+				continue;
+			}
+			else{
+				logStr("ConnectionIsClosed\r\n");
+				osThreadSuspend(NULL);
+				continue;
+				//return;
+			}
 		}
 		//Обработка полученного результата
 		if((ActiveProtocol == ACTIVE_PROTOCOL_HTTP) && (!httpBufOverflow)){
@@ -308,11 +350,17 @@ bool createReadThread(){
 	return (hReadThread != NULL);
 }
 
-void runReadThread(){
+void runReadThread(void){
+	isReadThreadNeedSuspend = false;
 	osThreadResume(hReadThread);
 }
 
-void sendBootNotification(){
+void suspendReadThread(void){
+	isReadThreadNeedSuspend = true;
+	xSemaphoreTake(hReadThreadSuspendEvent, pdMS_TO_TICKS(1000));
+}
+
+void sendBootNotification(void){
 	char jsonData[512];
 	
 	int outLen;
@@ -332,13 +380,24 @@ void sendBootNotification(){
 	sendMessageToServer(&rpcPacket);
 }
 
+void reconnect(){
+	printf("NET: Reconnect\n");
+	suspendReadThread();
+	NET_CONN_disconnect();
+	webSocketConnected = false;
+	stationAccepted = false;
+	bootNotificationInterval = 0;
+}
+
 void netThread(void const * argument){
 	int res;
 	uint32_t tick;
 	char s[256];
 	char buf[256];
 	int webSocketLastTryConnectionTick = 0;
+	int bootNotificationTick = 0;
   ChargePointSetting* st;	
+	NetInputMessage message;
 	st = Settings_get();
 	
 	//osDelay(50);
@@ -351,6 +410,8 @@ void netThread(void const * argument){
 	
 	hGetEvent = xSemaphoreCreateBinary();
 	hCallAnswerEvent = xSemaphoreCreateBinary(); 
+	hNetInputQueue = xQueueCreate(16, sizeof(NetInputMessage));
+	hReadThreadSuspendEvent = xSemaphoreCreateBinary();  
 	if(!createReadThread()){
 		printf("NET createReadThread failed. FreeHeap = %d\n", xPortGetFreeHeapSize());
 	}
@@ -368,15 +429,28 @@ void netThread(void const * argument){
 		
 		if(NET_CONN_isConnected() && (!webSocketConnected)){
 			tick = HAL_GetTick();
-			if((tick - webSocketLastTryConnectionTick) >= 1000){
+			if((tick - webSocketLastTryConnectionTick) >= retryWebSocketHandshakeInterval){
 				webSocketLastTryConnectionTick = tick;
 				webSocketConnected = makeWebsocketHandshake();
 			}
 		}
 		
 		if(webSocketConnected && (!stationAccepted)){
-			sendBootNotification();
-			stationAccepted = true; //!Debug
+			tick = HAL_GetTick();
+			if((tick - bootNotificationTick) >= bootNotificationInterval){
+				bootNotificationTick = tick;
+				sendBootNotification();
+			}		
+			//stationAccepted = true; //!Debug
+		}
+		
+		while(xQueueReceive(hNetInputQueue, &message, 0) == pdPASS){
+			switch(message.messageId){
+				case NET_INPUT_MESSAGE_RECONNECT:
+					reconnect();
+				  //return;
+					break;
+			}
 		}
     osDelay(10);
 		//send(sock, s, strlen(s), 0);
@@ -394,6 +468,12 @@ void NET_start(uint8_t taskTag, QueueHandle_t queue){
 
 void NET_changeLocalIp(void){
 	NET_CONN_change_local_ip();
+}
+
+void NET_sendInputMessage(NetInputMessage *message){
+	if(hNetInputQueue != NULL){
+		xQueueSend(hNetInputQueue, message, 10);
+	}
 }
 
 void NET_test(void){

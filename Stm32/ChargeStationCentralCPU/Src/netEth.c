@@ -53,6 +53,8 @@ bool NET_ETH_isConnected(void){
 
 bool NET_ETH_connect(void){
 	struct sockaddr_in server;
+	struct timeval tv;
+	int opt, res;
 	
 	if(e_sock == -1){
 		e_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -69,7 +71,24 @@ bool NET_ETH_connect(void){
       return false;
   }
 	
+	opt = 100; //Time out in milliseconds
+	tv.tv_sec = opt / 1000;
+	tv.tv_usec = (opt % 1000) * 1000;
+	res = setsockopt(e_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	if(res == -1){
+		printf("setsockopt failed. Err = %d %s\n", errno, strerror(errno));
+		if(errno == EINVAL){
+			printf("INVAL\n");
+		}
+	}
+	
 	isConnected = true;
+	return true;
+}
+
+bool NET_ETH_disconnect(void){
+	if(isConnected)
+		NET_ETH_close();
 	return true;
 }
 
@@ -107,6 +126,10 @@ int NET_ETH_recv(void *data, int size){
 	res = recv(e_sock, data, size, 0);
 	
 	if(res == -1){
+		if(errno == EAGAIN){
+			//This timeout
+			res = 0;
+		}
 		if(errno == ECONNRESET){
 			NET_ETH_close();
 		}
