@@ -2,6 +2,8 @@
 #include <FreeRTOS.h>
 #include <queue.h>
 
+#define MESSAGE_NET_SERVER_ACCEPT   1
+
 #define NET_INPUT_MESSAGE_RECONNECT 1
 
 typedef struct _NetInputMessage{

@@ -533,6 +533,17 @@ void toggleBlueLed(void){
 	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 }
 
+void processMessageFromNET(GeneralMessage *message){
+	printf("Main task. Message from NET is got\n");
+	char s[32];
+	switch(message->messageId){
+		case MESSAGE_NET_SERVER_ACCEPT:
+			sprintf(s, "Station %s", message->param1 ? "ACCEPTED" : "REJECTED");
+		  Display_PrintStrLeft(1, s);
+			break;
+	}
+}
+
 void processMessageFromRFID(GeneralMessage *message){
 	uint32_t cardId;
 	char s[32];
@@ -649,6 +660,9 @@ void mainDispatcher(void){
 					break;
 				case TASK_TAG_SERIAL_CONTROL:
 					processMessageFromSerialControl(&message);
+					break;
+				case TASK_TAG_NET:
+					processMessageFromNET(&message);
 					break;
 			}
 			

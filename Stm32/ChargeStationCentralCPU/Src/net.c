@@ -16,11 +16,12 @@
 #include "netConn.h"
 #include "device.h"
 #include "chargePointTime.h"
+#include "tasks.h"
 
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 5 )
 #define READ_THREAD_PRIO (tskIDLE_PRIORITY + 5)
 
-static QueueHandle_t hQueue;
+static QueueHandle_t hMainQueue;
 static uint8_t hTaskTag;
   
 int remote_port = 19201;
@@ -69,6 +70,7 @@ bool isReadThreadNeedSuspend = false;
 extern struct netif gnetif;
 
 void sendMessageToServer(RpcPacket* packet);
+void sendMessageToMainDispatcher(GeneralMessage *message);
 
 void clear_http_buf_in(){
 	buf_pos_in = http_buf_in;
@@ -174,8 +176,14 @@ void sendMessageToServer(RpcPacket* packet){
 	printf("Call answer is got\n");
 }
 
+void sendMessageToMainDispatcher(GeneralMessage *message){
+	message->sourceTag = hTaskTag;
+	xQueueSend(hMainQueue, message, 10);
+}
+
 void processConfBootNotification(cJSON* json){
 	ConfBootNotifiaction conf;
+	GeneralMessage message;
 	jsonUnpackConfBootNotification(json, &conf);
 
 	printf("Server datetime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", 
@@ -193,6 +201,11 @@ void processConfBootNotification(cJSON* json){
 		printf("Station is rejected\n");
 		bootNotificationInterval = conf.interval*1000;
 	}
+	
+	//Send message to Main dispatcher
+	message.messageId = MESSAGE_NET_SERVER_ACCEPT;
+	message.param1 = (stationAccepted) ? 1 : 0;
+	sendMessageToMainDispatcher(&message);
 }
 
 void processRPCPacket(RpcPacket* packet){
@@ -460,7 +473,7 @@ void netThread(void const * argument){
 
 void NET_start(uint8_t taskTag, QueueHandle_t queue){
 	hTaskTag = taskTag;
-	hQueue = queue;	
+	hMainQueue = queue;	
 	
 	osThreadDef(netTask, netThread, osPriorityNormal, 0, 1024);
   hNetThread = osThreadCreate(osThread(netTask), NULL);
