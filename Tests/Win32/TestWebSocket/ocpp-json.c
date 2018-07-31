@@ -444,4 +444,21 @@ bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req){
 	return true;
 }
 
+bool jsonUnpackReqReset(cJSON* json, RequestReset *req){
+	cJSON* jsonElement;
+	jsonElement = json->child;
+
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_String){
+			if(isParam(jsonElement->string, OCPP_PARAM_TYPE)){
+				req->type = occpGetResetTypeFromString(jsonElement->valuestring);
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+
+	return true;
+}
+
 

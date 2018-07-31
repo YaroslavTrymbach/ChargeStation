@@ -23,5 +23,6 @@ bool jsonUnpackConfStartTransaction(cJSON* json, ConfStartTransaction *conf);
 
 //Request from Server
 bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req);
+bool jsonUnpackReqReset(cJSON* json, RequestReset *req);
 bool jsonUnpackReqUnlockConnector(cJSON* json, RequestUnlockConnector *req);
 

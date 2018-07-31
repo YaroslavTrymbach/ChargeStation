@@ -84,6 +84,10 @@ typedef CiString20Type idToken;
 #define UNLOCK_STATUS_UNLOCK_FAILED 2
 #define UNLOCK_STATUS_NOT_SUPPORTED 3
 
+#define RESET_TYPE_UNKNOWN 0
+#define RESET_TYPE_SOFT    1
+#define RESET_TYPE_HARD    2
+
 #define OCPP_PARAM_CURRENT_TIME      0
 #define OCPP_PARAM_INTERVAL          1
 #define OCPP_PARAM_STATUS            2
@@ -101,6 +105,7 @@ typedef CiString20Type idToken;
 #define OCPP_PARAM_CONFIGURATION_KEY 14
 #define OCPP_PARAM_VALUE             15
 #define OCPP_PARAM_READONLY          16
+#define OCPP_PARAM_TYPE              17
 
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
@@ -164,6 +169,25 @@ typedef struct _RequestUnlockConnector{
 	int connectorId;
 }RequestUnlockConnector;
 
+typedef struct _RequestReset{
+	int type;
+}RequestReset;
+
+typedef struct _RequestReserveNow{
+	int connectorId;
+	dateTime expiryDate;
+	idToken idTag;
+	idToken parentIdTag;
+	int reservationId;
+	bool useParentIdTag;
+}RequestReserveNow;
+
+typedef struct _RequestSendLocalList{
+	int listVersion;
+	int updateType;
+	//AuthorizationData localAuthorizationList;
+}RequestSendLocalList;
+
 typedef struct _IdTagInfo{
 	dateTime expiryDate;
 	idToken parentIdTag;
@@ -214,6 +238,7 @@ int occpGetActionFromString(const char* s);
 int occpConfigKeyFromString(const char* s);
 int occpGetRegistrationStatusFromString(const char* s);
 int occpGetAuthorizationStatusFromString(const char* s);
+int occpGetResetTypeFromString(const char* s);
 
 void occpFreeCiString50TypeList(CiString50TypeListItem *list);
 void occpFreeKeyValueList(KeyValueListItem *list);
