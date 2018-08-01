@@ -20,6 +20,7 @@ typedef CiString20Type idToken;
 
 //Configuration constant
 #define CONFIGURATION_GET_MAX_KEYS 16
+#define CONFIGURATION_NUMBER_OF_CONNECTORS 4
 
 // Messages
 #define ACTION_UNKNOWN                         0

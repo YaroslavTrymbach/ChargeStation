@@ -10,6 +10,8 @@
 #include "WebSocket.h"
 #include "rpc.h"
 #include "ocpp.h"
+#include "ocppConfiguration.h"
+#include "ocppConfigurationDef.h"
 #include "ocpp-json.h"
 #include "cJSON.h"
 #include "settings.h"
@@ -68,6 +70,10 @@ SemaphoreHandle_t hReadThreadSuspendEvent;
 bool isReadThreadNeedSuspend = false;
 
 extern struct netif gnetif;
+
+extern OcppConfigurationVaried ocppConfVaried;
+extern OcppConfigurationFixed ocppConfFixed;
+extern OcppConfigurationRestrict ocppConfRestrict;
 
 void sendMessageToServer(RpcPacket* packet);
 void sendMessageToMainDispatcher(GeneralMessage *message);
@@ -176,9 +182,105 @@ void sendMessageToServer(RpcPacket* packet){
 	printf("Call answer is got\n");
 }
 
+void sendConfMessageToServer(RpcPacket* packet){
+	char outData[512];
+	char rpcData[512];
+	int outLen;
+
+	fillRpcCallResultData(packet, rpcData, &outLen);
+	
+	if(fillWebSocketClientSendData(rpcData, outLen, outData, &outLen) != WS_OK){
+		printf("fillWebSocketClientSendData failed\n");
+		return;
+	}
+	
+	NET_CONN_send(outData, outLen);	
+	printf("Conf message is send\n");
+}
+
 void sendMessageToMainDispatcher(GeneralMessage *message){
 	message->sourceTag = hTaskTag;
 	xQueueSend(hMainQueue, message, 10);
+}
+
+void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
+	int i;
+	RequestGetConfiguration request;
+	
+	char jsonData[512];
+	ConfGetConfiguration conf;
+	RpcPacket rpcPacket;
+	CiString50TypeListItem *lastUnKey;
+	CiString50TypeListItem *unKey;
+	KeyValueListItem *lastConfKey;
+	KeyValueListItem *confKey;
+	bool keyPassed;
+
+	jsonUnpackReqGetConfiguration(json, &request);
+
+	printf("GetConfiguration. Cnt = %d\n", request.keySize);
+	
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	conf.unknownKey = NULL;
+	conf.configurationKey = NULL;
+	for(i = 0; i < request.keySize; i++){
+		printf("Key %d: %s\n", i + 1, request.key[i]);
+
+		keyPassed = true;
+		switch(occpGetConfigKeyFromString(request.key[i])){
+			case CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS:
+				confKey = occpCreateKeyValueBool(CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS, ocppConfRestrict.authorizeRemoteTxRequestsReadOnly, 
+					ocppConfRestrict.authorizeRemoteTxRequestsReadOnly ? ocppConfFixed.authorizeRemoteTxRequests:  ocppConfVaried.authorizeRemoteTxRequests); 
+				break;
+			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
+				confKey = occpCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
+				break;
+			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
+				confKey = occpCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
+				break;
+			default:
+				keyPassed = false;
+		}
+
+		if(keyPassed){
+			//Add to configuration key
+			if(conf.configurationKey == NULL){
+				conf.configurationKey = confKey;
+			}
+			else{
+				lastConfKey->next = confKey;
+			}
+			lastConfKey = confKey;			
+		}
+		else{
+			//Add to unknowKey
+			unKey = malloc(sizeof(CiString50TypeListItem));
+			unKey->next = NULL;
+			strcpy(unKey->data, request.key[i]);
+			if(conf.unknownKey == NULL){
+				conf.unknownKey = unKey;
+			}
+			else{
+				lastUnKey->next = unKey;
+			}
+			lastUnKey = unKey;
+		}
+		
+	}
+
+	printf("send GetConfiguration confirmation\n");
+	
+	jsonPackConfGetConfiguration(&rpcPacket, &conf);
+
+	//Free memory in conf
+	occpFreeKeyValueList(conf.configurationKey);
+	occpFreeCiString50TypeList(conf.unknownKey);
+
+	sendConfMessageToServer(&rpcPacket);
 }
 
 void processConfBootNotification(cJSON* json){
@@ -208,10 +310,19 @@ void processConfBootNotification(cJSON* json){
 	sendMessageToMainDispatcher(&message);
 }
 
+void processConfAuthorize(cJSON* json){
+	ConfAuthorize conf;
+	GeneralMessage message;
+	jsonUnpackConfBootAuthorize(json, &conf);
+	
+	message.messageId = MESSAGE_NET_AUTHORIZE;
+	message.param1 = (conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED) ? 1 : 0;
+	sendMessageToMainDispatcher(&message);
+}
+
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
-	cJSON* jsonElement;
-	//if(rpcPacket.messageType == 
+	cJSON* jsonElement; 
 
 	jsonRoot = cJSON_Parse2((char*)packet->payload);
 
@@ -226,7 +337,7 @@ void processRPCPacket(RpcPacket* packet){
 		
 			switch(SendCallAction){
 				case ACTION_AUTHORIZE:
-					//processConfAuthorize(jsonRoot);
+					processConfAuthorize(jsonRoot);
 					break;
 				case ACTION_BOOT_NOTIFICATION:
 					processConfBootNotification(jsonRoot);
@@ -243,7 +354,7 @@ void processRPCPacket(RpcPacket* packet){
 		//Запрос от сервера
 		switch(packet->action){
 			case ACTION_GET_CONFIGURATION:
-				//processReqGetConfiguration(packet, jsonRoot);
+				processReqGetConfiguration(packet, jsonRoot);
 				break;
 			case ACTION_UNLOCK_CONNECTOR:
 				//processReqUnlockConnector(packet, jsonRoot);
@@ -373,6 +484,23 @@ void suspendReadThread(void){
 	xSemaphoreTake(hReadThreadSuspendEvent, pdMS_TO_TICKS(1000));
 }
 
+void sendAuthorizationRequest(uint32_t tagId){
+	char jsonData[512];
+	RequestAuthorize request;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send autorize request\n");
+	
+	sprintf(request.idTag, "%.8X", tagId);
+
+	jsonPackReqAuthorize(&rpcPacket, &request);
+
+	sendMessageToServer(&rpcPacket);
+}
+
 void sendBootNotification(void){
 	char jsonData[512];
 	
@@ -462,6 +590,9 @@ void netThread(void const * argument){
 				case NET_INPUT_MESSAGE_RECONNECT:
 					reconnect();
 				  //return;
+					break;
+				case NET_INPUT_MESSAGE_AUTHORIZE:
+					sendAuthorizationRequest(message.param1);
 					break;
 			}
 		}

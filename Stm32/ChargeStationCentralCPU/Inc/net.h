@@ -3,11 +3,14 @@
 #include <queue.h>
 
 #define MESSAGE_NET_SERVER_ACCEPT   1
+#define MESSAGE_NET_AUTHORIZE       2 
 
 #define NET_INPUT_MESSAGE_RECONNECT 1
+#define NET_INPUT_MESSAGE_AUTHORIZE 2
 
 typedef struct _NetInputMessage{
 	uint8_t messageId;
+	uint32_t param1;
 } NetInputMessage;
 
 void NET_start(uint8_t taskTag, QueueHandle_t queue);

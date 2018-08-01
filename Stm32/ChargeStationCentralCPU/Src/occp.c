@@ -52,6 +52,7 @@ const char* OCPP_PARAM_NAME_STR_UNKNOWN_KEY       = "unknownKey";
 const char* OCPP_PARAM_NAME_STR_CONFIGURATION_KEY = "configurationKey";
 const char* OCPP_PARAM_NAME_STR_VALUE             = "value";
 const char* OCPP_PARAM_NAME_STR_READONLY          = "readonly";
+const char* OCPP_PARAM_NAME_STR_TYPE              = "type";
 //const char* OCPP_PARAM_NAME_STR_ = "";
 
 
@@ -69,18 +70,21 @@ const char* CHARGE_POINT_ERROR_CODE_STR_CONNECTOR_LOCK_FAILURE = "ConnectorLockF
 const char* CHARGE_POINT_ERROR_CODE_STR_NO_ERROR               = "NoError\0";
 
 const char* CHARGE_POINT_STATUS_STR_AVAILABLE      = "Available\0";
-const char* CHARGE_POINT_STATUS_STR_PREPARING      = "\0";
-const char* CHARGE_POINT_STATUS_STR_CHARGING       = "\0";
-const char* CHARGE_POINT_STATUS_STR_SUSPENDED_EVSE = "\0";
-const char* CHARGE_POINT_STATUS_STR_SUSPENDED_EV   = "\0";
-const char* CHARGE_POINT_STATUS_STR_FINISHING      = "\0";
-const char* CHARGE_POINT_STATUS_STR_RESERVED       = "\0";
-const char* CHARGE_POINT_STATUS_STR_UNAVAILABLE    = "\0";
+const char* CHARGE_POINT_STATUS_STR_PREPARING      = "Preparing\0";
+const char* CHARGE_POINT_STATUS_STR_CHARGING       = "Charging\0";
+const char* CHARGE_POINT_STATUS_STR_SUSPENDED_EVSE = "SuspendedEVSE\0";
+const char* CHARGE_POINT_STATUS_STR_SUSPENDED_EV   = "SuspendedEV\0";
+const char* CHARGE_POINT_STATUS_STR_FINISHING      = "Finishing\0";
+const char* CHARGE_POINT_STATUS_STR_RESERVED       = "Reserved\0";
+const char* CHARGE_POINT_STATUS_STR_UNAVAILABLE    = "Unavailable\0";
 const char* CHARGE_POINT_STATUS_STR_FAULTED        = "Faulted\0";
 
 const char* UNLOCK_STATUS_STR_UNLOCKED      = "Unlocked\0";
 const char* UNLOCK_STATUS_STR_UNLOCK_FAILED = "UnlockFailed\0";
 const char* UNLOCK_STATUS_STR_NOT_SUPPORTED = "NotSupported\0";
+
+const char* RESET_TYPE_STR_SOFT = "Soft\0";
+const char* RESET_TYPE_STR_HARD = "Hard\0";
 
 #define BOOLEAN_STR_FALSE "false\0"
 #define BOOLEAN_STR_TRUE  "true\0"
@@ -197,6 +201,7 @@ const char *ocppGetParamNameString(int param){
 		CASE_PARAM_STR(CONFIGURATION_KEY);
 		CASE_PARAM_STR(VALUE);
 		CASE_PARAM_STR(READONLY);
+		CASE_PARAM_STR(TYPE);
 		//CASE_PARAM_STR();
 	}
 	return res;
@@ -262,6 +267,14 @@ int occpGetAuthorizationStatusFromString(const char* s){
 	if(strcmp(s, AUTHORIZATION_STATUS_STR_CONCURRENT_TX) == 0)
 		return AUTHORIZATION_STATUS_CONCURRENT_TX;
 	return AUTHORIZATION_STATUS_UNKNOWN;
+}
+
+int occpGetResetTypeFromString(const char* s){
+	if(strcmp(s, RESET_TYPE_STR_SOFT) == 0)
+		return RESET_TYPE_SOFT;
+	if(strcmp(s, RESET_TYPE_STR_HARD) == 0)
+		return RESET_TYPE_HARD;
+	return RESET_TYPE_UNKNOWN;
 }
 
 void occpFreeCiString50TypeList(CiString50TypeListItem *list){

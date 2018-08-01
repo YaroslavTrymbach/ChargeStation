@@ -17,7 +17,7 @@
 
 //#define SERVER_PORT_NO 19200
 //#define SERVER_HOST    "192.168.1.69"
-#define SERVER_PORT_NO 19201
+//#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
 //#define SERVER_HOST    "192.168.1.63"
 #define SERVER_HOST    "192.168.1.64"
@@ -25,7 +25,7 @@
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
 //#define SERVER_HOST "192.168.77.7"
-//#define SERVER_PORT_NO 8080
+#define SERVER_PORT_NO 8080
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
 #define CHARGE_POINT_ID "Kvant0001"
@@ -460,6 +460,9 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 				break;
 			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
 				confKey = occpCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
+				break;
+			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
+				confKey = occpCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
 				break;
 			default:
 				keyPassed = false;

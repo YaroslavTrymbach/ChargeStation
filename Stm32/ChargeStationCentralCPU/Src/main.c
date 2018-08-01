@@ -67,6 +67,8 @@
 #include "chargePointTime.h"
 #include "net.h"
 #include "netConn.h"
+#include "ocppConfiguration.h"
+#include "ocppConfigurationDef.h"
 
 /* USER CODE END Includes */
 
@@ -95,6 +97,11 @@ uint8_t str[16];
 uint32_t lastUserButtonPressTick = 0;
 ChargePointSetting *settings;
 bool isNeedSetTime = true;
+uint32_t lastCheckedTagId = 0;
+
+OcppConfigurationVaried ocppConfVaried;
+OcppConfigurationFixed ocppConfFixed;
+OcppConfigurationRestrict ocppConfRestrict;
 
 /* USER CODE END PV */
 
@@ -541,20 +548,36 @@ void processMessageFromNET(GeneralMessage *message){
 			sprintf(s, "Station %s", message->param1 ? "ACCEPTED" : "REJECTED");
 		  Display_PrintStrLeft(1, s);
 			break;
+		case MESSAGE_NET_AUTHORIZE:
+			printf("Authorize %s\n", message->param1 ? "SUCCESS" : "FAILED");
+			sprintf(s, "Authorize %s", message->param1 ? "SUCCESS" : "FAILED");
+		  Display_PrintStrLeft(1, s);
+			break;
 	}
 }
 
 void processMessageFromRFID(GeneralMessage *message){
 	uint32_t cardId;
 	char s[32];
+	NetInputMessage netMessage;
+	
 	printf("Main task. Message from RFID is got\n");
 	switch(message->messageId){
 		case MESSAGE_FOUND_CARD:
 			cardId = message->param1;
 			printf("CardId 0x%.8X\n", cardId);
-		  Display_PrintStrCenter(0, "Card discovered");
-		  sprintf(s, "CardId 0x%.8X", cardId);
-		  Display_PrintStrLeft(1, s);
+		
+		  if(cardId != lastCheckedTagId){
+				Display_PrintStrCenter(0, "Card discovered");
+				sprintf(s, "CardId 0x%.8X", cardId);
+				Display_PrintStrLeft(1, s);
+		
+				netMessage.messageId = NET_INPUT_MESSAGE_AUTHORIZE;
+				netMessage.param1 = cardId;
+				NET_sendInputMessage(&netMessage);
+				
+				lastCheckedTagId = cardId;
+			}
 			break;
 	}
 }
@@ -626,6 +649,8 @@ void mainDispatcher(void){
 	settings = Settings_get();
 	printf("ChargePointID: %s\n", settings->ChargePointId);
 	
+	fillOcppConfigurationWithDefValues(&ocppConfVaried, &ocppConfFixed, &ocppConfRestrict);
+	
 	initDisplay();
 	checkHardware();
 	
@@ -633,7 +658,7 @@ void mainDispatcher(void){
 	
 	//Channel_start();
 	
-	//RFID_start(TASK_TAG_RFID, mainQueue);
+	RFID_start(TASK_TAG_RFID, mainQueue);
 	SerialControl_start(TASK_TAG_SERIAL_CONTROL, mainQueue);
 	NET_start(TASK_TAG_NET, mainQueue);
 	
@@ -655,8 +680,8 @@ void mainDispatcher(void){
 					//printf("User button is pressed %d\n", ++btnPressCnt);
 				  //testSaveSetting();
 				  //printCurrentDateTime();
-				  //NET_test();
-				  testReconnect();
+				  NET_test();
+				  //testReconnect();
 					break;
 				case TASK_TAG_SERIAL_CONTROL:
 					processMessageFromSerialControl(&message);
