@@ -234,6 +234,19 @@ bool jsonPackReqBootNotification(RpcPacket *rpcPacket, RequestBootNotification *
 	return true;
 }
 
+bool jsonPackReqHeartbeat(RpcPacket *rpcPacket){
+		rpcPacket->action = ACTION_HEARTBEAT;
+
+	openJsonFormation(rpcPacket->payload);
+
+	//No field are defined
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
+
 bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *req){
 	rpcPacket->action = ACTION_START_TRANSACTION;
 
@@ -349,6 +362,21 @@ bool jsonUnpackConfBootNotification(cJSON* json, ConfBootNotifiaction *conf){
 	return true;
 }
 
+bool jsonUnpackConfHeartbeat(cJSON* json, ConfHeartbeat *conf){
+	cJSON* jsonElement;
+	jsonElement = json->child;
+
+	while(jsonElement != NULL){
+		if(jsonElement->type == cJSON_String){
+			if(isParam(jsonElement->string, OCPP_PARAM_CURRENT_TIME)){
+				fillDateTimeFromString(&conf->currentTime, jsonElement->valuestring);
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+	return true;
+}
+
 bool jsonUnpackParamIdTagInfo(cJSON* json, IdTagInfo *param){
 	cJSON* jsonElement;
 	jsonElement = json->child;
@@ -366,7 +394,7 @@ bool jsonUnpackParamIdTagInfo(cJSON* json, IdTagInfo *param){
 	return true;
 }
 
-bool jsonUnpackConfBootAuthorize(cJSON* json, ConfAuthorize *conf){
+bool jsonUnpackConfAuthorize(cJSON* json, ConfAuthorize *conf){
 	cJSON* jsonElement;
 	jsonElement = json->child;
 

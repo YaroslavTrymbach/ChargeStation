@@ -211,6 +211,10 @@ typedef struct _ConfGetConfiguration{
 	CiString50TypeListItem *unknownKey;
 }ConfGetConfiguration;
 
+typedef struct _ConfHeartbeat{
+	dateTime currentTime;
+}ConfHeartbeat;
+
 typedef struct _ConfStartTransaction{
 	IdTagInfo idTagInfo;
 	int transactionId;

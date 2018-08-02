@@ -58,7 +58,8 @@ bool webSocketConnected = false;
 bool stationAccepted = false;
 
 int bootNotificationInterval = 10000;
-int retryWebSocketHandshakeInterval = 15000;
+int heartbeatInterval = 5000;
+int retryWebSocketHandshakeInterval = 0;
 
 int SendCallAction = 0;
 char* SendCallId[37];
@@ -93,6 +94,9 @@ bool makeWebsocketHandshake(){
 	WebSocketConnectionParams params;
 	WebSocketHttpHeader answer;
 	ChargePointSetting *st;
+	
+	retryWebSocketHandshakeInterval = 15000;
+	
 	printf("makeWebsocketHandshake\n");
 	
 	st = Settings_get();
@@ -298,6 +302,7 @@ void processConfBootNotification(cJSON* json){
 		setCurrentTime(&conf.currentTime);
 		
 		stationAccepted = true;
+		//heartbeatInterval = conf.interval*1000; //!Debug need uncomment
 	}
 	else{
 		printf("Station is rejected\n");
@@ -310,10 +315,23 @@ void processConfBootNotification(cJSON* json){
 	sendMessageToMainDispatcher(&message);
 }
 
+void processConfHeartbeat(cJSON* json){
+	ConfHeartbeat conf;
+	GeneralMessage message;
+	jsonUnpackConfHeartbeat(json, &conf);
+
+	printf("Server datetime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", 
+		conf.currentTime.tm_mday, conf.currentTime.tm_mon, conf.currentTime.tm_year,
+		conf.currentTime.tm_hour, conf.currentTime.tm_min, conf.currentTime.tm_sec);
+	
+	//Synchronize time
+	setCurrentTime(&conf.currentTime);
+}
+
 void processConfAuthorize(cJSON* json){
 	ConfAuthorize conf;
 	GeneralMessage message;
-	jsonUnpackConfBootAuthorize(json, &conf);
+	jsonUnpackConfAuthorize(json, &conf);
 	
 	message.messageId = MESSAGE_NET_AUTHORIZE;
 	message.param1 = (conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED) ? 1 : 0;
@@ -341,6 +359,9 @@ void processRPCPacket(RpcPacket* packet){
 					break;
 				case ACTION_BOOT_NOTIFICATION:
 					processConfBootNotification(jsonRoot);
+					break;
+				case ACTION_HEARTBEAT:
+					processConfHeartbeat(jsonRoot);
 					break;
 				case ACTION_START_TRANSACTION:
 					//processConfStartTransaction(jsonRoot);
@@ -400,7 +421,7 @@ void readThread(void const * argument){
 				continue;
 			}
 			else{
-				logStr("ConnectionIsClosed\r\n");
+				printf("ConnectionIsClosed\n");
 				osThreadSuspend(NULL);
 				continue;
 				//return;
@@ -521,6 +542,22 @@ void sendBootNotification(void){
 	sendMessageToServer(&rpcPacket);
 }
 
+void sendHeartbeatRequest(){
+	char jsonData[512];
+	
+	int outLen;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("sendBootNotification\n");
+
+	jsonPackReqHeartbeat(&rpcPacket);
+
+	sendMessageToServer(&rpcPacket);
+}
+
 void reconnect(){
 	printf("NET: Reconnect\n");
 	suspendReadThread();
@@ -537,6 +574,7 @@ void netThread(void const * argument){
 	char buf[256];
 	int webSocketLastTryConnectionTick = 0;
 	int bootNotificationTick = 0;
+	int heartbeatTick = 0;
   ChargePointSetting* st;	
 	NetInputMessage message;
 	st = Settings_get();
@@ -559,12 +597,15 @@ void netThread(void const * argument){
 	
 	for(;;){
 		if(!NET_CONN_isConnected()){
+			webSocketConnected = false;
+			stationAccepted = false;
 			if(NET_CONN_connect()){
 				printf("Connected to server\n");
 				runReadThread();
 			}
 			else{
 				osDelay(100);
+				continue;
 			}
 		}
 		
@@ -576,12 +617,21 @@ void netThread(void const * argument){
 			}
 		}
 		
-		if(webSocketConnected && (!stationAccepted)){
+		if(webSocketConnected){
 			tick = HAL_GetTick();
-			if((tick - bootNotificationTick) >= bootNotificationInterval){
-				bootNotificationTick = tick;
-				sendBootNotification();
-			}		
+			if(stationAccepted){
+				if((tick - heartbeatTick) >= heartbeatInterval){
+					heartbeatTick = tick;
+					sendHeartbeatRequest();
+				}
+			}
+			else{
+				if((tick - bootNotificationTick) >= bootNotificationInterval){
+					bootNotificationTick = tick;
+					heartbeatTick = tick;
+					sendBootNotification();
+				}		
+			}
 			//stationAccepted = true; //!Debug
 		}
 		
@@ -622,6 +672,8 @@ void NET_sendInputMessage(NetInputMessage *message){
 
 void NET_test(void){
 	uint32_t phyreg;
+	uint32_t phyreg2;
+	
 	printf("NET_test\n");
 	HAL_ETH_ReadPHYRegister(&heth, PHY_BSR, &phyreg);
 	if (phyreg & PHY_LINKED_STATUS){
@@ -630,6 +682,14 @@ void NET_test(void){
 	else{
 		printf("Link is off\n");
 	}
+	
+	HAL_ETH_ReadPHYRegister(&heth, 29, &phyreg);
+	HAL_ETH_ReadPHYRegister(&heth, 30, &phyreg2);
+	printf("1 ISFR = 0x%.2X, IMR = 0x%.2X\n", phyreg, phyreg2);
+	
+	HAL_ETH_ReadPHYRegister(&heth, 29, &phyreg);
+	HAL_ETH_ReadPHYRegister(&heth, 30, &phyreg2);
+	printf("2 ISFR = 0x%.2X, IMR = 0x%.2X\n", phyreg, phyreg2);
 }
 
 void ethernetif_notify_conn_changed(struct netif *netif){

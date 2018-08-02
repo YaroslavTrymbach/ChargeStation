@@ -260,7 +260,12 @@ void sendLocalIp(){
 	st = Settings_get();
 	if(st->isDHCPEnabled){
 		memcpy(ip[0], &gnetif.ip_addr, 4);
-		sprintf(s, "1, %d.%d.%d.%d", ip[0][0], ip[0][1], ip[0][2], ip[0][3]);
+		memcpy(ip[1], &gnetif.netmask, 4);
+		memcpy(ip[2], &gnetif.gw, 4);
+		sprintf(s, "1, %d.%d.%d.%d, %d.%d.%d.%d, %d.%d.%d.%d", 
+		  ip[0][0], ip[0][1], ip[0][2], ip[0][3],
+		  ip[1][0], ip[1][1], ip[1][2], ip[1][3],
+		  ip[2][0], ip[2][1], ip[2][2], ip[2][3]);
 	}
 	else{
 		sprintf(s, "0, %d.%d.%d.%d, %d.%d.%d.%d, %d.%d.%d.%d", 

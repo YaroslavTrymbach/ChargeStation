@@ -10,7 +10,38 @@ extern struct netif gnetif;
 int remotePort;
 char remoteHost[64];
 bool isConnected = false;
+bool isLinkUpDone = false;
 int e_sock = - 1;
+
+bool NET_ETH_check_link_up();
+
+void doLinkUp(){
+	ChargePointSetting *settings;
+	
+	settings = Settings_get();
+	
+	//netif_set_up(&gnetif);
+	
+	if (netif_is_link_up(&gnetif))
+  {
+    // When the netif is fully configured this function must be called 
+    netif_set_up(&gnetif);
+		isLinkUpDone = true;
+  }
+  else
+  {
+    // When the netif link is down this function must be called 
+    netif_set_down(&gnetif);
+  }
+
+	if(settings->isDHCPEnabled)
+		dhcp_start(&gnetif);
+	
+	//isLinkUpDone = true;
+}
+
+void removeNetEthIntf(){
+}
 
 void NET_ETH_close(void){
 	close(e_sock);
@@ -18,10 +49,12 @@ void NET_ETH_close(void){
 	isConnected = false;
 }
 
-void NET_ETH_init(void){
+void NET_ETH_init(void){	
 	MX_LWIP_InitMod();
+	if(NET_ETH_check_link_up()){
+		doLinkUp();
+	}
 	
-	//e_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 }
 
 void NET_ETH_change_local_ip(void){
@@ -56,11 +89,19 @@ bool NET_ETH_connect(void){
 	struct timeval tv;
 	int opt, res;
 	
+	if(!NET_ETH_check_link_up())
+		return false;
+	
+	if(!isLinkUpDone)
+		doLinkUp();
+	
 	if(e_sock == -1){
 		e_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if(e_sock == -1)
 			return false;
 	}
+	
+	
 	
 	server.sin_addr.s_addr = inet_addr(remoteHost);
   server.sin_family = AF_INET;
@@ -136,4 +177,11 @@ int NET_ETH_recv(void *data, int size){
 	}
 	
 	return res;
+}
+
+bool NET_ETH_check_link_up(){
+	uint32_t phyreg;
+
+	HAL_ETH_ReadPHYRegister(&heth, PHY_BSR, &phyreg);
+	return ((phyreg & PHY_LINKED_STATUS) != 0);
 }

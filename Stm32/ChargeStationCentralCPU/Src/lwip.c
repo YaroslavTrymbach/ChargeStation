@@ -99,7 +99,7 @@ void MX_LWIP_InitMod(void)
 	}
   
   /* Initilialize the LwIP stack with RTOS */
-  tcpip_init( NULL, NULL );
+  tcpip_init( NULL, NULL );	
 
   /* IP addresses initialization without DHCP (IPv4) */
   IP4_ADDR(&ipaddr, IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2], IP_ADDRESS[3]);
@@ -113,20 +113,20 @@ void MX_LWIP_InitMod(void)
   netif_set_default(&gnetif);
 	
 	netif_set_link_callback(&gnetif, ethernetif_update_config);
-
+/*
   if (netif_is_link_up(&gnetif))
   {
-    /* When the netif is fully configured this function must be called */
+    // When the netif is fully configured this function must be called 
     netif_set_up(&gnetif);
   }
   else
   {
-    /* When the netif link is down this function must be called */
+    // When the netif link is down this function must be called 
     netif_set_down(&gnetif);
   }
 
 	if(settings->isDHCPEnabled)
-		dhcp_start(&gnetif);
+		dhcp_start(&gnetif);*/
 }
 
 

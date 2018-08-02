@@ -167,7 +167,7 @@ void sendPongFrame(char* appData, int appDataLen){
 	send(sock, outData, outLen, 0);	
 }
 
-void sendMessage(RpcPacket* packet){
+void sendMessageToServer(RpcPacket* packet){
 	char outData[512];
 	char rpcData[512];
 	int outLen;
@@ -209,8 +209,23 @@ void sendConfMessage(RpcPacket* packet){
 	printf("Conf message is send\n");
 }
 
+void sendHeartbeatRequest(){
+	char jsonData[512];
+	
+	int outLen;
+	RpcPacket rpcPacket;
 
-void sendWebSocketTest(){
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("sendBootNotification\n");
+
+	jsonPackReqHeartbeat(&rpcPacket);
+
+	sendMessageToServer(&rpcPacket);
+}
+
+void sendBootNotification(){
 	char jsonData[512];
 	
 	int outLen;
@@ -220,14 +235,14 @@ void sendWebSocketTest(){
 	rpcPacket.payload = (unsigned char*)jsonData;
 	rpcPacket.payloadSize = 512;
 
-	printf("sendWebSocketTest\n");
+	printf("sendBootNotification\n");
 
 	strcpy(request.chargePointVendor, "YarJSONVendor");
 	strcpy(request.chargePointModel, STATION_MODEL);
 
 	jsonPackReqBootNotification(&rpcPacket, &request);
 
-	sendMessage(&rpcPacket);
+	sendMessageToServer(&rpcPacket);
 }
 
 void sendStatusNotification(int connectorId){
@@ -254,7 +269,7 @@ void sendStatusNotification(int connectorId){
 
 	jsonPackReqStatusNotification(&rpcPacket, &request);
 
-	sendMessage(&rpcPacket);
+	sendMessageToServer(&rpcPacket);
 }
 	
 void sendAuthorizationRequest(){
@@ -271,7 +286,7 @@ void sendAuthorizationRequest(){
 
 	jsonPackReqAuthorize(&rpcPacket, &request);
 
-	sendMessage(&rpcPacket);
+	sendMessageToServer(&rpcPacket);
 }
 
 void startTransaction(){
@@ -293,7 +308,7 @@ void startTransaction(){
 
 	jsonPackReqStartTransaction(&rpcPacket, &request);
 
-	sendMessage(&rpcPacket);
+	sendMessageToServer(&rpcPacket);
 }
 
 void stopTransaction(){
@@ -314,7 +329,7 @@ void stopTransaction(){
 
 	jsonPackReqStopTransaction(&rpcPacket, &request);
 
-	sendMessage(&rpcPacket);
+	sendMessageToServer(&rpcPacket);
 }
 
 void sendConfUnlockConnector(const char* uniqueId){
@@ -345,7 +360,7 @@ void mainThread(){
 
 	setActiveProtocol(ACTIVE_PROTOCOL_WEBSOCKET);
 	WebSocket_ClearInBuffer();
-	sendWebSocketTest();
+	sendBootNotification();
 
 	if(!isAcceptedByServer){
 		closesocket(sock);
@@ -370,10 +385,9 @@ void mainThread(){
 			isMessageActive = false;
 		}
 		Sleep(5);
-		cnt++;
-		if(cnt > 1600){
-			//stopTransaction();
-			//break;
+		if(cnt++ > 1000){
+			sendHeartbeatRequest();
+			cnt = 0;
 		}
 	}
 
@@ -398,7 +412,7 @@ void processConfStartTransaction(cJSON* json){
 
 void processConfAuthorize(cJSON* json){
 	ConfAuthorize conf;
-	jsonUnpackConfBootAuthorize(json, &conf);
+	jsonUnpackConfAuthorize(json, &conf);
 
 	if(conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED){
 		printf("Authorization is accepted\n");
@@ -423,6 +437,15 @@ void processConfBootNotification(cJSON* json){
 	else{
 		printf("Station is rejected\n");
 	}
+}
+
+void processConfHeartbeat(cJSON* json){
+	ConfHeartbeat conf;
+	jsonUnpackConfHeartbeat(json, &conf);
+
+	printf("Server datetime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", 
+		conf.currentTime.tm_mday, conf.currentTime.tm_mon, conf.currentTime.tm_year,
+		conf.currentTime.tm_hour, conf.currentTime.tm_min, conf.currentTime.tm_sec);
 }
 
 void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
@@ -556,6 +579,9 @@ void processRPCPacket(RpcPacket* packet){
 					break;
 				case ACTION_BOOT_NOTIFICATION:
 					processConfBootNotification(jsonRoot);
+					break;
+				case ACTION_HEARTBEAT:
+					processConfHeartbeat(jsonRoot);
 					break;
 				case ACTION_START_TRANSACTION:
 					processConfStartTransaction(jsonRoot);
