@@ -188,7 +188,7 @@
           <Type>0</Type>
           <LineNumber>28</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134260224</Address>
+          <Address>134260728</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -204,7 +204,7 @@
           <Type>0</Type>
           <LineNumber>662</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134264702</Address>
+          <Address>134265206</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -220,7 +220,7 @@
           <Type>0</Type>
           <LineNumber>424</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134325748</Address>
+          <Address>134326296</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -230,22 +230,6 @@
           <Filename>..\Src\serial_control.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\ChargeStationCentralCPU\../Src/serial_control.c\424</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>762</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>../Middlewares/Third_Party/LwIP/src/core/netif.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
