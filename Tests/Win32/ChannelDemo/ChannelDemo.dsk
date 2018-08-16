@@ -12,13 +12,13 @@ File_9=SourceModule,'D:\Buran\Utils\BuranMAnalyzer\src\ChartFrame.pas',0,1,1054,
 
 [Modules]
 Module0=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\DataThreads.pas
-Module1=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
-Module2=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
-Module3=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChangeStatus.pas
-Module4=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas
-Module5=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\SimpleXML.pas
-Module6=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Common.pas
-Module7=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr
+Module1=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr
+Module2=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
+Module3=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas
+Module4=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
+Module5=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChangeStatus.pas
+Module6=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\SimpleXML.pas
+Module7=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Common.pas
 Count=8
 EditWindowCount=1
 
@@ -27,9 +27,19 @@ ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
+[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas]
 ModuleType=SourceModule
 FormState=0
+FormOnTop=0
+
+[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas]
+ModuleType=SourceModule
+FormState=1
 FormOnTop=0
 
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas]
@@ -42,22 +52,12 @@ ModuleType=SourceModule
 FormState=1
 FormOnTop=0
 
-[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas]
-ModuleType=SourceModule
-FormState=1
-FormOnTop=0
-
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\SimpleXML.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Common.pas]
-ModuleType=SourceModule
-FormState=0
-FormOnTop=0
-
-[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
@@ -100,15 +100,15 @@ BottomPanelData=0000040000000000000000000000000000000000000000000001000000000000
 
 [View0]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas
-CursorX=41
-CursorY=756
-TopLine=747
+CursorX=38
+CursorY=291
+TopLine=280
 LeftCol=1
 
 [View1]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr
-CursorX=54
-CursorY=13
+CursorX=42
+CursorY=12
 TopLine=1
 LeftCol=1
 
@@ -121,16 +121,16 @@ LeftCol=1
 
 [View3]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
-CursorX=32
-CursorY=7
+CursorX=40
+CursorY=13
 TopLine=1
 LeftCol=1
 
 [View4]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
-CursorX=54
-CursorY=193
-TopLine=182
+CursorX=41
+CursorY=122
+TopLine=111
 LeftCol=1
 
 [View5]
@@ -149,16 +149,17 @@ LeftCol=1
 
 [View7]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\DataThreads.pas
-CursorX=26
-CursorY=25
-TopLine=15
+CursorX=1
+CursorY=100
+TopLine=90
 LeftCol=1
 
 [Watches]
 Count=0
 
 [Breakpoints]
-Count=0
+Count=1
+Breakpoint0='D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas',352,'',0,1,'',1,0,0,'',1,'','',''
 
 [AddressBreakpoints]
 Count=0
@@ -252,7 +253,7 @@ LRDockWidth=190
 Dockable=1
 SplitPos=85
 ArrangeBy=Name
-SelectedItem=Action
+SelectedItem=Name
 ExpandedItems=Anchors
 HiddenCategories=
 

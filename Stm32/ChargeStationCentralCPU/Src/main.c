@@ -67,8 +67,10 @@
 #include "chargePointTime.h"
 #include "net.h"
 #include "netConn.h"
+#include "ocpp.h"
 #include "ocppConfiguration.h"
 #include "ocppConfigurationDef.h"
+#include "connector.h"
 
 /* USER CODE END Includes */
 
@@ -102,6 +104,7 @@ uint32_t lastCheckedTagId = 0;
 OcppConfigurationVaried ocppConfVaried;
 OcppConfigurationFixed ocppConfFixed;
 OcppConfigurationRestrict ocppConfRestrict;
+ChargePointConnector connector[CONFIGURATION_NUMBER_OF_CONNECTORS];
 
 /* USER CODE END PV */
 
@@ -131,6 +134,15 @@ void initDisplay(){
 	Display_PrintStrCenter(1, "Hardware checking\0");
 }
 
+void initConnectors(){
+	int i;
+	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+		connector[i].address = i + 1;
+		connector[i].status = CHARGE_POINT_STATUS_UNKNOWN;
+		connector[i].online = false;
+	}
+}
+
 void checkHardware(){
 	
 	//Init RFID
@@ -138,6 +150,8 @@ void checkHardware(){
 	if(!(RFID_check_connection())){
 		Display_PrintStrLeft(1, "ERROR: NO RFID\0");
 	}
+	
+	//Init connector
 	
 	Channel_init(&huart2);
 }
@@ -652,11 +666,12 @@ void mainDispatcher(void){
 	fillOcppConfigurationWithDefValues(&ocppConfVaried, &ocppConfFixed, &ocppConfRestrict);
 	
 	initDisplay();
+	initConnectors();
 	checkHardware();
 	
 	Display_clear();
 	
-	Channel_start();
+	Channel_start(connector, CONFIGURATION_NUMBER_OF_CONNECTORS);
 	
 	RFID_start(TASK_TAG_RFID, mainQueue);
 	SerialControl_start(TASK_TAG_SERIAL_CONTROL, mainQueue);

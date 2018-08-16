@@ -116,7 +116,7 @@ const
 var
   IniFile : TIniFile;
   bOpenPort : boolean;
-  ComReadThread : TComReadThread;
+  ComReadThread: TComReadThread;
   Err : Cardinal;
   bCaptureProt : boolean;
   ComPortUst : TComPortUst;
@@ -347,9 +347,9 @@ end;
 
 procedure TfmMain.tProtRedrawTimer(Sender: TObject);
 var
-  DrawPos : integer;
-  Com : TDconCommand;
-  Str : string;
+  DrawPos: integer;
+  Com: TDconCommand;
+  Str: string;
 begin
   DrawStr.Clear;
   DrawPos:=LastDrawPos;

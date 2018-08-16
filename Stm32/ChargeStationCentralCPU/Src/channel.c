@@ -13,6 +13,8 @@ unsigned char fifo_in[FIFO_IN_SIZE];
 int fifo_in_pos_start = 0;
 int fifo_in_pos_end   = 0;
 bool fifo_in_is_full = false;
+static ChargePointConnector *connector;
+static int connectorCount;
 
 void usart_infifo_put(uint8_t c){
 	fifo_in[fifo_in_pos_end++] = c;
@@ -61,7 +63,10 @@ void turnOnInterrupt(){
 }
 
 void dispatcherThread(void const * argument){
+//#define MAIN_PERIOD 100	
+	#define MAIN_PERIOD 1000
 	int cnt = 0;
+	int i;
 	uint32_t lastSendTick = 0;
 	uint32_t currentTick;
 	uint32_t maxWaitAnswerTick;
@@ -74,18 +79,22 @@ void dispatcherThread(void const * argument){
 	
 	for(;;){
 		currentTick = HAL_GetTick();
-		if((currentTick - lastSendTick) >= 1000){
+		if((currentTick - lastSendTick) >= MAIN_PERIOD){
 			lastSendTick = currentTick;
-			sprintf(sendStr, "$0%dM\r", (cnt % 2) ? 4 : 5);
-			printf("disp send: %d\n", cnt++);
-			//HAL_UART_Transmit(uart, (uint8_t*)sendStr, strlen(sendStr), 10);
-			HAL_UART_Transmit_DMA(uart, (uint8_t*)sendStr, strlen(sendStr));
-			if(xSemaphoreTake(hGetStringEvent, maxWaitAnswerTick) == pdPASS){
-				printf("answer is got\n");
-			}
-			else{
-				//Answer is not got
-				printf("answer is not got\n");
+			
+			//Status request
+			for(i = 0; i < connectorCount; i++){
+				sprintf(sendStr, "$0%dS\r", connector[i].address);
+				//printf("disp send: %d\n", cnt++);
+				//HAL_UART_Transmit(uart, (uint8_t*)sendStr, strlen(sendStr), 10);
+				HAL_UART_Transmit_DMA(uart, (uint8_t*)sendStr, strlen(sendStr));
+				if(xSemaphoreTake(hGetStringEvent, maxWaitAnswerTick) == pdPASS){
+					//printf("answer is got\n");
+				}
+				else{
+					//Answer is not got
+					printf("answer is not got. A%.2d\n", connector[i].address);
+				}
 			}
 		}
 	}
@@ -97,7 +106,9 @@ bool Channel_init(UART_HandleTypeDef *port){
 	return true;
 }
 
-bool Channel_start(void){
+bool Channel_start(ChargePointConnector *conn, int count){
+	connector = conn;
+	connectorCount = count;
 	osThreadDef(dispatcherTask, dispatcherThread, osPriorityNormal, 0, 128);
   dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
 	return true;

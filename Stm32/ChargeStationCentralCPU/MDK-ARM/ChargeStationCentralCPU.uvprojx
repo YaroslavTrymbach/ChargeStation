@@ -796,6 +796,16 @@
               <FileType>1</FileType>
               <FilePath>..\Src\ocppConfigurationDef.c</FilePath>
             </File>
+            <File>
+              <FileName>connector.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Inc\connector.h</FilePath>
+            </File>
+            <File>
+              <FileName>connector.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\connector.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
