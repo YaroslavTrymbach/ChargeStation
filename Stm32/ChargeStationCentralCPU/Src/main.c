@@ -570,6 +570,20 @@ void processMessageFromNET(GeneralMessage *message){
 	}
 }
 
+void processMessageFromChannels(GeneralMessage *message){
+	int connIndex;
+	NetInputMessage netMessage;
+	
+	switch(message->messageId){
+		case MESSAGE_CHANNEL_STATUS_CHANGED:
+			connIndex = message->param1;
+		  netMessage.messageId = NET_INPUT_MESSAGE_STATUS_CHANGED;
+		  netMessage.param1 = (connIndex + 1) | (connector[connIndex].status << 8);
+		  NET_sendInputMessage(&netMessage);
+			break;
+	}
+}
+
 void processMessageFromRFID(GeneralMessage *message){
 	uint32_t cardId;
 	char s[32];
@@ -671,7 +685,7 @@ void mainDispatcher(void){
 	
 	Display_clear();
 	
-	Channel_start(connector, CONFIGURATION_NUMBER_OF_CONNECTORS);
+	Channel_start(TASK_TAG_CHANNELS, mainQueue, connector, CONFIGURATION_NUMBER_OF_CONNECTORS);
 	
 	RFID_start(TASK_TAG_RFID, mainQueue);
 	SerialControl_start(TASK_TAG_SERIAL_CONTROL, mainQueue);
@@ -703,6 +717,9 @@ void mainDispatcher(void){
 					break;
 				case TASK_TAG_NET:
 					processMessageFromNET(&message);
+					break;
+				case TASK_TAG_CHANNELS:
+					processMessageFromChannels(&message);
 					break;
 			}
 			

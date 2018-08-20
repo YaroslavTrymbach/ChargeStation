@@ -6,6 +6,7 @@
 #include "settings.h"
 #include "net.h"
 #include "lwip/netif.h"
+#include "string_ext.h"
 
 const char* STR_OK = "\r\nOK\r\n";
 const char* STR_NEW_LINE_OK = "\r\nOK";
@@ -21,7 +22,7 @@ char commandStr[MAX_COMMAND_LENGTH];
 char params[GET_BUF_SIZE - MAX_COMMAND_LENGTH];
 
 osThreadId serialControlTaskHandle;
-QueueHandle_t hMainQueue;
+static QueueHandle_t hMainQueue;
 QueueHandle_t hSerialControlGetCharQueue = NULL;
 static uint8_t hTaskTag;
 
@@ -65,7 +66,7 @@ const char* COMMAND_STR_EX_RECONNECT       = "RECONNECT\0";
 extern struct netif gnetif;
 
 void sendMessage(int mesId);
-
+/*
 void strupr(char *s){
 	int i, len;
 	len = strlen(s);
@@ -73,7 +74,7 @@ void strupr(char *s){
 		if((s[i] >= 'a') && (s[i] <= 'z'))
 			s[i] -= 0x20;
 	}
-}
+}*/
 
 bool charToInt(const char c, int *value){
 	if((c < 0x30) || (c > 0x39))

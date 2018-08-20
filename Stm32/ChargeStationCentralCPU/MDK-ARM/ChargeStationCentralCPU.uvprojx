@@ -806,6 +806,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\connector.c</FilePath>
             </File>
+            <File>
+              <FileName>string_ext.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\string_ext.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -1,12 +1,23 @@
 #include "channel.h"
 #include "cmsis_os.h"
 #include "string.h"
+#include "string_ext.h"
+#include "tasks.h"
 
 UART_HandleTypeDef *uart;
 
 osThreadId dispatcherTaskHandle;
+osThreadId readTaskHandle;
 
 SemaphoreHandle_t hGetStringEvent;
+SemaphoreHandle_t hAnswerGotEvent;
+ChargePointConnector *requestConnector;
+int requestCommand;
+
+static uint8_t hTaskTag;
+static QueueHandle_t hMainQueue;
+
+#define COMMAND_GET_STATUS 1
 
 #define FIFO_IN_SIZE 128
 unsigned char fifo_in[FIFO_IN_SIZE];
@@ -48,18 +59,79 @@ int get_string_from_fifo_in(uint8_t *str, uint8_t size){
 	while(cnt < size){
 		if(usart_fifo_in_is_empty())
 			break;
-		*str = usart_fifo_in_pull();		
-		if(*str == '\r')
+		c = usart_fifo_in_pull();	
+		if(c == '\r')
 			break;
-		cnt++;		
+		str[cnt++] = c;			
 	}
+	str[cnt] = '\0';		
 	return cnt;	
+}
+
+static void sendMessage(GeneralMessage *message){
+	message->sourceTag = hTaskTag;
+	xQueueSend(hMainQueue, message, 10);
 }
 
 void turnOnInterrupt(){
 	__HAL_UART_ENABLE_IT(uart, UART_IT_RXNE);
 	HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(USART2_IRQn);
+}
+
+bool processAnswerGetStatus(ChargePointConnector *conn, char *s, int len){
+	int status;
+	if(len < 1)
+		return false;
+	if(!getIntFromHexStr(s, 1, &status))
+		return false;
+	conn->status = status;
+	return true;
+}
+
+static void readThread(void const *argument){
+	int size;
+	int i, address;
+	uint8_t getStr[128];
+	char *answer;
+	bool isSuccess;
+	
+	for(;;){
+		if(xSemaphoreTake(hGetStringEvent, portMAX_DELAY) == pdPASS){
+			size = get_string_from_fifo_in(getStr, 128);
+			//It is need to search start position
+			answer = NULL;
+			for(i = size - 1; i >= 0; i--){
+				if(getStr[i] == '!'){
+					answer = (char*)(getStr + i);
+					size -= i;
+					break;
+				}
+			}
+			
+			//Answer from channel cpu must contain at least 1 header character
+			//and two character of 
+			if((answer == NULL) || (size < 3))
+				continue;
+			
+			if(!getIntFromHexStr(answer + 1, 2, &address))
+				continue;
+			
+			if(address == requestConnector->address){
+				isSuccess = false;
+				answer += 3;
+				size -= 3;
+				switch(requestCommand){
+					case COMMAND_GET_STATUS:
+						isSuccess = processAnswerGetStatus(requestConnector, answer, size);
+						break;
+				}
+				
+				if(isSuccess)
+					xSemaphoreGive(hAnswerGotEvent);
+			}
+		}
+	}
 }
 
 void dispatcherThread(void const * argument){
@@ -71,8 +143,9 @@ void dispatcherThread(void const * argument){
 	uint32_t currentTick;
 	uint32_t maxWaitAnswerTick;
 	char sendStr[16];
+	int prevValue;
+	GeneralMessage message;
 	
-	hGetStringEvent = xSemaphoreCreateBinary();
 	maxWaitAnswerTick = pdMS_TO_TICKS(10);
 	
 	turnOnInterrupt();
@@ -83,13 +156,22 @@ void dispatcherThread(void const * argument){
 			lastSendTick = currentTick;
 			
 			//Status request
+			requestCommand = COMMAND_GET_STATUS;
 			for(i = 0; i < connectorCount; i++){
 				sprintf(sendStr, "$0%dS\r", connector[i].address);
+				prevValue = connector[i].status;
+				requestConnector = &connector[i];
 				//printf("disp send: %d\n", cnt++);
 				//HAL_UART_Transmit(uart, (uint8_t*)sendStr, strlen(sendStr), 10);
 				HAL_UART_Transmit_DMA(uart, (uint8_t*)sendStr, strlen(sendStr));
-				if(xSemaphoreTake(hGetStringEvent, maxWaitAnswerTick) == pdPASS){
+				if(xSemaphoreTake(hAnswerGotEvent, maxWaitAnswerTick) == pdPASS){
 					//printf("answer is got\n");
+					if(connector[i].status != prevValue){
+						printf("Status changed. A%.2X, newState = %d\n", connector[i].address, connector[i].status);
+						message.messageId = MESSAGE_CHANNEL_STATUS_CHANGED;
+						message.param1 = i;
+						sendMessage(&message);
+					}
 				}
 				else{
 					//Answer is not got
@@ -106,11 +188,21 @@ bool Channel_init(UART_HandleTypeDef *port){
 	return true;
 }
 
-bool Channel_start(ChargePointConnector *conn, int count){
+bool Channel_start(uint8_t taskTag, QueueHandle_t queue, ChargePointConnector *conn, int count){
+	hMainQueue = queue;
+	hTaskTag = taskTag;
 	connector = conn;
 	connectorCount = count;
+	hGetStringEvent = xSemaphoreCreateBinary();
+	hAnswerGotEvent = xSemaphoreCreateBinary(); 
+	
+	//Start dispatcher thread
 	osThreadDef(dispatcherTask, dispatcherThread, osPriorityNormal, 0, 128);
   dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
+	
+	//Start read thread
+	osThreadDef(readTask, readThread, osPriorityNormal, 0, 64);
+  dispatcherTaskHandle = osThreadCreate(osThread(readTask), NULL);
 	return true;
 }
 
@@ -120,7 +212,7 @@ void USART2_IRQHandler(void){
 	uint8_t c;
 	if(USART2->SR & USART_SR_RXNE){
 		c = USART2->DR;
-		usart_infifo_put(USART2->DR);
+		usart_infifo_put(c);
 		if(c == '\r')
 			xSemaphoreGiveFromISR(hGetStringEvent, NULL);
 	}

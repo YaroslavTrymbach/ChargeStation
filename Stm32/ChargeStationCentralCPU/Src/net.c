@@ -388,7 +388,7 @@ void processRPCPacket(RpcPacket* packet){
 
 }
 
-void readThread(void const * argument){
+static void readThread(void const * argument){
 	int res, status, size;
 	char s[512];
 	char buf[256];
@@ -558,6 +558,27 @@ void sendHeartbeatRequest(){
 	sendMessageToServer(&rpcPacket);
 }
 
+void sendStatusNotification(int connectorId, int status, int errorCode){
+	char jsonData[512];
+	
+	int outLen;
+	RequestStatusNotification request;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send status notification\n");
+	
+	request.connectorId = connectorId;
+	request.status = status;
+	request.errorCode = errorCode;		
+
+	jsonPackReqStatusNotification(&rpcPacket, &request);
+
+	sendMessageToServer(&rpcPacket);
+}
+
 void reconnect(){
 	printf("NET: Reconnect\n");
 	suspendReadThread();
@@ -577,6 +598,7 @@ void netThread(void const * argument){
 	int heartbeatTick = 0;
   ChargePointSetting* st;	
 	NetInputMessage message;
+	int status, connId, errorCode;
 	st = Settings_get();
 	
 	//osDelay(50);
@@ -643,6 +665,12 @@ void netThread(void const * argument){
 					break;
 				case NET_INPUT_MESSAGE_AUTHORIZE:
 					sendAuthorizationRequest(message.param1);
+					break;
+				case NET_INPUT_MESSAGE_STATUS_CHANGED:
+					connId = message.param1 & 0xFF;
+				  status = (message.param1 >> 8) & 0xFF;
+				  errorCode = (message.param1 >> 16) & 0xFF;
+					sendStatusNotification(connId, status, errorCode);
 					break;
 			}
 		}

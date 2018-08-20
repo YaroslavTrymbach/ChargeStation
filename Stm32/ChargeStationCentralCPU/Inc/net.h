@@ -5,8 +5,9 @@
 #define MESSAGE_NET_SERVER_ACCEPT   1
 #define MESSAGE_NET_AUTHORIZE       2 
 
-#define NET_INPUT_MESSAGE_RECONNECT 1
-#define NET_INPUT_MESSAGE_AUTHORIZE 2
+#define NET_INPUT_MESSAGE_RECONNECT      1
+#define NET_INPUT_MESSAGE_AUTHORIZE      2
+#define NET_INPUT_MESSAGE_STATUS_CHANGED 3
 
 typedef struct _NetInputMessage{
 	uint8_t messageId;

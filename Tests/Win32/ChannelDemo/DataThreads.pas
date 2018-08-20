@@ -126,34 +126,34 @@ begin
           end;
         end;
 
-          if (ComStart <> 0) then //Попался какой-то мусор
-          begin
-            ComGetDust.Time := Command.Time;
-            ComGetDust.ID := Command.ID;
-            Command.ID := CommandID;
-            Inc(CommandID);
-            if (ComStart=-1) then
-              ComStart := PacLen;
-            SetLength(ComGetDust.Command,ComStart);
-            MoveMemory(@ComGetDust.Command[1],@Packet[0],ComStart);
-            bDust := True;
-          end
-          else
-            bDust := False;
+        if (ComStart <> 0) then //Попался какой-то мусор
+        begin
+          ComGetDust.Time := Command.Time;
+          ComGetDust.ID := Command.ID;
+          Command.ID := CommandID;
+          Inc(CommandID);
+          if (ComStart=-1) then
+            ComStart := PacLen;
+          SetLength(ComGetDust.Command,ComStart);
+          MoveMemory(@ComGetDust.Command[1],@Packet[0],ComStart);
+          bDust := True;
+        end
+        else
+          bDust := False;
 
-            if (bCom and bUseCheckSum) then
-            begin
-              Str := '';
-              for i := ComStart to PacLen-1 do
-                Str := Str + Packet[i];
-              Command.CS:=DConCheckCS(Str);
-              ComEnd := PacLen-2;
-            end
-            else
-            begin
-              Command.CS := TRUE;
-              ComEnd := PacLen;
-            end;
+        if (bCom and bUseCheckSum) then
+        begin
+          Str := '';
+          for i := ComStart to PacLen-1 do
+            Str := Str + Packet[i];
+          Command.CS:=DConCheckCS(Str);
+          ComEnd := PacLen-2;
+        end
+        else
+        begin
+          Command.CS := TRUE;
+          ComEnd := PacLen;
+        end;
 
             SetLength(Command.Command,PacLen-ComStart);
             MoveMemory(@Command.Command[1], @Packet[ComStart], PacLen-ComStart);
