@@ -27,6 +27,7 @@ type
     GroupBox1: TGroupBox;
     lbStatus: TLabel;
     btChangeStatus: TButton;
+    Label1: TLabel;
     procedure swTurnClick(Sender: TObject);
     procedure btChangeStatusClick(Sender: TObject);
   private

@@ -532,7 +532,7 @@ begin
     IdemFrames[i].Tag := i;
     IdemFrames[i].Parent := sbIdems;
     IdemFrames[i].Align := alTop;
-    IdemFrames[i].Height := 120;
+    //IdemFrames[i].Height := 120;
     IdemFrames[i].SetupChannel(fChannelList.GetChannelByPos(i));
   end;
 

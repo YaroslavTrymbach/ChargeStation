@@ -426,15 +426,15 @@ object IdemFram: TIdemFram
       Left = 2
       Top = 69
       Width = 259
-      Height = 45
+      Height = 76
       Align = alTop
-      Caption = #1057#1090#1072#1090#1091#1089':'
+      Caption = #1057#1086#1089#1090#1086#1103#1085#1080#1077':'
       TabOrder = 1
       DesignSize = (
         259
-        45)
+        76)
       object lbStatus: TLabel
-        Left = 26
+        Left = 82
         Top = 20
         Width = 57
         Height = 16
@@ -446,13 +446,20 @@ object IdemFram: TIdemFram
         Font.Style = [fsBold]
         ParentFont = False
       end
+      object Label1: TLabel
+        Left = 9
+        Top = 20
+        Width = 46
+        Height = 16
+        Caption = #1057#1090#1072#1090#1091#1089
+      end
       object btChangeStatus: TButton
-        Left = 171
+        Left = 208
         Top = 16
-        Width = 81
+        Width = 44
         Height = 23
         Anchors = [akTop, akRight]
-        Caption = #1048#1079#1084#1077#1085#1080#1090#1100
+        Caption = '...'
         TabOrder = 0
         OnClick = btChangeStatusClick
       end

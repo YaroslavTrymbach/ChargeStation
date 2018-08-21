@@ -302,7 +302,7 @@ void processConfBootNotification(cJSON* json){
 		setCurrentTime(&conf.currentTime);
 		
 		stationAccepted = true;
-		//heartbeatInterval = conf.interval*1000; //!Debug need uncomment
+		heartbeatInterval = conf.interval*1000;
 	}
 	else{
 		printf("Station is rejected\n");
@@ -588,6 +588,11 @@ void reconnect(){
 	bootNotificationInterval = 0;
 }
 
+#define GET_PARAM_BYTE0(value) value & 0xFF
+#define GET_PARAM_BYTE1(value) (value >> 8)  & 0xFF
+#define GET_PARAM_BYTE2(value) (value >> 16) & 0xFF
+#define GET_PARAM_BYTE3(value) (value >> 24) & 0xFF
+
 void netThread(void const * argument){
 	int res;
 	uint32_t tick;
@@ -666,10 +671,10 @@ void netThread(void const * argument){
 				case NET_INPUT_MESSAGE_AUTHORIZE:
 					sendAuthorizationRequest(message.param1);
 					break;
-				case NET_INPUT_MESSAGE_STATUS_CHANGED:
-					connId = message.param1 & 0xFF;
-				  status = (message.param1 >> 8) & 0xFF;
-				  errorCode = (message.param1 >> 16) & 0xFF;
+				case NET_INPUT_MESSAGE_SEND_STATUS:
+					connId = GET_PARAM_BYTE0(message.param1);
+				  status = GET_PARAM_BYTE1(message.param1);
+				  errorCode = GET_PARAM_BYTE2(message.param1);
 					sendStatusNotification(connId, status, errorCode);
 					break;
 			}
@@ -718,6 +723,10 @@ void NET_test(void){
 	HAL_ETH_ReadPHYRegister(&heth, 29, &phyreg);
 	HAL_ETH_ReadPHYRegister(&heth, 30, &phyreg2);
 	printf("2 ISFR = 0x%.2X, IMR = 0x%.2X\n", phyreg, phyreg2);
+}
+
+bool NET_is_station_accepted(){
+	return stationAccepted;
 }
 
 void ethernetif_notify_conn_changed(struct netif *netif){

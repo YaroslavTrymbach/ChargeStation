@@ -46,7 +46,7 @@ var
   Res : BOOL;
   CS,OutStr : string;
 begin
-  Sleep(1);
+  //Sleep(1);
   EscapeCommFunction(hComPort, SETRTS);
   Len := Length(Str);
   for i := 0 to Len-1 do
@@ -61,7 +61,7 @@ begin
   Buf[Len] := $0D;
   Inc(Len);
   Res := WriteFile(hComPort, Buf, Len, bytesWritten,nil);
-  Sleep(1);
+  //Sleep(1);
   EscapeCommFunction(hComPort, CLRRTS);
 
   if not Res then

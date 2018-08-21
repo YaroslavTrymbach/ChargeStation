@@ -569,6 +569,11 @@ void processMessageFromNET(GeneralMessage *message){
 			break;
 	}
 }
+	
+#define PACK_TO_PARAM_BYTE0(param, value) param |= (value & 0xFF)
+#define PACK_TO_PARAM_BYTE1(param, value) param |= ((value & 0xFF) << 8)
+#define PACK_TO_PARAM_BYTE2(param, value) param |= ((value & 0xFF) << 16)
+#define PACK_TO_PARAM_BYTE3(param, value) param |= ((value & 0xFF) << 24)
 
 void processMessageFromChannels(GeneralMessage *message){
 	int connIndex;
@@ -577,9 +582,15 @@ void processMessageFromChannels(GeneralMessage *message){
 	switch(message->messageId){
 		case MESSAGE_CHANNEL_STATUS_CHANGED:
 			connIndex = message->param1;
-		  netMessage.messageId = NET_INPUT_MESSAGE_STATUS_CHANGED;
-		  netMessage.param1 = (connIndex + 1) | (connector[connIndex].status << 8);
-		  NET_sendInputMessage(&netMessage);
+		  //If connection with server is present it is need to send new status 
+		  if(NET_is_station_accepted()){
+				netMessage.messageId = NET_INPUT_MESSAGE_SEND_STATUS;
+				netMessage.param1 = 0;
+				PACK_TO_PARAM_BYTE0(netMessage.param1, connIndex + 1);
+				PACK_TO_PARAM_BYTE1(netMessage.param1, connector[connIndex].status);
+				PACK_TO_PARAM_BYTE2(netMessage.param1, CHARGE_POINT_ERROR_CODE_NO_ERROR);
+				NET_sendInputMessage(&netMessage);
+			}
 			break;
 	}
 }

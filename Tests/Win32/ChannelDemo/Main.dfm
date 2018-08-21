@@ -1,8 +1,8 @@
 object fmMain: TfmMain
-  Left = 203
-  Top = 196
-  Width = 747
-  Height = 489
+  Left = 138
+  Top = 144
+  Width = 793
+  Height = 528
   Caption = 'ChannelsDemo'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,10 +20,10 @@ object fmMain: TfmMain
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
-    Left = 380
+    Left = 452
     Top = 0
     Width = 4
-    Height = 431
+    Height = 470
     Cursor = crHSplit
     Align = alRight
   end
@@ -31,7 +31,7 @@ object fmMain: TfmMain
     Left = 0
     Top = 0
     Width = 169
-    Height = 431
+    Height = 470
     Align = alLeft
     TabOrder = 0
     object gbPort: TGroupBox
@@ -144,17 +144,17 @@ object fmMain: TfmMain
     end
   end
   object GroupBox1: TGroupBox
-    Left = 384
+    Left = 456
     Top = 0
-    Width = 347
-    Height = 431
+    Width = 321
+    Height = 470
     Align = alRight
     Caption = #1055#1088#1086#1090#1086#1082#1086#1083' '#1086#1073#1084#1077#1085#1072':'
     TabOrder = 1
     object tpProtocol: TToolBar
       Left = 2
-      Top = 400
-      Width = 343
+      Top = 439
+      Width = 317
       Height = 29
       Align = alBottom
       Caption = 'tpProtocol'
@@ -199,8 +199,8 @@ object fmMain: TfmMain
     object lbProt: TListBox
       Left = 2
       Top = 15
-      Width = 343
-      Height = 385
+      Width = 317
+      Height = 424
       Align = alClient
       Font.Charset = RUSSIAN_CHARSET
       Font.Color = clWindowText
@@ -215,16 +215,16 @@ object fmMain: TfmMain
   object gbChannels: TGroupBox
     Left = 169
     Top = 0
-    Width = 211
-    Height = 431
+    Width = 283
+    Height = 470
     Align = alClient
     Caption = #1050#1072#1085#1072#1083#1099
     TabOrder = 2
     object sbIdems: TScrollBox
       Left = 2
       Top = 15
-      Width = 207
-      Height = 414
+      Width = 279
+      Height = 453
       Align = alClient
       TabOrder = 0
     end

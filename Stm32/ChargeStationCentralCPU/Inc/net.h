@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 #include <FreeRTOS.h>
 #include <queue.h>
@@ -7,7 +8,7 @@
 
 #define NET_INPUT_MESSAGE_RECONNECT      1
 #define NET_INPUT_MESSAGE_AUTHORIZE      2
-#define NET_INPUT_MESSAGE_STATUS_CHANGED 3
+#define NET_INPUT_MESSAGE_SEND_STATUS 3
 
 typedef struct _NetInputMessage{
 	uint8_t messageId;
@@ -21,3 +22,5 @@ void NET_changeLocalIp(void);
 void NET_test(void);
 
 void NET_sendInputMessage(NetInputMessage *message);
+
+bool NET_is_station_accepted();
