@@ -175,7 +175,7 @@ void dispatcherThread(void const * argument){
 				}
 				else{
 					//Answer is not got
-					printf("answer is not got. A%.2d\n", connector[i].address);
+					//printf("answer is not got. A%.2d\n", connector[i].address);
 				}
 			}
 		}

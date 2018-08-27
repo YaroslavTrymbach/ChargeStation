@@ -19,6 +19,7 @@
 #include "device.h"
 #include "chargePointTime.h"
 #include "tasks.h"
+#include "chargePoint.h"
 
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 5 )
 #define READ_THREAD_PRIO (tskIDLE_PRIORITY + 5)
@@ -671,11 +672,20 @@ void netThread(void const * argument){
 				case NET_INPUT_MESSAGE_AUTHORIZE:
 					sendAuthorizationRequest(message.param1);
 					break;
-				case NET_INPUT_MESSAGE_SEND_STATUS:
+				case NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS:
 					connId = GET_PARAM_BYTE0(message.param1);
 				  status = GET_PARAM_BYTE1(message.param1);
 				  errorCode = GET_PARAM_BYTE2(message.param1);
 					sendStatusNotification(connId, status, errorCode);
+					break;
+				case NET_INPUT_MESSAGE_SEND_CHARGE_POINT_STATUS:
+					connId = 0;
+				  status = ChargePoint_getStatusState();
+				  if(status == CHARGE_POINT_STATUS_FAULTED)
+						errorCode = ChargePoint_getStatusLastErrorCode();
+					else
+						errorCode = CHARGE_POINT_ERROR_CODE_NO_ERROR;
+				  sendStatusNotification(connId, status, errorCode);
 					break;
 			}
 		}

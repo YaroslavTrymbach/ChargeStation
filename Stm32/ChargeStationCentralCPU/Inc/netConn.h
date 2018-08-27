@@ -22,4 +22,3 @@ void NET_CONN_setRemotePort(int port);
 
 int NET_CONN_send(const void *data, int size);
 int NET_CONN_recv(void *data, int size);
-	

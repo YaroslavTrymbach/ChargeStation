@@ -28,6 +28,9 @@ type
     lbStatus: TLabel;
     btChangeStatus: TButton;
     Label1: TLabel;
+    Label2: TLabel;
+    lbError: TLabel;
+    Button1: TButton;
     procedure swTurnClick(Sender: TObject);
     procedure btChangeStatusClick(Sender: TObject);
   private

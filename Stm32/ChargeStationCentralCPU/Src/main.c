@@ -71,6 +71,7 @@
 #include "ocppConfiguration.h"
 #include "ocppConfigurationDef.h"
 #include "connector.h"
+#include "chargePoint.h"
 
 /* USER CODE END Includes */
 
@@ -149,6 +150,7 @@ void checkHardware(){
 	RFID_init(&hspi4);
 	if(!(RFID_check_connection())){
 		Display_PrintStrLeft(1, "ERROR: NO RFID\0");
+		ChargePoint_setRFIDEnabled(false);
 	}
 	
 	//Init connector
@@ -555,17 +557,24 @@ void toggleBlueLed(void){
 }
 
 void processMessageFromNET(GeneralMessage *message){
+	NetInputMessage netMessage;
 	printf("Main task. Message from NET is got\n");
 	char s[32];
 	switch(message->messageId){
 		case MESSAGE_NET_SERVER_ACCEPT:
 			sprintf(s, "Station %s", message->param1 ? "ACCEPTED" : "REJECTED");
 		  Display_PrintStrLeft(1, s);
+		
+		  if(NET_is_station_accepted()){
+				//When station is accepted. It is need to send charge point status to server
+				netMessage.messageId = NET_INPUT_MESSAGE_SEND_CHARGE_POINT_STATUS;
+				NET_sendInputMessage(&netMessage);
+			}
 			break;
 		case MESSAGE_NET_AUTHORIZE:
 			printf("Authorize %s\n", message->param1 ? "SUCCESS" : "FAILED");
 			sprintf(s, "Authorize %s", message->param1 ? "SUCCESS" : "FAILED");
-		  Display_PrintStrLeft(1, s);
+		  Display_PrintStrLeft(1, s);			
 			break;
 	}
 }
@@ -584,7 +593,7 @@ void processMessageFromChannels(GeneralMessage *message){
 			connIndex = message->param1;
 		  //If connection with server is present it is need to send new status 
 		  if(NET_is_station_accepted()){
-				netMessage.messageId = NET_INPUT_MESSAGE_SEND_STATUS;
+				netMessage.messageId = NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS;
 				netMessage.param1 = 0;
 				PACK_TO_PARAM_BYTE0(netMessage.param1, connIndex + 1);
 				PACK_TO_PARAM_BYTE1(netMessage.param1, connector[connIndex].status);
@@ -602,7 +611,7 @@ void processMessageFromRFID(GeneralMessage *message){
 	
 	printf("Main task. Message from RFID is got\n");
 	switch(message->messageId){
-		case MESSAGE_FOUND_CARD:
+		case MESSAGE_RFID_FOUND_CARD:
 			cardId = message->param1;
 			printf("CardId 0x%.8X\n", cardId);
 		
@@ -617,6 +626,18 @@ void processMessageFromRFID(GeneralMessage *message){
 				
 				lastCheckedTagId = cardId;
 			}
+			break;
+		case MESSAGE_RFID_CONNECTION:
+			if(message->param1){
+				//Connected
+				ChargePoint_setRFIDEnabled(true);
+			}
+			else{
+				//Disconnected
+				ChargePoint_setRFIDEnabled(false);
+			}
+			netMessage.messageId = NET_INPUT_MESSAGE_SEND_CHARGE_POINT_STATUS;
+			NET_sendInputMessage(&netMessage);
 			break;
 	}
 }
@@ -684,6 +705,8 @@ void mainDispatcher(void){
 	GeneralMessage message;
 	uint32_t btnPressCnt = 0;
 	
+	ChargePoint_init();
+	
 	Settings_init();
 	settings = Settings_get();
 	printf("ChargePointID: %s\n", settings->ChargePointId);
@@ -695,6 +718,10 @@ void mainDispatcher(void){
 	checkHardware();
 	
 	Display_clear();
+	
+	if(ChargePoint_getStatusState() != CHARGE_POINT_STATUS_FAULTED){
+		ChargePoint_setStatusState(CHARGE_POINT_STATUS_AVAILABLE, 0, NULL);
+	}
 	
 	Channel_start(TASK_TAG_CHANNELS, mainQueue, connector, CONFIGURATION_NUMBER_OF_CONNECTORS);
 	

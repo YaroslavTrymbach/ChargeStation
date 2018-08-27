@@ -6,6 +6,10 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ExtCtrls;
 
+const
+  CNANGE_STATE_MODE_STATUS = 0;
+  CNANGE_STATE_MODE_ERROR  = 1;
+
 type
   TfmChangeStatus = class(TForm)
     Panel1: TPanel;
@@ -19,8 +23,10 @@ type
     procedure btOKClick(Sender: TObject);
   private
     fStatus: Integer;
+    fMode: Integer;
   public
     property Status: Integer read fStatus write fStatus;
+    property Mode: Integer read fMode write fMode;
   end;
 
 implementation

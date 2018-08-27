@@ -811,6 +811,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\string_ext.c</FilePath>
             </File>
+            <File>
+              <FileName>chargePoint.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\chargePoint.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

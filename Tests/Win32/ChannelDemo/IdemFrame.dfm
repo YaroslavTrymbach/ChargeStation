@@ -2,13 +2,13 @@ object IdemFram: TIdemFram
   Left = 0
   Top = 0
   Width = 263
-  Height = 195
+  Height = 147
   TabOrder = 0
   object gbMain: TGroupBox
     Left = 0
     Top = 0
     Width = 263
-    Height = 195
+    Height = 147
     Align = alClient
     Caption = 'Caption'
     Font.Charset = DEFAULT_CHARSET
@@ -453,6 +453,26 @@ object IdemFram: TIdemFram
         Height = 16
         Caption = #1057#1090#1072#1090#1091#1089
       end
+      object Label2: TLabel
+        Left = 11
+        Top = 48
+        Width = 50
+        Height = 16
+        Caption = #1054#1096#1080#1073#1082#1072
+      end
+      object lbError: TLabel
+        Left = 82
+        Top = 47
+        Width = 35
+        Height = 16
+        Caption = 'Error'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'MS Sans Serif'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
       object btChangeStatus: TButton
         Left = 208
         Top = 16
@@ -461,6 +481,16 @@ object IdemFram: TIdemFram
         Anchors = [akTop, akRight]
         Caption = '...'
         TabOrder = 0
+        OnClick = btChangeStatusClick
+      end
+      object Button1: TButton
+        Left = 207
+        Top = 42
+        Width = 44
+        Height = 23
+        Anchors = [akTop, akRight]
+        Caption = '...'
+        TabOrder = 1
         OnClick = btChangeStatusClick
       end
     end

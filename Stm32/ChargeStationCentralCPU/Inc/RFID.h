@@ -3,7 +3,8 @@
 #include <FreeRTOS.h>
 #include <queue.h>
 
-#define MESSAGE_FOUND_CARD 1
+#define MESSAGE_RFID_CONNECTION 1
+#define MESSAGE_RFID_FOUND_CARD 2
 
 bool RFID_init(SPI_HandleTypeDef *hspi);
 
