@@ -107,7 +107,7 @@ object fmMain: TfmMain
       end
     end
     object btOpen: TButton
-      Left = 24
+      Left = 16
       Top = 176
       Width = 121
       Height = 25
