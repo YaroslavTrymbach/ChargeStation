@@ -39,6 +39,8 @@ type
     fStateOn: boolean;
     fStatus: Integer;
     procedure setStatus(const Value: Integer);
+    procedure startCharging;
+    procedure haltCharging;
   public
     property Address: Integer read fAddress;
     property StateOn: Boolean read fStateOn;
@@ -145,6 +147,11 @@ end;
 
 { TChannel }
 
+procedure TChannel.haltCharging;
+begin
+
+end;
+
 function TChannel.Init(node: IXmlNode): Boolean;
 var
   s: String;
@@ -197,8 +204,15 @@ begin
       end;
     '~' :
       begin
-        OutStr := '!' + fAdrStr; 
+        OutStr := '!' + fAdrStr;
       end;
+    '#' :
+    begin
+      if(Str = 'S') then
+        StartCharging
+      else if(Str = 'H') then
+        HaltCharging;
+    end;
   end;
   Result := (Length(OutStr)>0);
 
@@ -218,6 +232,11 @@ end;
 procedure TChannel.setStatus(const Value: Integer);
 begin
   fStatus := Value;
+end;
+
+procedure TChannel.startCharging;
+begin
+
 end;
 
 end.
