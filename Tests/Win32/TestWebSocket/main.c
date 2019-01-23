@@ -12,20 +12,20 @@
 #include "tasks.h"
 #include "ocpp-json.h"
 #include "chargePointTime.h"
+#include "chargeTransaction.h"
 #include "connector.h"
 
-
-//#define SERVER_PORT_NO 19200
+#define SERVER_PORT_NO 19200
 //#define SERVER_HOST    "192.168.1.69"
 //#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
-//#define SERVER_HOST    "192.168.1.63"
-#define SERVER_HOST    "192.168.1.64"
+#define SERVER_HOST    "192.168.1.63"
+//#define SERVER_HOST    "192.168.1.64"
 //#define SERVER_HOST    "192.168.1.65"
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
 //#define SERVER_HOST "192.168.77.7"
-#define SERVER_PORT_NO 8080
+//#define SERVER_PORT_NO 8080
 
 #define SERVER_URI "/steve/websocket/CentralSystemService/"
 #define CHARGE_POINT_ID "Kvant0001"
@@ -92,7 +92,7 @@ void initConnectors(void){
 	int i;
 	for(i = 0; i < CONNECTOR_NUM; i++){
 		connector[i].id = i + 1;
-		connector[i].transactionActive = false;
+		chargeTransaction_reset(&connector[i].chargeTransaction);
 	}
 }
 
@@ -321,7 +321,7 @@ void stopTransaction(){
 
 	printf("send stopTransaction request\n");
 
-	request.transactionId = activeConnector->transactionId;
+	request.transactionId = chargeTransaction_getId(&activeConnector->chargeTransaction);
 	request.meterStop = 17;
 	getCurrentTime(&request.timestamp);
 	request.useIdTag = false;
@@ -330,6 +330,36 @@ void stopTransaction(){
 	jsonPackReqStopTransaction(&rpcPacket, &request);
 
 	sendMessageToServer(&rpcPacket);
+}
+
+void sendPowerMeter(int powerConsumed){
+	char jsonData[512];
+	RequestMeterValues request;
+	RpcPacket rpcPacket;
+	MeterValueListItem *meterValueItem;
+	SampledValueListItem *sampledValueItem;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send MeterValue. powerConsumed = %d\n", powerConsumed); 
+	chargeTransaction_setMeterValue(&activeConnector->chargeTransaction, powerConsumed);
+	
+	request.connectorId = activeConnector->id;
+	request.useTransactionId = true;
+	request.transactionId = chargeTransaction_getId(&activeConnector->chargeTransaction);
+	meterValueItem = ocppCreateMeterValueItem();
+	getCurrentTime(&meterValueItem->meterValue.timestamp);
+	sampledValueItem = ocppCreateSampledValueItem();
+	sampledValueItem->value = chargeTransaction_getMeterValue(&activeConnector->chargeTransaction);
+	ocppAddSampledValue(&meterValueItem->meterValue, sampledValueItem);
+	request.meterValue = meterValueItem;	
+
+	jsonPackReqMeterValues(&rpcPacket, &request);
+
+	sendMessageToServer(&rpcPacket);
+
+	ocppFreeMeterValueList(request.meterValue);
 }
 
 void sendConfUnlockConnector(const char* uniqueId){
@@ -351,6 +381,8 @@ void sendConfUnlockConnector(const char* uniqueId){
 
 void mainThread(){
 	int i, cnt;
+	int mCnt;
+	int powerConsumed;
 	fillOcppConfigurationWithDefValues(&ocppConfVaried, &ocppConfFixed, &ocppConfRestrict);
 	initConnectors();
 	if(!makeWebsocketHandshake()){
@@ -374,9 +406,13 @@ void mainThread(){
 		sendStatusNotification(i);
 	}*/
 
-	//startTransaction();
+	startTransaction();
+
+	printf("If you want to exit. Press \"q\"\n");
 
 	cnt = 0;
+	mCnt = 0;
+	powerConsumed = 0;
 	while(true){
 		if(isMessageActive){
 			if(message.sourceTag == TASK_TAG_SERVER){
@@ -384,12 +420,29 @@ void mainThread(){
 			}
 			isMessageActive = false;
 		}
+
+		if(kbhit()){
+			char c = getch();
+			if(c == 'q'){
+				printf("Quit by user wish\n");
+				break;
+			}
+		}
 		Sleep(5);
+
+		//Передача показаний счетчика, каждые 10 секунд
+		if(mCnt++ >= 2000){
+			mCnt = 0;
+			sendPowerMeter(++powerConsumed);
+		}
+
 		if(cnt++ > 1000){
 			sendHeartbeatRequest();
 			cnt = 0;
 		}
 	}
+
+	stopTransaction();
 
 	Sleep(3000);
 	closesocket(sock);
@@ -402,8 +455,7 @@ void processConfStartTransaction(cJSON* json){
 
 	if(conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED){
 		printf("StartTransaction is accepted\n");
-		activeConnector->transactionActive = true;
-		activeConnector->transactionId = conf.transactionId;
+		chargeTransaction_accept(&activeConnector->chargeTransaction, conf.transactionId);
 	}
 	else{
 		printf("StartTransaction is rejected\n");
@@ -478,14 +530,14 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 		keyPassed = true;
 		switch(occpGetConfigKeyFromString(request.key[i])){
 			case CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS:
-				confKey = occpCreateKeyValueBool(CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS, ocppConfRestrict.authorizeRemoteTxRequestsReadOnly, 
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS, ocppConfRestrict.authorizeRemoteTxRequestsReadOnly, 
 					ocppConfRestrict.authorizeRemoteTxRequestsReadOnly ? ocppConfFixed.authorizeRemoteTxRequests:  ocppConfVaried.authorizeRemoteTxRequests); 
 				break;
 			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
-				confKey = occpCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
 				break;
 			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
-				confKey = occpCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
 				break;
 			default:
 				keyPassed = false;
@@ -522,8 +574,8 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	jsonPackConfGetConfiguration(&rpcPacket, &conf);
 
 	//Free memory in conf
-	occpFreeKeyValueList(conf.configurationKey);
-	occpFreeCiString50TypeList(conf.unknownKey);
+	ocppFreeKeyValueList(conf.configurationKey);
+	ocppFreeCiString50TypeList(conf.unknownKey);
 
 	sendConfMessage(&rpcPacket);
 }

@@ -3,7 +3,7 @@ unit Channel;
 interface
 
 uses
-  Contnrs,
+  Contnrs, Classes,
   Common, SimpleXML;
 
 const
@@ -32,12 +32,33 @@ const
   STATUS_STR_FAULTED        = 'Faulted';
 
 type
+  TOnEventStatusChanged = procedure (newStatus: Integer) of object;
+  TOnEventPowerConsumed = procedure(value: Integer) of object;
+  TOnEventMeterValueChanged = procedure(value: Integer) of object;
+
+  TChargeThread = class(TThread)
+  private
+    FActive: Boolean;
+    FOnPowerConsumed: TOnEventPowerConsumed;
+  protected
+    procedure Execute; override;
+  public
+    procedure Stop;
+    property OnPowerConsumed: TOnEventPowerConsumed read FOnPowerConsumed write FOnPowerConsumed;
+  end;
+
   TChannel = class
   private
     fAddress: Integer;
     fAdrStr: String;
     fStateOn: boolean;
     fStatus: Integer;
+    fMeterOn: Boolean;
+    fMeterValue: Integer;
+    fOnEventStatusChanged: TOnEventStatusChanged;
+    fOnEventMeterValueChanged: TOnEventMeterValueChanged;
+    fChargeThread: TChargeThread;
+    procedure OnPowerConsumed(value: Integer);
     procedure setStatus(const Value: Integer);
     procedure startCharging;
     procedure haltCharging;
@@ -45,11 +66,17 @@ type
     property Address: Integer read fAddress;
     property StateOn: Boolean read fStateOn;
     property Status: Integer read fStatus write setStatus;
+    property MeterOn: Boolean read fMeterOn;
+    property MeterValue: Integer read fMeterValue;
     function Init(node: IXmlNode): Boolean;
     procedure Load(node: IXmlNode);
     procedure Save(node: IXmlNode);
     procedure setState(state: Boolean);
+    procedure setMeterOn(isOn: Boolean);
+    procedure setMeterValue(value: Integer);
     function ProcessCommand(Command : TDConCommand; var OutStr : string) : boolean;
+    property OnEventStatusChanged: TOnEventStatusChanged read FOnEventStatusChanged write FOnEventStatusChanged;
+    property OnEventMeterValueChanged: TOnEventMeterValueChanged read fOnEventMeterValueChanged write fOnEventMeterValueChanged; 
   end;
 
   TChannelList = class
@@ -70,14 +97,16 @@ function ChannelGetStatusString(status: Integer): String;
 implementation
 
 uses
-  SysUtils;
+  SysUtils, Windows;
 
 const
   MODULE_NAME = 'ChargePointConnector';
 
   ATTRIB_ADDRESS = 'address';
-  ATTRIB_STATE_ON = 'stateOn';
-  ATTRIB_STATUS   = 'status';
+  ATTRIB_STATE_ON    = 'stateOn';
+  ATTRIB_STATUS      = 'status';
+  ATTRIB_METER_ON    = 'meterOn';
+  ATTRIB_METER_VALUE = 'meterValue';
 
 function ChannelGetStatusString(status: Integer): String;
 begin
@@ -149,7 +178,13 @@ end;
 
 procedure TChannel.haltCharging;
 begin
-
+  if fChargeThread <> nil then
+  begin
+    fChargeThread.Stop;
+    WaitForSingleObject(fChargeThread.Handle, 1000);
+    FreeAndNil(fChargeThread);
+  end;
+  SetStatus(STATUS_AVAILABLE);
 end;
 
 function TChannel.Init(node: IXmlNode): Boolean;
@@ -161,6 +196,7 @@ begin
 
   fAddress := node.GetIntAttr(ATTRIB_ADDRESS, 0);
   fAdrStr := IntToHex(fAddress, 2);
+  fChargeThread := nil;
 
   Result := True;
 end;
@@ -169,6 +205,13 @@ procedure TChannel.Load(node: IXmlNode);
 begin
   fStateOn := node.GetBoolAttr(ATTRIB_STATE_ON);
   fStatus := node.GetIntAttr(ATTRIB_STATUS);
+  fMeterOn := node.GetBoolAttr(ATTRIB_METER_ON);
+  fMeterValue := node.GetIntAttr(ATTRIB_METER_VALUE);
+end;
+
+procedure TChannel.OnPowerConsumed(value: Integer);
+begin
+  SetMeterValue(FMeterValue + value);
 end;
 
 function TChannel.ProcessCommand(Command: TDConCommand;
@@ -194,12 +237,17 @@ begin
   case (Command.LeadingChar) of
     '$' :
       begin
-        if (Str='M') then
+        if (Str='N') then
           OutStr := '!' + fAdrStr + MODULE_NAME
         else if (Str = 'S') then
           OutStr := '!' + fAdrStr + IntToStr(fStatus)
-        else if (Str = 'A') then
-          OutStr := '>' + fAdrStr;
+        else if (Str = 'M') then
+        begin
+          if fMeterOn then
+            OutStr := '!' + fAdrStr + IntToStr(fMeterValue)
+          else
+            OutStr := '?' + fAdrStr + '0';
+        end;
           //OutStr := '>' + '22002500260027003831393140314131';
       end;
     '~' :
@@ -212,6 +260,7 @@ begin
         StartCharging
       else if(Str = 'H') then
         HaltCharging;
+      OutStr := '!' + fAdrStr;  
     end;
   end;
   Result := (Length(OutStr)>0);
@@ -222,6 +271,23 @@ procedure TChannel.Save(node: IXmlNode);
 begin
   node.SetBoolAttr(ATTRIB_STATE_ON, fStateOn);
   node.SetIntAttr(ATTRIB_STATUS, fStatus);
+  node.SetBoolAttr(ATTRIB_METER_ON, fMeterOn);
+  node.SetIntAttr(ATTRIB_METER_VALUE, fMeterValue);
+end;
+
+procedure TChannel.setMeterOn(isOn: Boolean);
+begin
+  fMeterOn := isOn;
+end;
+
+procedure TChannel.setMeterValue(value: Integer);
+begin
+  if fMeterValue = value then
+    Exit;
+
+  fMeterValue := value;
+  if(Assigned(fOnEventMeterValueChanged)) then
+    fOnEventMeterValueChanged(fMeterValue);
 end;
 
 procedure TChannel.setState(state: Boolean);
@@ -231,12 +297,39 @@ end;
 
 procedure TChannel.setStatus(const Value: Integer);
 begin
+  if fStatus = Value then
+    Exit;
+
   fStatus := Value;
+  if(Assigned(fOnEventStatusChanged)) then
+    fOnEventStatusChanged(fStatus);
 end;
 
 procedure TChannel.startCharging;
 begin
+  SetStatus(STATUS_CHARGING);
+  fChargeThread := TChargeThread.Create(True);
+  fChargeThread.OnPowerConsumed := OnPowerConsumed;
+  fChargeThread.Resume;
+end;
 
+{ TChargeThread }
+
+procedure TChargeThread.Execute;
+begin
+  inherited;
+  fActive := True;
+  while fActive do
+  begin
+    Sleep(500);
+    if Assigned(FOnPowerConsumed) then
+      FOnPowerConsumed(1);
+  end;
+end;
+
+procedure TChargeThread.Stop;
+begin
+  fActive := False;
 end;
 
 end.

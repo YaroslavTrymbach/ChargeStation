@@ -2,13 +2,13 @@ object IdemFram: TIdemFram
   Left = 0
   Top = 0
   Width = 263
-  Height = 147
+  Height = 170
   TabOrder = 0
   object gbMain: TGroupBox
     Left = 0
     Top = 0
     Width = 263
-    Height = 147
+    Height = 170
     Align = alClient
     Caption = 'Caption'
     Font.Charset = DEFAULT_CHARSET
@@ -426,13 +426,13 @@ object IdemFram: TIdemFram
       Left = 2
       Top = 69
       Width = 259
-      Height = 76
+      Height = 100
       Align = alTop
       Caption = #1057#1086#1089#1090#1086#1103#1085#1080#1077':'
       TabOrder = 1
       DesignSize = (
         259
-        76)
+        100)
       object lbStatus: TLabel
         Left = 82
         Top = 20
@@ -473,6 +473,13 @@ object IdemFram: TIdemFram
         Font.Style = [fsBold]
         ParentFont = False
       end
+      object Label3: TLabel
+        Left = 11
+        Top = 72
+        Width = 55
+        Height = 16
+        Caption = #1057#1095#1077#1090#1095#1080#1082
+      end
       object btChangeStatus: TButton
         Left = 208
         Top = 16
@@ -492,6 +499,23 @@ object IdemFram: TIdemFram
         Caption = '...'
         TabOrder = 1
         OnClick = btChangeStatusClick
+      end
+      object cbCounterGood: TCheckBox
+        Left = 80
+        Top = 72
+        Width = 89
+        Height = 17
+        Caption = #1048#1089#1087#1088#1072#1074#1077#1085
+        TabOrder = 2
+        OnClick = cbCounterGoodClick
+      end
+      object edCounter: TEdit
+        Left = 192
+        Top = 69
+        Width = 57
+        Height = 24
+        TabOrder = 3
+        Text = '0'
       end
     end
   end

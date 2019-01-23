@@ -11,6 +11,7 @@
 bool jsonPackReqAuthorize(RpcPacket *rpcPacket, RequestAuthorize *req);
 bool jsonPackReqBootNotification(RpcPacket *rpcPacket, RequestBootNotification *req);
 bool jsonPackReqHeartbeat(RpcPacket *rpcPacket);
+bool jsonPackReqMeterValues(RpcPacket *rpcPacket, RequestMeterValues *req);
 bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *req);
 bool jsonPackReqStatusNotification(RpcPacket *rpcPacket, RequestStatusNotification *req);
 bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *req);

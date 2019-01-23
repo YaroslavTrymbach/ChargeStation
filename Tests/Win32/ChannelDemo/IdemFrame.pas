@@ -31,16 +31,22 @@ type
     Label2: TLabel;
     lbError: TLabel;
     Button1: TButton;
+    Label3: TLabel;
+    cbCounterGood: TCheckBox;
+    edCounter: TEdit;
     procedure swTurnClick(Sender: TObject);
     procedure btChangeStatusClick(Sender: TObject);
+    procedure cbCounterGoodClick(Sender: TObject);
   private
     { Private declarations }
     fChannel: TChannel;
     procedure RecalcHeight;
+    procedure UpdateControls;
+    procedure OnStatusChanged(newState: Integer);
+    procedure OnMeterValueChanged(value: Integer);
   public
     procedure SetupChannel(channel: TChannel);
     procedure SetCaption(Cap : string);
-    procedure RepaintLabels;
   end;
 
 implementation
@@ -50,22 +56,6 @@ uses
 
 {$R *.dfm}
 
-procedure TIdemFram.RepaintLabels;
-begin
-  if (swTurn.StateOn) then
-  begin
-    lTurnState.Caption := 'Включено';
-    lTurnState.Font.Color := clGreen;
-  end
-  else
-  begin
-    lTurnState.Caption := 'Выключено';
-    lTurnState.Font.Color := clRed;
-  end;
-
-  lbStatus.Caption := ChannelGetStatusString(fChannel.Status);
-end;
-
 procedure TIdemFram.SetCaption(Cap: string);
 begin
   gbMain.Caption := Cap;
@@ -73,7 +63,6 @@ end;
 
 procedure TIdemFram.swTurnClick(Sender: TObject);
 begin
-  RepaintLabels;
   fChannel.setState(swTurn.StateOn);
 end;
 
@@ -94,7 +83,11 @@ begin
   gbMain.Caption := 'Канал: адрес ' + IntToHex(fChannel.Address, 2);
 
   swTurn.StateOn := fChannel.StateOn;
-  RepaintLabels;
+
+  fChannel.OnEventStatusChanged := OnStatusChanged;
+  fChannel.OnEventMeterValueChanged := OnMeterValueChanged;
+
+  UpdateControls;
 
 //  RecalcHeight;
 end;
@@ -108,9 +101,43 @@ begin
   if(fmChangeStatus.ShowModal = mrOK) then
   begin
     fChannel.Status := fmChangeStatus.Status;
-    RepaintLabels;
+    UpdateControls;
   end;
   fmChangeStatus.Free;
+end;
+
+procedure TIdemFram.UpdateControls;
+begin
+  if (swTurn.StateOn) then
+  begin
+    lTurnState.Caption := 'Включено';
+    lTurnState.Font.Color := clGreen;
+  end
+  else
+  begin
+    lTurnState.Caption := 'Выключено';
+    lTurnState.Font.Color := clRed;
+  end;
+
+  lbStatus.Caption := ChannelGetStatusString(fChannel.Status);
+
+  cbCounterGood.Checked := fChannel.MeterOn;
+  edCounter.Text := IntToStr(fChannel.MeterValue);
+end;
+
+procedure TIdemFram.cbCounterGoodClick(Sender: TObject);
+begin
+  fChannel.setMeterOn(cbCounterGood.Checked);
+end;
+
+procedure TIdemFram.OnStatusChanged(newState: Integer);
+begin
+  UpdateControls;
+end;
+
+procedure TIdemFram.OnMeterValueChanged(value: Integer);
+begin
+  UpdateControls;
 end;
 
 end.

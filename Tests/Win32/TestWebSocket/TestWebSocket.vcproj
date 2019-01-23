@@ -186,6 +186,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chargeTransaction.c"
+				>
+			</File>
+			<File
 				RelativePath=".\cJSON.c"
 				>
 			</File>
@@ -233,6 +237,10 @@
 			</File>
 			<File
 				RelativePath=".\chargePointTime.h"
+				>
+			</File>
+			<File
+				RelativePath=".\chargeTransaction.h"
 				>
 			</File>
 			<File

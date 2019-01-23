@@ -1,5 +1,6 @@
+#include "chargeTransaction.h"
+
 typedef struct _Connector{
 	int id;
-	int transactionId;
-	bool transactionActive;
+	ChargeTransaction chargeTransaction;
 }Connector;
