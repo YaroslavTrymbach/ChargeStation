@@ -71,6 +71,8 @@ SemaphoreHandle_t hReadThreadSuspendEvent;
 
 bool isReadThreadNeedSuspend = false;
 
+int authTagId;
+
 extern struct netif gnetif;
 
 extern OcppConfigurationVaried ocppConfVaried;
@@ -238,14 +240,14 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 		keyPassed = true;
 		switch(occpGetConfigKeyFromString(request.key[i])){
 			case CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS:
-				confKey = occpCreateKeyValueBool(CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS, ocppConfRestrict.authorizeRemoteTxRequestsReadOnly, 
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_AUTHORIZE_REMOTE_TX_REQUESTS, ocppConfRestrict.authorizeRemoteTxRequestsReadOnly, 
 					ocppConfRestrict.authorizeRemoteTxRequestsReadOnly ? ocppConfFixed.authorizeRemoteTxRequests:  ocppConfVaried.authorizeRemoteTxRequests); 
 				break;
 			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
-				confKey = occpCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
 				break;
 			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
-				confKey = occpCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
 				break;
 			default:
 				keyPassed = false;
@@ -282,8 +284,8 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	jsonPackConfGetConfiguration(&rpcPacket, &conf);
 
 	//Free memory in conf
-	occpFreeKeyValueList(conf.configurationKey);
-	occpFreeCiString50TypeList(conf.unknownKey);
+	ocppFreeKeyValueList(conf.configurationKey);
+	ocppFreeCiString50TypeList(conf.unknownKey);
 
 	sendConfMessageToServer(&rpcPacket);
 }
@@ -336,12 +338,12 @@ void processConfAuthorize(cJSON* json){
 	
 	message.messageId = MESSAGE_NET_AUTHORIZE;
 	message.param1 = (conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED) ? 1 : 0;
+	message.param2 = authTagId;
 	sendMessageToMainDispatcher(&message);
 }
 
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
-	cJSON* jsonElement; 
 
 	jsonRoot = cJSON_Parse2((char*)packet->payload);
 
@@ -526,7 +528,6 @@ void sendAuthorizationRequest(uint32_t tagId){
 void sendBootNotification(void){
 	char jsonData[512];
 	
-	int outLen;
 	RequestBootNotification request;
 	RpcPacket rpcPacket;
 
@@ -546,7 +547,6 @@ void sendBootNotification(void){
 void sendHeartbeatRequest(){
 	char jsonData[512];
 	
-	int outLen;
 	RpcPacket rpcPacket;
 
 	rpcPacket.payload = (unsigned char*)jsonData;
@@ -562,7 +562,6 @@ void sendHeartbeatRequest(){
 void sendStatusNotification(int connectorId, int status, int errorCode){
 	char jsonData[512];
 	
-	int outLen;
 	RequestStatusNotification request;
 	RpcPacket rpcPacket;
 
@@ -670,7 +669,8 @@ void netThread(void const * argument){
 				  //return;
 					break;
 				case NET_INPUT_MESSAGE_AUTHORIZE:
-					sendAuthorizationRequest(message.param1);
+					authTagId = message.param1;
+					sendAuthorizationRequest(authTagId);
 					break;
 				case NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS:
 					connId = GET_PARAM_BYTE0(message.param1);
@@ -735,7 +735,7 @@ void NET_test(void){
 	printf("2 ISFR = 0x%.2X, IMR = 0x%.2X\n", phyreg, phyreg2);
 }
 
-bool NET_is_station_accepted(){
+bool NET_is_station_accepted(void){
 	return stationAccepted;
 }
 

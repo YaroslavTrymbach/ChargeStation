@@ -12,6 +12,7 @@ typedef struct __GeneralMessageType
 	uint8_t sourceTag;
 	uint8_t messageId;
 	uint32_t param1;
+	uint32_t param2;
 	char uniqueId[40];
 } GeneralMessage;
 

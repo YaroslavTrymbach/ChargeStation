@@ -37,7 +37,7 @@ void foo(void);
 int fillHandshakeRequest(WebSocketConnectionParams *params, char *buf);
 WebSocketStatus fillWebSocketClientSendData(char* inData, int inlen, char* outData, int* outLen);
 WebSocketStatus fillWebSocketPongData(char* inData, int inLen, char* outData, int *outLen);
-void WebSocket_ClearInBuffer();
+void WebSocket_ClearInBuffer(void);
 bool WebSocket_ProcessInputData(uint8_t *data, int dataLen, WebSocketInputDataState *state);
 bool WebSocket_GetInputPayloadData(uint8_t *buf, int bufSize, int *outSize);
 

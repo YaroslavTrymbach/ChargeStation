@@ -54,7 +54,7 @@ bool WebSocket_GetInputPayloadData(uint8_t *buf, int bufSize, int *outSize){
 	return true;
 }
 
-void WebSocket_ClearInBuffer(){
+void WebSocket_ClearInBuffer(void){
 	payloadGetCnt = 0;
 	inputState = INPUT_STATE_START;
 }

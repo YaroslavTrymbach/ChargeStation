@@ -14,7 +14,6 @@
 #define DISPLAY_SIZE_X      20
 #endif
 
-
 bool Display_init(I2C_HandleTypeDef *hi2c){
 	lcdInit(hi2c, DISPLAY_I2C_ADDRESS, DISPLAY_SIZE_Y , DISPLAY_SIZE_X);
 	return true;

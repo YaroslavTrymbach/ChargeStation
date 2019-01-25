@@ -163,6 +163,59 @@ void addKeyValueList(const char* parName, KeyValueListItem *list){
 	buf[outCnt++] = ']';
 }
 
+void addSampledValue(SampledValueListItem *item){
+	isWaitFirstElement = true;
+	buf[outCnt++] = '{';
+	addInteger(paramStr(VALUE), item->value);
+	buf[outCnt++] = '}';
+}
+
+void addSampledValueList(const char* parName, SampledValueListItem *list){
+	SampledValueListItem* item;
+	bool firstElement = true;
+	setParamName(parName);
+	buf[outCnt++] = '[';
+
+	item = list;
+	while(item != NULL){
+		if(firstElement)
+			firstElement = false;
+		else
+			buf[outCnt++] = ',';
+		addSampledValue(item);
+		item = item->next;
+	}
+
+	buf[outCnt++] = ']';
+}
+
+void addMeterValue(MeterValueListItem *item){
+	isWaitFirstElement = true;
+	buf[outCnt++] = '{';
+	addDateTime(paramStr(TIMESTAMP), item->meterValue.timestamp);
+	addSampledValueList(paramStr(SAMPLED_VALUE), item->meterValue.samledValue);
+	buf[outCnt++] = '}';
+}
+
+void addMeterValueList(const char* parName, MeterValueListItem *list){
+	MeterValueListItem* item;
+	bool firstElement = true;
+	setParamName(parName);
+	buf[outCnt++] = '[';
+
+	item = list;
+	while(item != NULL){
+		if(firstElement)
+			firstElement = false;
+		else
+			buf[outCnt++] = ',';
+		addMeterValue(item);
+		item = item->next;
+	}
+
+	buf[outCnt++] = ']';
+}
+
 void addString(const char* parName, const char* value){
 	setParamName(parName);
 	buf[outCnt++] = '"';
@@ -246,6 +299,21 @@ bool jsonPackReqHeartbeat(RpcPacket *rpcPacket){
 	return true;
 }
 
+bool jsonPackReqMeterValues(RpcPacket *rpcPacket, RequestMeterValues *req){
+	rpcPacket->action = ACTION_METER_VALUES;
+
+	openJsonFormation(rpcPacket->payload);
+	addInteger(ocppGetParamNameString(OCPP_PARAM_CONNECTOR_ID), req->connectorId);
+	if(req->useTransactionId){
+		addInteger(ocppGetParamNameString(OCPP_PARAM_TRANSACTION_ID), req->transactionId);
+	}
+	addMeterValueList(ocppGetParamNameString(OCPP_PARAM_METER_VALUE), req->meterValue);
+
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
 
 bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *req){
 	rpcPacket->action = ACTION_START_TRANSACTION;
@@ -254,7 +322,7 @@ bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *
 	addInteger(ocppGetParamNameString(OCPP_PARAM_CONNECTOR_ID), req->connectorId);
 	addIdToken(ocppGetParamNameString(OCPP_PARAM_ID_TAG), req->idTag);
 	addInteger(ocppGetParamNameString(OCPP_PARAM_METER_START), req->meterStart);
-	addDateTime(ocppGetParamNameString(OCPP_PARAM_TIMESTAMP), req->timestamp);
+	addDateTime(paramStr(TIMESTAMP), req->timestamp);
 
 	if(req->useReservationId)
 		addInteger(ocppGetParamNameString(OCPP_PARAM_RESERVATION_ID), req->reservationId);
@@ -269,13 +337,13 @@ bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *re
 
 	openJsonFormation(rpcPacket->payload);
 	if(req->useIdTag)
-		addIdToken(ocppGetParamNameString(OCPP_PARAM_ID_TAG), req->idTag);
-	addInteger(ocppGetParamNameString(OCPP_PARAM_METER_STOP), req->meterStop);
-	addDateTime(ocppGetParamNameString(OCPP_PARAM_TIMESTAMP), req->timestamp);
-	addInteger(ocppGetParamNameString(OCPP_PARAM_TRANSACTION_ID), req->transactionId);
+		addIdToken(paramStr(ID_TAG), req->idTag);
+	addInteger(paramStr(METER_STOP), req->meterStop);
+	addDateTime(paramStr(TIMESTAMP), req->timestamp);
+	addInteger(paramStr(TRANSACTION_ID), req->transactionId);
 
 	if(req->useReason)
-		addInteger(ocppGetParamNameString(OCPP_PARAM_REASON), req->reason);
+		addInteger(paramStr(REASON), req->reason);
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;

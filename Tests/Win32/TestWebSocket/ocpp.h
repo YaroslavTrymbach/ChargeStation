@@ -158,7 +158,7 @@ typedef struct _MeterValue{
 
 typedef struct _MeterValueListItem{
 	MeterValue meterValue;
-	struct MeterValueListItem *next;
+	struct _MeterValueListItem *next;
 }MeterValueListItem;
 
 typedef struct _RequestBootNotification {
@@ -289,10 +289,10 @@ void ocppFreeKeyValueList(KeyValueListItem *list);
 void ocppFreeMeterValueList(MeterValueListItem *list);
 void ocppFreeSampledValueList(SampledValueListItem *list);
 
-//Добавление элемента в конец списка
+//Add element to end of list
 void ocppAddSampledValue(MeterValue *meterValue, SampledValueListItem *value);
 
 KeyValueListItem* ocppCreateKeyValueInt(int key, bool readonly, int value);
 KeyValueListItem* ocppCreateKeyValueBool(int key, bool readonly, bool value);
-MeterValueListItem* ocppCreateMeterValueItem();
-SampledValueListItem* ocppCreateSampledValueItem();
+MeterValueListItem* ocppCreateMeterValueItem(void);
+SampledValueListItem* ocppCreateSampledValueItem(void);

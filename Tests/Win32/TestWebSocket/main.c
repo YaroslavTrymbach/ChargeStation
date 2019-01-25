@@ -81,8 +81,8 @@ bool isAuthorized = false;
 
 GeneralMessage message;
 bool isMessageActive = false;
-Connector connector[CONNECTOR_NUM];
-Connector *activeConnector;
+ChargePointConnector connector[CONNECTOR_NUM];
+ChargePointConnector *activeConnector;
 
 OcppConfigurationVaried ocppConfVaried;
 OcppConfigurationFixed ocppConfFixed;
@@ -228,7 +228,6 @@ void sendHeartbeatRequest(){
 void sendBootNotification(){
 	char jsonData[512];
 	
-	int outLen;
 	RequestBootNotification request;
 	RpcPacket rpcPacket;
 

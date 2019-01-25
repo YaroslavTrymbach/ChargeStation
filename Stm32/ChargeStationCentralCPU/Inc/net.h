@@ -24,4 +24,4 @@ void NET_test(void);
 
 void NET_sendInputMessage(NetInputMessage *message);
 
-bool NET_is_station_accepted();
+bool NET_is_station_accepted(void);

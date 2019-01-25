@@ -72,6 +72,7 @@
 #include "ocppConfigurationDef.h"
 #include "connector.h"
 #include "chargePoint.h"
+#include "indication.h"
 
 /* USER CODE END Includes */
 
@@ -127,6 +128,7 @@ void StartDefaultTask(void const * argument);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+
 
 void initDisplay(){
 	Display_init(&hi2c2);
@@ -556,6 +558,36 @@ void toggleBlueLed(void){
 	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 }
 
+void acceptAuth(int tagId, bool success){
+	char s[32];
+	int i;
+	ChargePointConnector *conn;
+	sprintf(s, "Authorize %s", success ? "SUCCESS" : "FAILED");
+	printf(s);
+	Indication_ShowMessage(s, NULL, 5000);	
+	
+	if(success){
+		//Check if someony with this tag is charging
+		for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+			conn = &connector[i];
+			if(conn->userTagId == tagId){
+				Channel_haltCharging(i);
+				return;
+			}
+		}
+		
+		//Check if someone connector is ready
+		for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+			conn = &connector[i];
+			if(conn->status == CHARGE_POINT_STATUS_PREPARING){
+				conn->userTagId = tagId;
+				Channel_startCharging(i);
+				return;
+			}
+		}
+	}
+}
+
 void processMessageFromNET(GeneralMessage *message){
 	NetInputMessage netMessage;
 	printf("Main task. Message from NET is got\n");
@@ -563,7 +595,7 @@ void processMessageFromNET(GeneralMessage *message){
 	switch(message->messageId){
 		case MESSAGE_NET_SERVER_ACCEPT:
 			sprintf(s, "Station %s", message->param1 ? "ACCEPTED" : "REJECTED");
-		  Display_PrintStrLeft(1, s);
+		  Indication_ShowMessage(s, NULL, 5000);
 		
 		  if(NET_is_station_accepted()){
 				//When station is accepted. It is need to send charge point status to server
@@ -572,9 +604,22 @@ void processMessageFromNET(GeneralMessage *message){
 			}
 			break;
 		case MESSAGE_NET_AUTHORIZE:
-			printf("Authorize %s\n", message->param1 ? "SUCCESS" : "FAILED");
-			sprintf(s, "Authorize %s", message->param1 ? "SUCCESS" : "FAILED");
-		  Display_PrintStrLeft(1, s);			
+			acceptAuth(message->param2, message->param1);
+			break;
+	}
+}
+
+void onChannelStatusChanged(int connIndex){
+	ChargePointConnector *conn;
+	conn = &connector[connIndex];
+	
+	switch(conn->status){
+		case CHARGE_POINT_STATUS_AVAILABLE:
+			conn->userTagId = -1;
+		  lastCheckedTagId = 0;
+			break;
+		case CHARGE_POINT_STATUS_CHARGING:
+			lastCheckedTagId = 0;
 			break;
 	}
 }
@@ -600,6 +645,8 @@ void processMessageFromChannels(GeneralMessage *message){
 				PACK_TO_PARAM_BYTE2(netMessage.param1, CHARGE_POINT_ERROR_CODE_NO_ERROR);
 				NET_sendInputMessage(&netMessage);
 			}
+			onChannelStatusChanged(connIndex);
+			Indication_PrintChannel(connIndex);
 			break;
 	}
 }
@@ -718,6 +765,7 @@ void mainDispatcher(void){
 	checkHardware();
 	
 	Display_clear();
+	Indication_Init(connector);
 	
 	if(ChargePoint_getStatusState() != CHARGE_POINT_STATUS_FAULTED){
 		ChargePoint_setStatusState(CHARGE_POINT_STATUS_AVAILABLE, 0, NULL);
@@ -774,6 +822,7 @@ void mainDispatcher(void){
 			sprintf(sendData, "%.8X\r", lastSendTick);
 			//CDC_Transmit_FS((uint8_t*)sendData, strlen(sendData));
 		}
+		Indication_CheckMessage();
 		osDelay(1);
 	}
 }

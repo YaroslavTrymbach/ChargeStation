@@ -64,6 +64,7 @@ end;
 procedure TIdemFram.swTurnClick(Sender: TObject);
 begin
   fChannel.setState(swTurn.StateOn);
+  UpdateControls;
 end;
 
 procedure TIdemFram.RecalcHeight;

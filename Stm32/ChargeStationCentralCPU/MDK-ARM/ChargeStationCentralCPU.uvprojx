@@ -816,6 +816,26 @@
               <FileType>1</FileType>
               <FilePath>..\Src\chargePoint.c</FilePath>
             </File>
+            <File>
+              <FileName>chargeTransaction.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\chargeTransaction.c</FilePath>
+            </File>
+            <File>
+              <FileName>chargeTransaction.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Inc\chargeTransaction.h</FilePath>
+            </File>
+            <File>
+              <FileName>indication.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\indication.c</FilePath>
+            </File>
+            <File>
+              <FileName>indication.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Inc\indication.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

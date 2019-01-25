@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef _WIN32
 #include <stdbool.h>
 #else

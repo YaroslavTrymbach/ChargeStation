@@ -22,7 +22,7 @@ FormOnTop=0
 
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas]
 ModuleType=SourceModule
-FormState=0
+FormState=1
 FormOnTop=0
 
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr]
@@ -53,7 +53,7 @@ MaxLeft=-1
 MaxTop=-1
 ClientWidth=795
 ClientHeight=489
-LeftPanelSize=140
+LeftPanelSize=191
 LeftPanelClients=CodeExplorer@EditWindow0
 LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000000C000000436F64654578706C6F726572FFFFFFFF
 RightPanelSize=0
@@ -70,16 +70,16 @@ LeftCol=1
 
 [View1]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
-CursorX=52
-CursorY=86
-TopLine=73
+CursorX=40
+CursorY=70
+TopLine=64
 LeftCol=1
 
 [View2]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
-CursorX=20
-CursorY=6
-TopLine=1
+CursorX=46
+CursorY=182
+TopLine=178
 LeftCol=1
 
 [Watches]
@@ -182,7 +182,7 @@ LRDockWidth=190
 Dockable=1
 SplitPos=85
 ArrangeBy=Name
-SelectedItem=Name
+SelectedItem=OnClick
 ExpandedItems=Anchors
 HiddenCategories=
 
@@ -374,14 +374,14 @@ Visible=1
 State=0
 Left=0
 Top=12
-Width=140
+Width=191
 Height=369
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=140
+ClientWidth=191
 ClientHeight=369
 TBDockHeight=305
-LRDockWidth=140
+LRDockWidth=191
 Dockable=1
 
 [MessageView@EditWindow0]

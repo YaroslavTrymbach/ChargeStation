@@ -53,6 +53,8 @@ const char* OCPP_PARAM_NAME_STR_CONFIGURATION_KEY = "configurationKey";
 const char* OCPP_PARAM_NAME_STR_VALUE             = "value";
 const char* OCPP_PARAM_NAME_STR_READONLY          = "readonly";
 const char* OCPP_PARAM_NAME_STR_TYPE              = "type";
+const char* OCPP_PARAM_NAME_STR_METER_VALUE       = "meterValue";
+const char* OCPP_PARAM_NAME_STR_SAMPLED_VALUE     = "sampledValue";
 //const char* OCPP_PARAM_NAME_STR_ = "";
 
 
@@ -237,6 +239,8 @@ const char *ocppGetParamNameString(int param){
 		CASE_PARAM_STR(VALUE);
 		CASE_PARAM_STR(READONLY);
 		CASE_PARAM_STR(TYPE);
+		CASE_PARAM_STR(METER_VALUE);
+		CASE_PARAM_STR(SAMPLED_VALUE);
 		//CASE_PARAM_STR();
 	}
 	return res;
@@ -312,7 +316,7 @@ int occpGetResetTypeFromString(const char* s){
 	return RESET_TYPE_UNKNOWN;
 }
 
-void occpFreeCiString50TypeList(CiString50TypeListItem *list){
+void ocppFreeCiString50TypeList(CiString50TypeListItem *list){
 	CiString50TypeListItem *item;
 	CiString50TypeListItem *lastItem;
 	item = list;
@@ -323,7 +327,7 @@ void occpFreeCiString50TypeList(CiString50TypeListItem *list){
 	}
 }
 
-void occpFreeKeyValueList(KeyValueListItem *list){
+void ocppFreeKeyValueList(KeyValueListItem *list){
 	KeyValueListItem *item;
 	KeyValueListItem *lastItem;
 	item = list;
@@ -332,6 +336,29 @@ void occpFreeKeyValueList(KeyValueListItem *list){
 		item = lastItem->next;
 		if(lastItem->data.vauleIsSet)
 			free(lastItem->data.value);
+		free(lastItem);
+	}
+}
+
+void ocppFreeMeterValueList(MeterValueListItem *list){
+	MeterValueListItem *item;
+	MeterValueListItem *lastItem;
+	item = list;
+	while(item != NULL){
+		lastItem = item;
+		item = lastItem->next;
+		ocppFreeSampledValueList(lastItem->meterValue.samledValue);
+		free(lastItem);
+	}
+}
+
+void ocppFreeSampledValueList(SampledValueListItem *list){
+	SampledValueListItem *item;
+	SampledValueListItem *lastItem;
+	item = list;
+	while(item != NULL){
+		lastItem = item;
+		item = lastItem->next;
 		free(lastItem);
 	}
 }
@@ -345,7 +372,7 @@ KeyValueListItem* occpCreateKeyValueItem(int key, bool readonly){
 	return item;
 }
 
-KeyValueListItem* occpCreateKeyValueInt(int key, bool readonly, int value){
+KeyValueListItem* ocppCreateKeyValueInt(int key, bool readonly, int value){
 	KeyValueListItem *item = occpCreateKeyValueItem(key, readonly);
 	item->data.value = malloc(16); //For integer value it's enough
 	sprintf(item->data.value, "%d", value);
@@ -353,10 +380,38 @@ KeyValueListItem* occpCreateKeyValueInt(int key, bool readonly, int value){
 	return item;
 }
 
-KeyValueListItem* occpCreateKeyValueBool(int key, bool readonly, bool value){
+KeyValueListItem* ocppCreateKeyValueBool(int key, bool readonly, bool value){
 	KeyValueListItem *item = occpCreateKeyValueItem(key, readonly);
 	item->data.value = malloc(8); //For bool value it's enough
 	strcpy(item->data.value, value ? BOOLEAN_STR_TRUE : BOOLEAN_STR_FALSE);
 	item->data.vauleIsSet = true;
 	return item;
+}
+
+MeterValueListItem* ocppCreateMeterValueItem(void){
+	MeterValueListItem *item = malloc(sizeof(MeterValueListItem));
+	item->next = NULL;
+	item->meterValue.samledValue = NULL;
+	return item;
+}
+
+SampledValueListItem* ocppCreateSampledValueItem(void){
+	SampledValueListItem *item = malloc(sizeof(SampledValueListItem));
+	item->next = NULL;
+	return item;
+}
+
+//Добавление элемента в конец списка
+void ocppAddSampledValue(MeterValue *meterValue, SampledValueListItem *value){
+	SampledValueListItem *parent;
+	if(meterValue->samledValue == NULL){
+		meterValue->samledValue = value;
+	}
+	else{
+		parent = meterValue->samledValue;
+		while(parent->next != NULL){
+			parent = parent->next;
+		}
+		parent->next = value;
+	}
 }

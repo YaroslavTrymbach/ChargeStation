@@ -14,10 +14,15 @@ SemaphoreHandle_t hAnswerGotEvent;
 ChargePointConnector *requestConnector;
 int requestCommand;
 
+int startChargeIndex = -1;
+int haltChargeIndex = -1;
+
 static uint8_t hTaskTag;
 static QueueHandle_t hMainQueue;
 
-#define COMMAND_GET_STATUS 1
+#define COMMAND_GET_STATUS     1
+#define COMMAND_START_CHARGING 2
+#define COMMAND_HALT_CHARGING  3
 
 #define FIFO_IN_SIZE 128
 unsigned char fifo_in[FIFO_IN_SIZE];
@@ -26,6 +31,7 @@ int fifo_in_pos_end   = 0;
 bool fifo_in_is_full = false;
 static ChargePointConnector *connector;
 static int connectorCount;
+uint32_t maxWaitAnswerTick;
 
 void usart_infifo_put(uint8_t c){
 	fifo_in[fifo_in_pos_end++] = c;
@@ -94,6 +100,7 @@ static void readThread(void const *argument){
 	int i, address;
 	uint8_t getStr[128];
 	char *answer;
+	char startChar;
 	bool isSuccess;
 	
 	for(;;){
@@ -102,7 +109,8 @@ static void readThread(void const *argument){
 			//It is need to search start position
 			answer = NULL;
 			for(i = size - 1; i >= 0; i--){
-				if(getStr[i] == '!'){
+				if((getStr[i] == '!') || (getStr[i] == '?')){
+					startChar = getStr[i];
 					answer = (char*)(getStr + i);
 					size -= i;
 					break;
@@ -125,6 +133,11 @@ static void readThread(void const *argument){
 					case COMMAND_GET_STATUS:
 						isSuccess = processAnswerGetStatus(requestConnector, answer, size);
 						break;
+					case COMMAND_START_CHARGING:
+					case COMMAND_HALT_CHARGING:
+						if(startChar == '!')
+							isSuccess = true;
+						break;
 				}
 				
 				if(isSuccess)
@@ -134,15 +147,35 @@ static void readThread(void const *argument){
 	}
 }
 
+bool sendCommandToChannel(ChargePointConnector *conn, int command, char *data){
+	char sendStr[16];
+	requestCommand = command;
+	requestConnector = conn;
+	
+	switch(requestCommand){
+		case COMMAND_GET_STATUS:
+			sprintf(sendStr, "$0%dS\r", conn->address);
+			break;
+		case COMMAND_START_CHARGING:
+			sprintf(sendStr, "#0%dS\r", conn->address);
+			break;
+		case COMMAND_HALT_CHARGING:
+			sprintf(sendStr, "#0%dH\r", conn->address);
+			break;
+		default:
+			return false;
+	}
+	
+	HAL_UART_Transmit_DMA(uart, (uint8_t*)sendStr, strlen(sendStr));
+	return (xSemaphoreTake(hAnswerGotEvent, maxWaitAnswerTick) == pdPASS);
+}
+
 void dispatcherThread(void const * argument){
 //#define MAIN_PERIOD 100	
 	#define MAIN_PERIOD 1000
-	int cnt = 0;
 	int i;
 	uint32_t lastSendTick = 0;
 	uint32_t currentTick;
-	uint32_t maxWaitAnswerTick;
-	char sendStr[16];
 	int prevValue;
 	GeneralMessage message;
 	
@@ -155,17 +188,10 @@ void dispatcherThread(void const * argument){
 		if((currentTick - lastSendTick) >= MAIN_PERIOD){
 			lastSendTick = currentTick;
 			
-			//Status request
-			requestCommand = COMMAND_GET_STATUS;
+			//Status request		
 			for(i = 0; i < connectorCount; i++){
-				sprintf(sendStr, "$0%dS\r", connector[i].address);
 				prevValue = connector[i].status;
-				requestConnector = &connector[i];
-				//printf("disp send: %d\n", cnt++);
-				//HAL_UART_Transmit(uart, (uint8_t*)sendStr, strlen(sendStr), 10);
-				HAL_UART_Transmit_DMA(uart, (uint8_t*)sendStr, strlen(sendStr));
-				if(xSemaphoreTake(hAnswerGotEvent, maxWaitAnswerTick) == pdPASS){
-					//printf("answer is got\n");
+				if(sendCommandToChannel(&connector[i], COMMAND_GET_STATUS, NULL)){
 					if(connector[i].status != prevValue){
 						printf("Status changed. A%.2X, newState = %d\n", connector[i].address, connector[i].status);
 						message.messageId = MESSAGE_CHANNEL_STATUS_CHANGED;
@@ -177,6 +203,18 @@ void dispatcherThread(void const * argument){
 					//Answer is not got
 					//printf("answer is not got. A%.2d\n", connector[i].address);
 				}
+			}
+		}
+		
+		//Start and halt charging
+		if((startChargeIndex >= 0) && (startChargeIndex < connectorCount)){
+			if(sendCommandToChannel(&connector[startChargeIndex], COMMAND_START_CHARGING, NULL)){
+				startChargeIndex = -1;
+			}
+		}
+		if((haltChargeIndex >= 0) && (haltChargeIndex < connectorCount)){
+			if(sendCommandToChannel(&connector[haltChargeIndex], COMMAND_HALT_CHARGING, NULL)){
+				haltChargeIndex = -1;
 			}
 		}
 	}
@@ -206,7 +244,13 @@ bool Channel_start(uint8_t taskTag, QueueHandle_t queue, ChargePointConnector *c
 	return true;
 }
 
+void Channel_startCharging(int ch){
+	startChargeIndex = ch;
+}
 
+void Channel_haltCharging(int ch){
+	haltChargeIndex = ch;
+}
 
 void USART2_IRQHandler(void){	
 	uint8_t c;

@@ -121,6 +121,8 @@ typedef CiString20Type idToken;
 #define OCPP_PARAM_VALUE             15
 #define OCPP_PARAM_READONLY          16
 #define OCPP_PARAM_TYPE              17
+#define OCPP_PARAM_METER_VALUE       18
+#define OCPP_PARAM_SAMPLED_VALUE     19
 
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
@@ -144,6 +146,21 @@ typedef struct _KeyValueListItem{
 	struct _KeyValueListItem *next;
 }KeyValueListItem;
 
+typedef struct _SampledValueListItem{
+	int value;
+	struct _SampledValueListItem *next;
+}SampledValueListItem;
+
+typedef struct _MeterValue{
+	dateTime timestamp;
+	SampledValueListItem *samledValue;
+}MeterValue;
+
+typedef struct _MeterValueListItem{
+	MeterValue meterValue;
+	struct _MeterValueListItem *next;
+}MeterValueListItem;
+
 typedef struct _RequestBootNotification {
    CiString20Type chargePointModel;
    CiString20Type chargePointVendor;
@@ -153,6 +170,14 @@ typedef struct _RequestGetConfiguration{
 	int keySize;
 	CiString50Type key[CONFIGURATION_GET_MAX_KEYS];
 }RequestGetConfiguration;
+
+typedef struct _RequestMeterValues{
+	int connectorId;
+	int transactionId;
+	bool useTransactionId;
+	MeterValueListItem *meterValue;
+
+}RequestMeterValues;
 
 typedef struct _RequestStartTransaction{
 	int connectorId;
@@ -259,8 +284,15 @@ int occpGetRegistrationStatusFromString(const char* s);
 int occpGetAuthorizationStatusFromString(const char* s);
 int occpGetResetTypeFromString(const char* s);
 
-void occpFreeCiString50TypeList(CiString50TypeListItem *list);
-void occpFreeKeyValueList(KeyValueListItem *list);
+void ocppFreeCiString50TypeList(CiString50TypeListItem *list);
+void ocppFreeKeyValueList(KeyValueListItem *list);
+void ocppFreeMeterValueList(MeterValueListItem *list);
+void ocppFreeSampledValueList(SampledValueListItem *list);
 
-KeyValueListItem* occpCreateKeyValueInt(int key, bool readonly, int value);
-KeyValueListItem* occpCreateKeyValueBool(int key, bool readonly, bool value);
+//Add element to end of list
+void ocppAddSampledValue(MeterValue *meterValue, SampledValueListItem *value);
+
+KeyValueListItem* ocppCreateKeyValueInt(int key, bool readonly, int value);
+KeyValueListItem* ocppCreateKeyValueBool(int key, bool readonly, bool value);
+MeterValueListItem* ocppCreateMeterValueItem(void);
+SampledValueListItem* ocppCreateSampledValueItem(void);

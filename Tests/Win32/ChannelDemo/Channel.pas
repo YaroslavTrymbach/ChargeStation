@@ -184,7 +184,7 @@ begin
     WaitForSingleObject(fChargeThread.Handle, 1000);
     FreeAndNil(fChargeThread);
   end;
-  SetStatus(STATUS_AVAILABLE);
+  SetStatus(STATUS_FINISHING);
 end;
 
 function TChannel.Init(node: IXmlNode): Boolean;
