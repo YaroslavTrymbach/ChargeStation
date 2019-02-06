@@ -20,6 +20,7 @@
 #include "chargePointTime.h"
 #include "tasks.h"
 #include "chargePoint.h"
+#include "connector.h"
 
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 5 )
 #define READ_THREAD_PRIO (tskIDLE_PRIORITY + 5)
@@ -74,6 +75,8 @@ bool isReadThreadNeedSuspend = false;
 int authTagId;
 
 extern struct netif gnetif;
+
+static ChargePointConnector *activeConnector;
 
 extern OcppConfigurationVaried ocppConfVaried;
 extern OcppConfigurationFixed ocppConfFixed;
@@ -179,14 +182,14 @@ void sendMessageToServer(RpcPacket* packet){
 	}
 	
 	NET_CONN_send(outData, outLen);
-	printf("WebSocket data is send\n");
+	//printf("WebSocket data is send\n");
 
 	if(xSemaphoreTake(hCallAnswerEvent, pdMS_TO_TICKS(1000)) != pdPASS){
 		printf("CallAnswer is not got\n");
 		return;
 	}
 	
-	printf("Call answer is got\n");
+	//printf("Call answer is got\n");
 }
 
 void sendConfMessageToServer(RpcPacket* packet){
@@ -342,6 +345,18 @@ void processConfAuthorize(cJSON* json){
 	sendMessageToMainDispatcher(&message);
 }
 
+void processConfStartTransaction(cJSON* json){
+	ConfStartTransaction conf;
+	jsonUnpackConfStartTransaction(json, &conf);
+
+	if(conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED){
+		chargeTransaction_accept(&activeConnector->chargeTransaction, conf.transactionId);
+	}
+	else{
+		//StartTransaction is rejected
+	}
+}
+
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
 
@@ -354,7 +369,7 @@ void processRPCPacket(RpcPacket* packet){
 
 	if(packet->messageType == MES_TYPE_CALLRESULT){
 		if(memcmp(packet->uniqueId, SendCallId, 36) == 0){
-			printf("Get call result\n");
+			//printf("Get call result\n");
 		
 			switch(SendCallAction){
 				case ACTION_AUTHORIZE:
@@ -367,7 +382,7 @@ void processRPCPacket(RpcPacket* packet){
 					processConfHeartbeat(jsonRoot);
 					break;
 				case ACTION_START_TRANSACTION:
-					//processConfStartTransaction(jsonRoot);
+					processConfStartTransaction(jsonRoot);
 					break;
 			}
 
@@ -460,14 +475,14 @@ static void readThread(void const * argument){
 						sendPongFrame(bufWS, size);
 					}
 					else{
-						printf("WebSocket frame is got\n");
+						//printf("WebSocket frame is got\n");
 						WebSocket_GetInputPayloadData(bufWS, 512, &size);
-						printf("Frame size is %d\n", size);
+						//printf("Frame size is %d\n", size);
 						
 						if(parseRpcInputData(bufWS, size, &rpcPacket)){
-							printf("RPC parsing good\n");
+							/*printf("RPC parsing good\n");
 							printf("MesType %c Id %s, payloadLength %d\n", rpcPacket.messageType, rpcPacket.uniqueId, rpcPacket.payloadLen);
-							printf("Payload: %s\n", rpcPacket.payload);
+							printf("Payload: %s\n", rpcPacket.payload);*/
 
 							processRPCPacket(&rpcPacket);
 						}
@@ -579,6 +594,50 @@ void sendStatusNotification(int connectorId, int status, int errorCode){
 	sendMessageToServer(&rpcPacket);
 }
 
+void sendStartTransaction(ChargePointConnector *conn){
+	char jsonData[512];
+	RequestStartTransaction request;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send startTransaction request. connId = %d\n", conn->id);
+	
+	request.connectorId = conn->id;
+	sprintf(request.idTag, "%.8X", conn->userTagId);
+	request.meterStart = conn->meterValue;
+	request.useReservationId = false;
+	getCurrentTime(&request.timestamp);
+	
+	activeConnector = conn;
+
+	jsonPackReqStartTransaction(&rpcPacket, &request);
+
+	sendMessageToServer(&rpcPacket);
+}
+
+void sendStopTransaction(ChargePointConnector *conn){
+	char jsonData[512];
+	RequestStopTransaction request;
+	RpcPacket rpcPacket;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+
+	printf("send stopTransaction request\n");
+
+	request.transactionId = chargeTransaction_getId(&(conn->chargeTransaction));
+	request.meterStop = conn->chargeTransaction.stopMeterValue;
+	getCurrentTime(&request.timestamp);
+	request.useIdTag = false;
+	request.useReason = false;
+
+	jsonPackReqStopTransaction(&rpcPacket, &request);
+
+	sendMessageToServer(&rpcPacket);
+}
+
 void reconnect(){
 	printf("NET: Reconnect\n");
 	suspendReadThread();
@@ -596,8 +655,6 @@ void reconnect(){
 void netThread(void const * argument){
 	int res;
 	uint32_t tick;
-	char s[256];
-	char buf[256];
 	int webSocketLastTryConnectionTick = 0;
 	int bootNotificationTick = 0;
 	int heartbeatTick = 0;
@@ -686,6 +743,12 @@ void netThread(void const * argument){
 					else
 						errorCode = CHARGE_POINT_ERROR_CODE_NO_ERROR;
 				  sendStatusNotification(connId, status, errorCode);
+					break;
+				case NET_INPUT_MESSAGE_START_TRANSACTION:
+					sendStartTransaction((ChargePointConnector*)message.param1);
+					break;
+				case NET_INPUT_MESSAGE_STOP_TRANSACTION:
+					sendStopTransaction((ChargePointConnector*)message.param1);
 					break;
 			}
 		}

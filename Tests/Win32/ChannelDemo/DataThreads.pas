@@ -17,7 +17,7 @@ type
     property channelList: TChannelList read fChannelList write fChannelList;
   end;
 
-  procedure ComSendString(Str : string);
+  procedure ComSendString(Str: string; Adr: Integer);
 
 implementation
 
@@ -37,7 +37,7 @@ begin
     ComBufInd:=0;
 end;
 
-procedure ComSendString(Str: string);
+procedure ComSendString(Str: string; Adr: Integer);
 var
   Len,sLen: integer;
   i : integer;
@@ -72,6 +72,7 @@ begin
   
   ComSend.Time := GetTickCount();
   ComSend.Command := Str;
+  ComSend.Address := Adr;
   if bUseCheckSum then
   begin
     ComSend.Command := ComSend.Command + ' ' + CS;
@@ -146,7 +147,7 @@ begin
           Str := '';
           for i := ComStart to PacLen-1 do
             Str := Str + Packet[i];
-          Command.CS:=DConCheckCS(Str);
+          Command.CS := DConCheckCS(Str);
           ComEnd := PacLen-2;
         end
         else
@@ -155,18 +156,21 @@ begin
           ComEnd := PacLen;
         end;
 
-            SetLength(Command.Command,PacLen-ComStart);
-            MoveMemory(@Command.Command[1], @Packet[ComStart], PacLen-ComStart);
-            if (bCom and Command.CS) then
-            begin
-              Command.Address := StrToIntDef('$' + Packet[ComStart+1]+Packet[ComStart+2],$FF);
-              channel := fChannelList.GetChannelByAddress(Command.Address);
-              if(channel <> nil) then
-              begin
-                if channel.ProcessCommand(Command, OutStr) then
-                  ComSendString(OutStr);
-              end
-            end;
+        SetLength(Command.Command,PacLen-ComStart);
+        MoveMemory(@Command.Command[1], @Packet[ComStart], PacLen-ComStart);
+        if (bCom and Command.CS) then
+        begin
+           Command.Address := StrToIntDef('$' + Packet[ComStart+1]+Packet[ComStart+2],$FF);
+           channel := fChannelList.GetChannelByAddress(Command.Address);
+           if(channel <> nil) then
+           begin
+             if channel.ProcessCommand(Command, OutStr) then
+             begin
+               ComSendString(OutStr, Command.Address);
+               channel.doPostAction;
+             end;
+           end
+        end;
 
             if bDust then
               AddCommandToBuffer(ComGetDust);

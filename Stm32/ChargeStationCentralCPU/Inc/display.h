@@ -12,3 +12,5 @@ bool Display_clear(void);
 bool Display_PrintStrCenter(uint8_t raw, char *data);
 
 bool Display_PrintStrLeft(uint8_t raw, char *data);
+
+int Display_getWidth(void);

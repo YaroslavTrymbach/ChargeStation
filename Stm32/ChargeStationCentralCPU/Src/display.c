@@ -72,3 +72,7 @@ bool Display_PrintStrCenter(uint8_t raw, char *data){
 bool Display_PrintStrLeft(uint8_t raw, char *data){
 	return Display_PrintStr(raw, data, DISPLAY_ALIGN_LEFT);
 }
+
+int Display_getWidth(void){
+	return DISPLAY_SIZE_X;
+}

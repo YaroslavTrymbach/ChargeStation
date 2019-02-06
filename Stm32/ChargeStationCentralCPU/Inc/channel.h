@@ -4,7 +4,10 @@
 #include <queue.h>
 #include "connector.h"
 
-#define MESSAGE_CHANNEL_STATUS_CHANGED 1
+#define MESSAGE_CHANNEL_STATUS_CHANGED   1
+#define MESSAGE_CHANNEL_GET_METER_VALUE  2
+#define MESSAGE_CHANNEL_CHARGING_STARTED 3
+#define MESSAGE_CHANNEL_CHARGING_HALTED  4
 
 bool Channel_init(UART_HandleTypeDef *port);
 bool Channel_start(uint8_t taskTag, QueueHandle_t queue, ChargePointConnector *conn, int count);

@@ -9,7 +9,8 @@ uses
   IdemFrame in 'IdemFrame.pas' {IdemFram: TFrame},
   yIniFiles in 'yIniFiles.pas',
   Channel in 'Channel.pas',
-  ChangeStatus in 'ChangeStatus.pas' {fmChangeStatus};
+  ChangeStatus in 'ChangeStatus.pas' {fmChangeStatus},
+  Automobile in 'Automobile.pas';
 
 {$R *.res}
 

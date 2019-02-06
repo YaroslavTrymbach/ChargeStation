@@ -47,6 +47,10 @@ type
     edParity: TEdit;
     Splitter1: TSplitter;
     tmTest: TTimer;
+    GroupBox2: TGroupBox;
+    cbApplyFilter: TCheckBox;
+    cbChannel: TComboBox;
+    Label4: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btOpenClick(Sender: TObject);
@@ -181,7 +185,17 @@ begin
 end;
 
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
+var
+  channel: TChannel;
+  I: Integer;
 begin
+  //Ќужно очистить все каналы
+  for i := 0 to fChannelList.Count - 1 do
+  begin
+    channel := fChannelList.GetChannelByPos(i);
+    channel.haltCharging;
+  end;
+
   SaveState;
   WriteToIniFile;
   rwIni(False);
@@ -350,30 +364,53 @@ var
   DrawPos: integer;
   Com: TDconCommand;
   Str: string;
+  bSkip: Boolean;
 begin
   DrawStr.Clear;
-  DrawPos:=LastDrawPos;
+  DrawPos := LastDrawPos;
+
   while TRUE do
-    begin
-      Inc(DrawPos);
-      if (DrawPos>=ComBufSize) then DrawPos:=0;
-      if (ComBuf[DrawPos].ID<=LastDrawComID) then break; //дошли до номеров, которые уже рисовались
-      Com := ComBuf[DrawPos];
-      //‘ормируем строку
-      case (Com.tip) of
-        ComTypeGet : Str := '< ';
-        ComTypeSend : Str :=  '> ';
-        ComTypeGetDust: Str := '<.';
-      else
-        Str := '? ';
-      end;
-      Str := Str + FormatCurr('000000 ',Com.ID) + FormatCurr('000000 ',Com.Time) +
-             {Com.LeadingChar + FormatCurr('00',Com.Address) + }Com.Command;
-      if (Com.tip=ComTypeGetDust) then Str := Str + ' [dust]'
-      else if (bUseCheckSum and (not Com.CS)) then Str := Str + ' [BAD CS]';
-      DrawStr.Add(Str);
-      LastDrawComID := Com.ID;
+  begin
+    Inc(DrawPos);
+    if (DrawPos >= ComBufSize) then
+      DrawPos := 0;
+    if (ComBuf[DrawPos].ID <= LastDrawComID) then
+      break; //дошли до номеров, которые уже рисовались
+    Com := ComBuf[DrawPos];
+
+    //‘ормируем строку
+    case (Com.tip) of
+      ComTypeGet : Str := '< ';
+      ComTypeSend : Str :=  '> ';
+      ComTypeGetDust: Str := '<.';
+    else
+      Str := '? ';
     end;
+    Str := Str + FormatCurr('000000 ',Com.ID) + FormatCurr('000000 ',Com.Time) +
+           Com.Command;
+    if (Com.tip = ComTypeGetDust) then
+      Str := Str + ' [dust]'
+    else if (bUseCheckSum and (not Com.CS)) then
+      Str := Str + ' [BAD CS]';
+
+    bSkip := False;
+
+    if cbApplyFilter.Checked then
+    begin
+      if cbChannel.ItemIndex > 0 then
+      begin
+        if StrToIntDef(cbChannel.Text, 0) <> Com.Address then
+          bSkip := True;
+      end;
+    end;
+
+    if not bSkip then
+    begin
+      DrawStr.Add(Str);
+    end;
+
+    LastDrawComID := Com.ID;
+  end;
   LastDrawPos := DrawPos-1;
   if (LastDrawPos<0) then
     LastDrawPos := ComBufSize-1;
@@ -527,13 +564,21 @@ begin
   SetLength(IdemFrames, fChannelList.Count);
   for i := fChannelList.Count - 1 downto 0 do
   begin
+    channel := fChannelList.GetChannelByPos(i);
     IdemFrames[i] := TIdemFram.Create(self);
     IdemFrames[i].Name := 'IdemFrame' + IntToStr(i+1);
     IdemFrames[i].Tag := i;
     IdemFrames[i].Parent := sbIdems;
     IdemFrames[i].Align := alTop;
     //IdemFrames[i].Height := 120;
-    IdemFrames[i].SetupChannel(fChannelList.GetChannelByPos(i));
+    IdemFrames[i].SetupChannel(channel);
+    IdemFrames[i].InitAutomobile;
+  end;
+
+  for i := 0 to fChannelList.Count - 1 do
+  begin
+    channel := fChannelList.GetChannelByPos(i);
+    cbChannel.Items.Add(IntToStr(channel.Address));
   end;
 
   SetUIComPort;

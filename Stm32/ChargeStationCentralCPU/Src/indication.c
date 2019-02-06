@@ -22,7 +22,10 @@ void Indication_PrintAllChannels(void){
 
 void Indication_PrintChannel(int channel){
 	char s[20];
+	char endS[20];
+	int endPos, cnt, i;
 	ChargePointConnector *conn;
+	bool showMeter = false;
 	
 	if(isMessageShown)
 		return;
@@ -37,17 +40,21 @@ void Indication_PrintChannel(int channel){
 		case CHARGE_POINT_STATUS_PREPARING:
 			strcat(s, "Ready");
 			break;
-		case CHARGE_POINT_STATUS_CHARGING:
-			strcat(s, "Charging");
+		case CHARGE_POINT_STATUS_CHARGING:			
+	    strcat(s, "Charging");	
+		  showMeter = true;
 			break;
 		case CHARGE_POINT_STATUS_SUSPENDED_EVSE:
 			strcat(s, "SuspEVSE");
+		  showMeter = true;
 			break;
 		case CHARGE_POINT_STATUS_SUSPENDED_EV:
 			strcat(s, "SuspEV");
+		  showMeter = true;
 			break;
 		case CHARGE_POINT_STATUS_FINISHING:
 			strcat(s, "Finishing");
+		  showMeter = true;
 			break;
 		case CHARGE_POINT_STATUS_RESERVED:
 			strcat(s, "Reserved");
@@ -59,6 +66,17 @@ void Indication_PrintChannel(int channel){
 			strcat(s, "Error");
 			break;
 	}
+	
+	if(showMeter){
+		sprintf(endS, "%.5d", conn->meterValue - conn->chargeTransaction.startMeterValue);
+		endPos = Display_getWidth() - strlen(endS);
+		cnt = endPos - strlen(s);
+		for(i = 0; i < cnt; i++){
+			strcat(s, " ");
+		}
+		strcat(s, endS);
+	}
+	
 	Display_PrintStrLeft(channel, s);
 };
 

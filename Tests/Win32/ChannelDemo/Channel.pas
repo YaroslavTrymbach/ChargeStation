@@ -4,7 +4,7 @@ interface
 
 uses
   Contnrs, Classes,
-  Common, SimpleXML;
+  Common, SimpleXML, Automobile;
 
 const
   CHANNEL_NUMBER_OF_STATUS = 10;
@@ -30,6 +30,10 @@ const
   STATUS_STR_RESERVED       = 'Reserved';
   STATUS_STR_UNAVAILABLE    = 'Unavailable';
   STATUS_STR_FAULTED        = 'Faulted';
+
+  CHARGE_POWER_NONE  = 0;
+  CHARGE_POWER_7KWT  = 1;
+  CHARGE_POWER_22KWT = 2;
 
 type
   TOnEventStatusChanged = procedure (newStatus: Integer) of object;
@@ -58,11 +62,16 @@ type
     fOnEventStatusChanged: TOnEventStatusChanged;
     fOnEventMeterValueChanged: TOnEventMeterValueChanged;
     fChargeThread: TChargeThread;
+    FAutomobile: TAutomobile;
+    FChargePower: Integer;
+    FPostAction: Integer;
     procedure OnPowerConsumed(value: Integer);
     procedure setStatus(const Value: Integer);
     procedure startCharging;
-    procedure haltCharging;
+    procedure stopChargingThread;
+    function GetAutomobileConnected: Boolean;
   public
+    public Constructor Create;
     property Address: Integer read fAddress;
     property StateOn: Boolean read fStateOn;
     property Status: Integer read fStatus write setStatus;
@@ -75,8 +84,13 @@ type
     procedure setMeterOn(isOn: Boolean);
     procedure setMeterValue(value: Integer);
     function ProcessCommand(Command : TDConCommand; var OutStr : string) : boolean;
+    procedure ConnectAutomobile(Automobile: TAutomobile);
+    procedure UnconnectAutomobile;
+    procedure haltCharging;
+    procedure doPostAction;
+    property IsAutomobileConnected: Boolean read GetAutomobileConnected;
     property OnEventStatusChanged: TOnEventStatusChanged read FOnEventStatusChanged write FOnEventStatusChanged;
-    property OnEventMeterValueChanged: TOnEventMeterValueChanged read fOnEventMeterValueChanged write fOnEventMeterValueChanged; 
+    property OnEventMeterValueChanged: TOnEventMeterValueChanged read fOnEventMeterValueChanged write fOnEventMeterValueChanged;
   end;
 
   TChannelList = class
@@ -107,6 +121,10 @@ const
   ATTRIB_STATUS      = 'status';
   ATTRIB_METER_ON    = 'meterOn';
   ATTRIB_METER_VALUE = 'meterValue';
+
+  POST_ACTION_NONE           = 0;
+  POST_ACTION_START_CHARGING = 1;
+  POST_ACTION_HALT_CHARGING  = 2;
 
 function ChannelGetStatusString(status: Integer): String;
 begin
@@ -176,15 +194,36 @@ end;
 
 { TChannel }
 
+procedure TChannel.ConnectAutomobile(Automobile: TAutomobile);
+begin
+  FAutomobile := Automobile;
+end;
+
+constructor TChannel.Create;
+begin
+  FAutomobile := nil;
+  FChargePower := CHARGE_POWER_NONE;
+end;
+
+procedure TChannel.doPostAction;
+begin
+  case FPostAction of
+    POST_ACTION_START_CHARGING: StartCharging;
+    POST_ACTION_HALT_CHARGING: HaltCharging;
+  end;
+end;
+
+function TChannel.GetAutomobileConnected: Boolean;
+begin
+  Result := (FAutomobile <> nil);
+end;
+
 procedure TChannel.haltCharging;
 begin
-  if fChargeThread <> nil then
-  begin
-    fChargeThread.Stop;
-    WaitForSingleObject(fChargeThread.Handle, 1000);
-    FreeAndNil(fChargeThread);
-  end;
-  SetStatus(STATUS_FINISHING);
+  FChargePower := CHARGE_POWER_NONE;
+  stopChargingThread;
+  if FAutomobile <> nil then
+    FAutomobile.ChargingAllow := False;
 end;
 
 function TChannel.Init(node: IXmlNode): Boolean;
@@ -210,8 +249,11 @@ begin
 end;
 
 procedure TChannel.OnPowerConsumed(value: Integer);
+var
+  Consumed: Integer;
 begin
-  SetMeterValue(FMeterValue + value);
+  Consumed := FAutomobile.ConsumeEnergy(value);
+  SetMeterValue(FMeterValue + Consumed);
 end;
 
 function TChannel.ProcessCommand(Command: TDConCommand;
@@ -220,12 +262,14 @@ const
   HEAD_LEN = 3;
   CS_LEN = 2;
 var
-  Str : string;
+  Str, Answer: string;
   ServLen: integer;
 begin
   Result := FALSE;
   if not fStateOn then
     Exit; //Модуль выключен
+
+  FPostAction := POST_ACTION_NONE;
 
   OutStr := '';
   if (bUseCheckSum) then
@@ -247,6 +291,23 @@ begin
             OutStr := '!' + fAdrStr + IntToStr(fMeterValue)
           else
             OutStr := '?' + fAdrStr + '0';
+        end
+        else if (Str = 'P') then
+        begin
+          if FAutomobile = nil then
+            Answer := 'A'
+          else
+          begin
+            Case FAutomobile.ResistorState of
+              RESISTOR_STATE_B: Answer := 'B';
+              RESISTOR_STATE_C: Answer := 'C';
+              RESISTOR_STATE_D: Answer := 'D';
+            else
+              Answer := 'E';
+            end;
+          end;
+          Answer := Answer + IntToStr(FChargePower);
+          OutStr := '!' + fAdrStr + Answer;
         end;
           //OutStr := '>' + '22002500260027003831393140314131';
       end;
@@ -257,10 +318,22 @@ begin
     '#' :
     begin
       if(Str = 'S') then
-        StartCharging
+      begin
+        if IsAutomobileConnected then
+        begin
+          FPostAction := POST_ACTION_START_CHARGING;
+          OutStr := '!' + fAdrStr;
+        end
+        else
+          OutStr := '?' + fAdrStr + '0';
+      end
       else if(Str = 'H') then
-        HaltCharging;
-      OutStr := '!' + fAdrStr;  
+      begin
+        FPostAction := POST_ACTION_HALT_CHARGING;
+        OutStr := '!' + fAdrStr;
+      end
+      else
+        OutStr := '?' + fAdrStr;
     end;
   end;
   Result := (Length(OutStr)>0);
@@ -300,6 +373,9 @@ begin
   if fStatus = Value then
     Exit;
 
+  if(fStatus = STATUS_CHARGING) then
+    StopChargingThread;
+
   fStatus := Value;
   if(Assigned(fOnEventStatusChanged)) then
     fOnEventStatusChanged(fStatus);
@@ -307,23 +383,50 @@ end;
 
 procedure TChannel.startCharging;
 begin
-  SetStatus(STATUS_CHARGING);
-  fChargeThread := TChargeThread.Create(True);
-  fChargeThread.OnPowerConsumed := OnPowerConsumed;
-  fChargeThread.Resume;
+  FAutomobile.ChargingAllow := True;
+  FChargePower := CHARGE_POWER_7KWT;
+  if FChargeThread = nil then
+  begin
+    fChargeThread := TChargeThread.Create(True);
+    fChargeThread.OnPowerConsumed := OnPowerConsumed;
+    fChargeThread.Resume;
+  end;
+end;
+
+procedure TChannel.stopChargingThread;
+begin
+  if fChargeThread <> nil then
+  begin
+    fChargeThread.Stop;
+    WaitForSingleObject(fChargeThread.Handle, 1000);
+    FreeAndNil(fChargeThread);
+  end;
+end;
+
+procedure TChannel.UnconnectAutomobile;
+begin
+  FAutomobile := nil;
 end;
 
 { TChargeThread }
 
 procedure TChargeThread.Execute;
+var
+  LastTick, CurTick: Cardinal;
 begin
   inherited;
   fActive := True;
+  LastTick := GetTickCount;
   while fActive do
   begin
-    Sleep(500);
-    if Assigned(FOnPowerConsumed) then
-      FOnPowerConsumed(1);
+    Sleep(1);
+    CurTick := GetTickCount;
+    if((CurTick - LastTick) >= 500) then
+    begin
+      if Assigned(FOnPowerConsumed) then
+        FOnPowerConsumed(1);
+      LastTick := CurTick;  
+    end;
   end;
 end;
 

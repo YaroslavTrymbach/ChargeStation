@@ -123,7 +123,10 @@ static void MX_RTC_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
+#define PACK_TO_PARAM_BYTE0(param, value) param |= (value & 0xFF)
+#define PACK_TO_PARAM_BYTE1(param, value) param |= ((value & 0xFF) << 8)
+#define PACK_TO_PARAM_BYTE2(param, value) param |= ((value & 0xFF) << 16)
+#define PACK_TO_PARAM_BYTE3(param, value) param |= ((value & 0xFF) << 24)
 
 /* USER CODE END PFP */
 
@@ -140,9 +143,18 @@ void initDisplay(){
 void initConnectors(){
 	int i;
 	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+		connector[i].id = i + 1;
 		connector[i].address = i + 1;
 		connector[i].status = CHARGE_POINT_STATUS_UNKNOWN;
 		connector[i].online = false;
+		connector[i].meterValue = 0;
+		connector[i].isMeterValueSet = false;
+		connector[i].isMeterValueRequest = true;
+		connector[i].pilotSygnalLevel = PILOT_SYGNAL_LEVEL_F;
+		connector[i].pilotSygnalPwm = PILOT_SYGNAL_PWM_UNKNOWN;
+		
+		connector[i].chargeTransaction.isActive = false;
+		connector[i].chargeTransaction.isClosed = true;
 	}
 }
 
@@ -558,30 +570,67 @@ void toggleBlueLed(void){
 	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 }
 
+bool checkChargeTransactionByTag(int tagId){
+	int i;
+	ChargePointConnector *conn;
+	//Check if someony with this tag is charging
+	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+		conn = &connector[i];
+		if(conn->userTagId == tagId){
+			if(conn->status != CHARGE_POINT_STATUS_FINISHING)
+				Channel_haltCharging(i);
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+void startChargeTransaction(int channel, int tagId){
+	ChargePointConnector *conn;
+	NetInputMessage netMessage;
+	
+	conn = &connector[channel];
+	conn->userTagId = tagId;
+	conn->chargeTransaction.startMeterValue = conn->meterValue;
+	conn->chargeTransaction.isActive = true;
+	conn->chargeTransaction.isClosed = false;
+	
+	netMessage.messageId = NET_INPUT_MESSAGE_START_TRANSACTION;
+	netMessage.param1 = (int)conn;
+	NET_sendInputMessage(&netMessage);
+	
+	Channel_startCharging(channel);
+}
+
+void stopChargeTransaction(int channel){
+	ChargePointConnector *conn;
+	NetInputMessage netMessage;
+	
+	conn = &connector[channel];
+	conn->chargeTransaction.isClosed = true;
+	conn->chargeTransaction.stopMeterValue = conn->meterValue;
+	
+	netMessage.messageId = NET_INPUT_MESSAGE_STOP_TRANSACTION;
+	netMessage.param1 = (int)conn;
+	NET_sendInputMessage(&netMessage);
+}
+
 void acceptAuth(int tagId, bool success){
 	char s[32];
 	int i;
 	ChargePointConnector *conn;
 	sprintf(s, "Authorize %s", success ? "SUCCESS" : "FAILED");
-	printf(s);
+	printf("%s\n", s);
 	Indication_ShowMessage(s, NULL, 5000);	
 	
 	if(success){
-		//Check if someony with this tag is charging
-		for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
-			conn = &connector[i];
-			if(conn->userTagId == tagId){
-				Channel_haltCharging(i);
-				return;
-			}
-		}
 		
 		//Check if someone connector is ready
 		for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
 			conn = &connector[i];
 			if(conn->status == CHARGE_POINT_STATUS_PREPARING){
-				conn->userTagId = tagId;
-				Channel_startCharging(i);
+				startChargeTransaction(i, tagId);
 				return;
 			}
 		}
@@ -611,42 +660,64 @@ void processMessageFromNET(GeneralMessage *message){
 
 void onChannelStatusChanged(int connIndex){
 	ChargePointConnector *conn;
+	NetInputMessage netMessage;
 	conn = &connector[connIndex];
+	
+	//If connection with server is present it is need to send new status 
+	if(NET_is_station_accepted()){
+		netMessage.messageId = NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS;
+		netMessage.param1 = 0;
+		PACK_TO_PARAM_BYTE0(netMessage.param1, connIndex + 1);
+		PACK_TO_PARAM_BYTE1(netMessage.param1, connector[connIndex].status);
+		PACK_TO_PARAM_BYTE2(netMessage.param1, CHARGE_POINT_ERROR_CODE_NO_ERROR);
+		NET_sendInputMessage(&netMessage);
+	}
 	
 	switch(conn->status){
 		case CHARGE_POINT_STATUS_AVAILABLE:
 			conn->userTagId = -1;
-		  lastCheckedTagId = 0;
+      lastCheckedTagId = 0;		
 			break;
 		case CHARGE_POINT_STATUS_CHARGING:
 			lastCheckedTagId = 0;
 			break;
+		case CHARGE_POINT_STATUS_SUSPENDED_EV:
+			conn->isMeterValueRequest = true;
+			break;
 	}
+	Indication_PrintChannel(connIndex);
 }
-	
-#define PACK_TO_PARAM_BYTE0(param, value) param |= (value & 0xFF)
-#define PACK_TO_PARAM_BYTE1(param, value) param |= ((value & 0xFF) << 8)
-#define PACK_TO_PARAM_BYTE2(param, value) param |= ((value & 0xFF) << 16)
-#define PACK_TO_PARAM_BYTE3(param, value) param |= ((value & 0xFF) << 24)
 
 void processMessageFromChannels(GeneralMessage *message){
 	int connIndex;
-	NetInputMessage netMessage;
+	ChargePointConnector *conn;
 	
 	switch(message->messageId){
 		case MESSAGE_CHANNEL_STATUS_CHANGED:
 			connIndex = message->param1;
-		  //If connection with server is present it is need to send new status 
-		  if(NET_is_station_accepted()){
-				netMessage.messageId = NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS;
-				netMessage.param1 = 0;
-				PACK_TO_PARAM_BYTE0(netMessage.param1, connIndex + 1);
-				PACK_TO_PARAM_BYTE1(netMessage.param1, connector[connIndex].status);
-				PACK_TO_PARAM_BYTE2(netMessage.param1, CHARGE_POINT_ERROR_CODE_NO_ERROR);
-				NET_sendInputMessage(&netMessage);
-			}
 			onChannelStatusChanged(connIndex);
-			Indication_PrintChannel(connIndex);
+			break;
+		case MESSAGE_CHANNEL_CHARGING_HALTED:
+			connIndex = message->param1;
+		  conn = &connector[connIndex];
+		  conn->status = CHARGE_POINT_STATUS_FINISHING;
+		  conn->isMeterValueRequest = true; //Need request meterValue for close transaction
+		  conn->chargeTransaction.isActive = false;
+		  onChannelStatusChanged(connIndex);
+			break;
+		case MESSAGE_CHANNEL_GET_METER_VALUE:
+			connIndex = message->param1;
+		  conn = &connector[connIndex];
+		  if(conn->chargeTransaction.isActive){
+				//Need update screen
+				Indication_PrintChannel(connIndex);
+			}
+			else{
+				if(!conn->chargeTransaction.isClosed){
+					//CloseTransaction
+					stopChargeTransaction(connIndex);
+				}
+			}
 			break;
 	}
 }
@@ -663,13 +734,14 @@ void processMessageFromRFID(GeneralMessage *message){
 			printf("CardId 0x%.8X\n", cardId);
 		
 		  if(cardId != lastCheckedTagId){
-				Display_PrintStrCenter(0, "Card discovered");
-				sprintf(s, "CardId 0x%.8X", cardId);
-				Display_PrintStrLeft(1, s);
-		
-				netMessage.messageId = NET_INPUT_MESSAGE_AUTHORIZE;
-				netMessage.param1 = cardId;
-				NET_sendInputMessage(&netMessage);
+				sprintf(s, "CardId 0x%.8X\n", cardId);
+				Indication_ShowMessage("Card discovered", s, 5000);
+				
+				if(!checkChargeTransactionByTag(cardId)){
+					netMessage.messageId = NET_INPUT_MESSAGE_AUTHORIZE;
+					netMessage.param1 = cardId;
+					NET_sendInputMessage(&netMessage);
+				}
 				
 				lastCheckedTagId = cardId;
 			}
@@ -745,9 +817,21 @@ void printCurrentDateTime(){
 	}
 }
 
+void updateMeterValues(void){
+	int i;
+	ChargePointConnector *conn;
+	
+	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+			conn = &connector[i];
+			if(conn->status == CHARGE_POINT_STATUS_CHARGING){
+				conn->isMeterValueRequest = true;
+			}
+	}
+}
+
 void mainDispatcher(void){
 	uint32_t currentTick, lastLedTick;
-	uint32_t lastSendTick;
+	uint32_t lastSendTick, lastMeterReqTick;
 	char sendData[16];
 	GeneralMessage message;
 	uint32_t btnPressCnt = 0;
@@ -781,6 +865,7 @@ void mainDispatcher(void){
 	
 	lastLedTick = HAL_GetTick(); 
 	lastSendTick = lastLedTick;
+	lastMeterReqTick = lastLedTick;
 	
 	// Infinite loop 
   for(;;)
@@ -822,6 +907,14 @@ void mainDispatcher(void){
 			sprintf(sendData, "%.8X\r", lastSendTick);
 			//CDC_Transmit_FS((uint8_t*)sendData, strlen(sendData));
 		}
+		
+		//For channel with charging process need update meter value
+		if((currentTick - lastMeterReqTick) >= 1000){
+			lastMeterReqTick = currentTick;
+			updateMeterValues();
+			
+		}
+		
 		Indication_CheckMessage();
 		osDelay(1);
 	}

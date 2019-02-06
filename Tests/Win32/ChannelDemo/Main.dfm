@@ -153,7 +153,7 @@ object fmMain: TfmMain
     TabOrder = 1
     object tpProtocol: TToolBar
       Left = 2
-      Top = 439
+      Top = 379
       Width = 317
       Height = 29
       Align = alBottom
@@ -200,7 +200,7 @@ object fmMain: TfmMain
       Left = 2
       Top = 15
       Width = 317
-      Height = 424
+      Height = 364
       Align = alClient
       Font.Charset = RUSSIAN_CHARSET
       Font.Color = clWindowText
@@ -210,6 +210,42 @@ object fmMain: TfmMain
       ItemHeight = 11
       ParentFont = False
       TabOrder = 1
+    end
+    object GroupBox2: TGroupBox
+      Left = 2
+      Top = 408
+      Width = 317
+      Height = 60
+      Align = alBottom
+      Caption = #1060#1080#1083#1100#1090#1088
+      TabOrder = 2
+      object Label4: TLabel
+        Left = 97
+        Top = 13
+        Width = 31
+        Height = 13
+        Caption = #1050#1072#1085#1072#1083
+      end
+      object cbApplyFilter: TCheckBox
+        Left = 8
+        Top = 16
+        Width = 89
+        Height = 17
+        Caption = #1055#1088#1080#1084#1077#1085#1080#1090#1100
+        TabOrder = 0
+      end
+      object cbChannel: TComboBox
+        Left = 96
+        Top = 32
+        Width = 57
+        Height = 21
+        ItemHeight = 13
+        ItemIndex = 0
+        TabOrder = 1
+        Text = #1042#1089#1077
+        Items.Strings = (
+          #1042#1089#1077)
+      end
     end
   end
   object gbChannels: TGroupBox

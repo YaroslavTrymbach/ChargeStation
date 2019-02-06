@@ -10,6 +10,8 @@
 #define NET_INPUT_MESSAGE_AUTHORIZE                2
 #define NET_INPUT_MESSAGE_SEND_CHARGE_POINT_STATUS 3
 #define NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS    4
+#define NET_INPUT_MESSAGE_START_TRANSACTION        5
+#define NET_INPUT_MESSAGE_STOP_TRANSACTION         6
 
 typedef struct _NetInputMessage{
 	uint8_t messageId;

@@ -41,3 +41,19 @@ bool getIntFromHexStr(char *s, int cnt, int *outValue){
 	*outValue = value;
 	return true;
 }
+
+bool getIntFromStr(char *s, int cnt, int *outValue){
+	int i, value, digit;
+	char c;
+	value = 0;
+	for(i = 0; i < cnt; i++){
+		c = s[i];
+		if((c >= '0') && (c <= '9'))
+			digit = c - '0';
+		else
+			return false;
+		value = value * 10 + digit;
+	}
+	*outValue = value;
+	return true;
+}

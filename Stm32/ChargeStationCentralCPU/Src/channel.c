@@ -1,8 +1,10 @@
 #include "channel.h"
 #include "cmsis_os.h"
 #include "string.h"
+#include "stdlib.h"
 #include "string_ext.h"
 #include "tasks.h"
+#include "ocpp.h"
 
 UART_HandleTypeDef *uart;
 
@@ -14,15 +16,14 @@ SemaphoreHandle_t hAnswerGotEvent;
 ChargePointConnector *requestConnector;
 int requestCommand;
 
-int startChargeIndex = -1;
-int haltChargeIndex = -1;
-
 static uint8_t hTaskTag;
 static QueueHandle_t hMainQueue;
 
-#define COMMAND_GET_STATUS     1
-#define COMMAND_START_CHARGING 2
-#define COMMAND_HALT_CHARGING  3
+#define COMMAND_GET_STATUS      1
+#define COMMAND_START_CHARGING  2
+#define COMMAND_HALT_CHARGING   3
+#define COMMAND_GET_METER_VALUE 4
+#define COMMAND_GET_PS_STATE    5
 
 #define FIFO_IN_SIZE 128
 unsigned char fifo_in[FIFO_IN_SIZE];
@@ -95,9 +96,110 @@ bool processAnswerGetStatus(ChargePointConnector *conn, char *s, int len){
 	return true;
 }
 
+bool processAnswerGetPilotSygnalState(ChargePointConnector *conn, char *s, int len){
+	//Answer must have 2 character 
+	// 1-st PilotSygnal Level
+	// 2-nd PilotSygnal PWM State
+	int level;
+	int pwmState;
+	int newStatus;
+	if(len < 2)
+		return false;
+	
+	//Level
+	switch(s[0]){
+		case 'A': level = PILOT_SYGNAL_LEVEL_A;
+			break;
+		case 'B': level = PILOT_SYGNAL_LEVEL_B;
+			break;
+		case 'C': level = PILOT_SYGNAL_LEVEL_C;
+			break;
+		case 'D': level = PILOT_SYGNAL_LEVEL_D;
+			break;
+		case 'E': level = PILOT_SYGNAL_LEVEL_E;
+			break;
+		default:
+			level = PILOT_SYGNAL_LEVEL_F;		
+	}
+	
+	//PWM state
+	switch(s[1]){
+		case '0': pwmState = PILOT_SYGNAL_PWM_NONE;
+			break;
+		case '1': pwmState = PILOT_SYGNAL_PWM_7kWt;
+			break;
+		case '2': pwmState = PILOT_SYGNAL_PWM_22kWt;
+			break;
+		default:
+			pwmState = PILOT_SYGNAL_PWM_UNKNOWN;
+	}
+	
+	if((level != conn->pilotSygnalLevel) || (pwmState != conn->pilotSygnalPwm)){
+		newStatus = CHARGE_POINT_STATUS_UNKNOWN;
+		
+		if(level == PILOT_SYGNAL_LEVEL_A){
+			newStatus = CHARGE_POINT_STATUS_AVAILABLE;
+		}
+		else if(level == PILOT_SYGNAL_LEVEL_B){
+			if(conn->status == CHARGE_POINT_STATUS_AVAILABLE)
+				newStatus = CHARGE_POINT_STATUS_PREPARING;
+			else{
+				//It's may be suspended by EV or EVSE
+				if(pwmState == PILOT_SYGNAL_PWM_NONE){
+					if(conn->status != CHARGE_POINT_STATUS_FINISHING)
+						newStatus = CHARGE_POINT_STATUS_SUSPENDED_EVSE;
+				}
+				else if(pwmState != PILOT_SYGNAL_PWM_UNKNOWN)
+					newStatus = CHARGE_POINT_STATUS_SUSPENDED_EV;
+			}
+		}
+		else if((level == PILOT_SYGNAL_LEVEL_C) || (level == PILOT_SYGNAL_LEVEL_D)){
+			if(pwmState != PILOT_SYGNAL_PWM_NONE){
+				newStatus = CHARGE_POINT_STATUS_CHARGING;
+			}
+		}
+
+		
+		if(newStatus != CHARGE_POINT_STATUS_UNKNOWN){
+			conn->status = newStatus;
+		}
+		
+		//Something changed
+		conn->pilotSygnalLevel = level;
+		conn->pilotSygnalPwm = pwmState;
+	}
+
+	return true;
+}
+
+bool processAnswerGetMeterValue(ChargePointConnector *conn, char *s, int len, char startChar){
+	int iVal;
+	bool isSuccess;
+	if(startChar == START_CHAR_SUCCESS){					
+		if(getIntFromStr(s, len, &iVal)){
+			requestConnector->meterValue = iVal;
+			requestConnector->isMeterValueSet = true;
+			isSuccess = true;
+		}
+	}
+	else if(startChar == START_CHAR_ERROR){
+		if(getIntFromStr(s, len, &iVal)){
+			requestConnector->meterValueError = iVal;
+			requestConnector->isMeterValueSet = false;
+			isSuccess = true;
+		}
+	}
+	
+	if(isSuccess){
+		requestConnector->isMeterValueRequest = false;
+	}
+	
+	return isSuccess;
+}
+
 static void readThread(void const *argument){
 	int size;
-	int i, address;
+	int i, address, iVal;
 	uint8_t getStr[128];
 	char *answer;
 	char startChar;
@@ -133,10 +235,16 @@ static void readThread(void const *argument){
 					case COMMAND_GET_STATUS:
 						isSuccess = processAnswerGetStatus(requestConnector, answer, size);
 						break;
+					case COMMAND_GET_PS_STATE:
+						isSuccess = processAnswerGetPilotSygnalState(requestConnector, answer, size);
+						break;
 					case COMMAND_START_CHARGING:
 					case COMMAND_HALT_CHARGING:
 						if(startChar == '!')
 							isSuccess = true;
+						break;
+					case COMMAND_GET_METER_VALUE:
+						isSuccess = processAnswerGetMeterValue(requestConnector, answer, size, startChar);
 						break;
 				}
 				
@@ -156,11 +264,17 @@ bool sendCommandToChannel(ChargePointConnector *conn, int command, char *data){
 		case COMMAND_GET_STATUS:
 			sprintf(sendStr, "$0%dS\r", conn->address);
 			break;
+		case COMMAND_GET_PS_STATE:
+			sprintf(sendStr, "$0%dP\r", conn->address);
+			break;
 		case COMMAND_START_CHARGING:
 			sprintf(sendStr, "#0%dS\r", conn->address);
 			break;
 		case COMMAND_HALT_CHARGING:
 			sprintf(sendStr, "#0%dH\r", conn->address);
+			break;
+		case COMMAND_GET_METER_VALUE:
+			sprintf(sendStr, "$0%dM\r", conn->address);
 			break;
 		default:
 			return false;
@@ -178,6 +292,7 @@ void dispatcherThread(void const * argument){
 	uint32_t currentTick;
 	int prevValue;
 	GeneralMessage message;
+	ChargePointConnector *conn;
 	
 	maxWaitAnswerTick = pdMS_TO_TICKS(10);
 	
@@ -190,31 +305,47 @@ void dispatcherThread(void const * argument){
 			
 			//Status request		
 			for(i = 0; i < connectorCount; i++){
+			
 				prevValue = connector[i].status;
-				if(sendCommandToChannel(&connector[i], COMMAND_GET_STATUS, NULL)){
+				if(sendCommandToChannel(&connector[i], COMMAND_GET_PS_STATE, NULL)){
 					if(connector[i].status != prevValue){
 						printf("Status changed. A%.2X, newState = %d\n", connector[i].address, connector[i].status);
 						message.messageId = MESSAGE_CHANNEL_STATUS_CHANGED;
 						message.param1 = i;
 						sendMessage(&message);
 					}
-				}
-				else{
-					//Answer is not got
-					//printf("answer is not got. A%.2d\n", connector[i].address);
-				}
+				}				
 			}
 		}
 		
-		//Start and halt charging
-		if((startChargeIndex >= 0) && (startChargeIndex < connectorCount)){
-			if(sendCommandToChannel(&connector[startChargeIndex], COMMAND_START_CHARGING, NULL)){
-				startChargeIndex = -1;
+		for(i = 0; i < connectorCount; i++){
+			conn = &connector[i];
+			
+			//Start charging
+			if(conn->isNeedStartCharging){
+				if(sendCommandToChannel(conn, COMMAND_START_CHARGING, NULL)){
+					conn->isNeedStartCharging = false;
+				}
 			}
-		}
-		if((haltChargeIndex >= 0) && (haltChargeIndex < connectorCount)){
-			if(sendCommandToChannel(&connector[haltChargeIndex], COMMAND_HALT_CHARGING, NULL)){
-				haltChargeIndex = -1;
+			
+			//Halt charging
+			if(conn->isNeedHaltCharging){
+				if(sendCommandToChannel(conn, COMMAND_HALT_CHARGING, NULL)){
+					conn->isNeedHaltCharging = false;
+					message.messageId = MESSAGE_CHANNEL_CHARGING_HALTED;
+					message.param1 = i;
+					sendMessage(&message);
+				}				
+			}
+
+			//Meter value
+			if(conn->isMeterValueRequest){
+				if(sendCommandToChannel(conn, COMMAND_GET_METER_VALUE, NULL)){
+					conn->isMeterValueRequest = false;
+					message.messageId = MESSAGE_CHANNEL_GET_METER_VALUE;
+					message.param1 = i;
+					sendMessage(&message);
+				}
 			}
 		}
 	}
@@ -231,6 +362,7 @@ bool Channel_start(uint8_t taskTag, QueueHandle_t queue, ChargePointConnector *c
 	hTaskTag = taskTag;
 	connector = conn;
 	connectorCount = count;
+
 	hGetStringEvent = xSemaphoreCreateBinary();
 	hAnswerGotEvent = xSemaphoreCreateBinary(); 
 	
@@ -245,11 +377,11 @@ bool Channel_start(uint8_t taskTag, QueueHandle_t queue, ChargePointConnector *c
 }
 
 void Channel_startCharging(int ch){
-	startChargeIndex = ch;
+	connector[ch].isNeedStartCharging = true;
 }
 
 void Channel_haltCharging(int ch){
-	haltChargeIndex = ch;
+	connector[ch].isNeedHaltCharging = true;
 }
 
 void USART2_IRQHandler(void){	

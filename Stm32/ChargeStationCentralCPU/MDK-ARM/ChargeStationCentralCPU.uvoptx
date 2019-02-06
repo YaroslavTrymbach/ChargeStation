@@ -186,25 +186,25 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>573</LineNumber>
+          <LineNumber>628</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134252540</Address>
+          <Address>134305996</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>../Src/main.c</Filename>
+          <Filename>..\Src\net.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\ChargeStationCentralCPU\../Src/main.c\573</Expression>
+          <Expression>\\ChargeStationCentralCPU\../Src/net.c\628</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
           <LineNumber>425</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134328204</Address>
+          <Address>134329728</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -220,7 +220,7 @@
           <Type>0</Type>
           <LineNumber>662</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134265874</Address>
+          <Address>134266350</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -234,23 +234,23 @@
         <Bp>
           <Number>3</Number>
           <Type>0</Type>
-          <LineNumber>31</LineNumber>
+          <LineNumber>715</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
+          <Address>134300488</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\Src\indication.c</Filename>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>../Src/main.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression></Expression>
+          <Expression>\\ChargeStationCentralCPU\../Src/main.c\715</Expression>
         </Bp>
         <Bp>
           <Number>4</Number>
           <Type>0</Type>
-          <LineNumber>580</LineNumber>
+          <LineNumber>716</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>0</Address>
           <ByteObject>0</ByteObject>
@@ -280,6 +280,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>comStr</ItemText>
         </Ww>
+        <Ww>
+          <count>3</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>answer</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>
@@ -297,7 +302,7 @@
         <periodic>1</periodic>
         <aLwin>0</aLwin>
         <aCover>0</aCover>
-        <aSer1>0</aSer1>
+        <aSer1>1</aSer1>
         <aSer2>0</aSer2>
         <aPa>0</aPa>
         <viewmode>1</viewmode>
@@ -313,7 +318,7 @@
         <aPa1>0</aPa1>
         <AscS4>0</AscS4>
         <aSer4>1</aSer4>
-        <StkLoc>0</StkLoc>
+        <StkLoc>1</StkLoc>
         <TrcWin>0</TrcWin>
         <newCpu>0</newCpu>
         <uProt>0</uProt>

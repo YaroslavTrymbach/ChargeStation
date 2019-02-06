@@ -9,7 +9,10 @@
 typedef struct _ChargeTransaction{
 	int id;
 	bool isActive;
+	bool isClosed;
 	int meterValue;
+	int startMeterValue;
+	int stopMeterValue;
 }ChargeTransaction;
 
 void chargeTransaction_reset(ChargeTransaction *trans);
