@@ -38,4 +38,6 @@ typedef struct _ChargePointConnector{
 	int pilotSygnalLevel;
 	int pilotSygnalPwm;
 	ChargeTransaction chargeTransaction;
+	int errorCode;
+	int noAnswerCnt;
 }ChargePointConnector;

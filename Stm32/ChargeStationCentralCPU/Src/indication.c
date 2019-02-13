@@ -63,7 +63,8 @@ void Indication_PrintChannel(int channel){
 			strcat(s, "Unavailable");
 			break;
 		case CHARGE_POINT_STATUS_FAULTED:
-			strcat(s, "Error");
+			sprintf(endS, "Error  Code %.2d", conn->errorCode);
+			strcat(s, endS);
 			break;
 	}
 	

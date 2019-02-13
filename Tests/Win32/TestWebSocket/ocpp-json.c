@@ -527,7 +527,6 @@ bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req){
 			if(isParam(jsonElement->string, OCPP_PARAM_KEY)){
 				jsonIter = jsonElement->child;
 				while(jsonIter != NULL){
-				//req->connectorId = jsonElement->valueint;
 					strcpy(req->key[req->keySize++], jsonIter->valuestring);
 					if(req->keySize >= CONFIGURATION_GET_MAX_KEYS)
 						break;

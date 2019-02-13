@@ -7,18 +7,18 @@ File_4=SourceModule,'D:\MyDelphi\Delphi6\IdemDemo\Main.pas',0,1,245,31,250,1,0
 File_5=SourceModule,'D:\MyDelphi\Delphi6\IdemDemo\Idem.pas',0,1,268,19,361,0,0
 
 [Modules]
-Module0=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
+Module0=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
 Module1=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas
-Module2=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
+Module2=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
 Module3=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Automobile.pas
 Module4=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\DataThreads.pas
 Module5=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr
 Count=6
 EditWindowCount=1
 
-[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas]
+[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas]
 ModuleType=SourceModule
-FormState=0
+FormState=1
 FormOnTop=0
 
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas]
@@ -26,9 +26,9 @@ ModuleType=SourceModule
 FormState=1
 FormOnTop=0
 
-[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas]
+[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas]
 ModuleType=SourceModule
-FormState=1
+FormState=0
 FormOnTop=0
 
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Automobile.pas]
@@ -52,7 +52,7 @@ FormOnTop=0
 
 [EditWindow0]
 ViewCount=6
-CurrentView=5
+CurrentView=1
 View0=0
 View1=1
 View2=2
@@ -78,7 +78,7 @@ LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000
 RightPanelSize=0
 BottomPanelSize=0
 BottomPanelClients=MessageView@EditWindow0
-BottomPanelData=00000400010000000B0000004D657373616765566965771B030000000000000269000000000000000100000000000000000000000001000000001B0300000B0000004D65737361676556696577FFFFFFFF
+BottomPanelData=00000400010000000B0000004D657373616765566965771B030000000000000269000000000000000100000000000000000000000001000000001B03000000000000FFFFFFFF
 
 [View0]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr
@@ -89,8 +89,8 @@ LeftCol=1
 
 [View1]
 Module=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
-CursorX=34
-CursorY=208
+CursorX=65
+CursorY=213
 TopLine=201
 LeftCol=1
 
@@ -220,7 +220,7 @@ LRDockWidth=190
 Dockable=1
 SplitPos=85
 ArrangeBy=Name
-SelectedItem=Caption
+SelectedItem=Name
 ExpandedItems=
 HiddenCategories=
 

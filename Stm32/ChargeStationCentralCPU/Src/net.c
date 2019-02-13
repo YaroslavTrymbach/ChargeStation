@@ -213,6 +213,36 @@ void sendMessageToMainDispatcher(GeneralMessage *message){
 	xQueueSend(hMainQueue, message, 10);
 }
 
+/*
+void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
+	int i;
+	RequestGetConfiguration request;
+	
+	char jsonData[512];
+	ConfGetConfiguration conf;
+	RpcPacket rpcPacket;
+	CiString50TypeListItem *lastUnKey;
+	CiString50TypeListItem *unKey;
+	KeyValueListItem *lastConfKey;
+	KeyValueListItem *confKey;
+	bool keyPassed;
+	
+	printf("processReqGetConfiguration Mock3\n");
+
+	jsonUnpackReqGetConfiguration(json, &request);
+
+	printf("GetConfiguration. Cnt = %d\n", request.keySize);
+	
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	conf.unknownKey = NULL;
+	conf.configurationKey = NULL;
+	
+}*/
+
 void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	int i;
 	RequestGetConfiguration request;
@@ -237,6 +267,9 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 
 	conf.unknownKey = NULL;
 	conf.configurationKey = NULL;
+	
+	
+	
 	for(i = 0; i < request.keySize; i++){
 		printf("Key %d: %s\n", i + 1, request.key[i]);
 
@@ -290,7 +323,7 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	ocppFreeKeyValueList(conf.configurationKey);
 	ocppFreeCiString50TypeList(conf.unknownKey);
 
-	sendConfMessageToServer(&rpcPacket);
+	sendConfMessageToServer(&rpcPacket);	
 }
 
 void processConfBootNotification(cJSON* json){
@@ -393,7 +426,7 @@ void processRPCPacket(RpcPacket* packet){
 		//Запрос от сервера
 		switch(packet->action){
 			case ACTION_GET_CONFIGURATION:
-				processReqGetConfiguration(packet, jsonRoot);
+				processReqGetConfiguration(packet, jsonRoot);	
 				break;
 			case ACTION_UNLOCK_CONNECTOR:
 				//processReqUnlockConnector(packet, jsonRoot);
@@ -408,17 +441,16 @@ void processRPCPacket(RpcPacket* packet){
 
 static void readThread(void const * argument){
 	int res, status, size;
-	char s[512];
+	char s[128];
 	char buf[256];
 	char *sp;
 	char bufWS[512];
 	char bufRPC[512];
 	RpcPacket rpcPacket;
-	//cJSON* jsonRoot;
-	//cJSON* jsonElement;
 	WebSocketInputDataState webSocketState;
+
 	
-	logStr("StartReadThread\r\n");
+	printf("startNetReadThread\n");
 	
 	rpcPacket.payload = (unsigned char*)bufRPC;
 	rpcPacket.payloadSize = 512;
@@ -506,7 +538,7 @@ static void readThread(void const * argument){
 }
 
 bool createReadThread(){
-	osThreadDef(readTask, readThread, osPriorityNormal, 0, 1024);
+	osThreadDef(readTask, readThread, osPriorityNormal, 0, 2048);
   hReadThread = osThreadCreate(osThread(readTask), NULL);
 	if(hReadThread != NULL)
 		osThreadSuspend(hReadThread);
@@ -653,7 +685,6 @@ void reconnect(){
 #define GET_PARAM_BYTE3(value) (value >> 24) & 0xFF
 
 void netThread(void const * argument){
-	int res;
 	uint32_t tick;
 	int webSocketLastTryConnectionTick = 0;
 	int bootNotificationTick = 0;
@@ -661,11 +692,12 @@ void netThread(void const * argument){
   ChargePointSetting* st;	
 	NetInputMessage message;
 	int status, connId, errorCode;
+	
 	st = Settings_get();
 	
 	//osDelay(50);
-	
-	logStr("startNetTask\r\n");
+		
+	printf("startNetTask\n");
 	
 	NET_CONN_init();
 	NET_CONN_setRemoteHost(st->serverHost);
@@ -751,6 +783,9 @@ void netThread(void const * argument){
 					sendStopTransaction((ChargePointConnector*)message.param1);
 					break;
 			}
+			
+			//stackLeft = uxTaskGetStackHighWaterMark(NULL);		
+			//printf("NetTask event:%d stackLeft:%d\n", message.messageId, stackLeft);
 		}
     osDelay(10);
 		//send(sock, s, strlen(s), 0);
@@ -760,7 +795,7 @@ void netThread(void const * argument){
 
 void NET_start(uint8_t taskTag, QueueHandle_t queue){
 	hTaskTag = taskTag;
-	hMainQueue = queue;	
+	hMainQueue = queue;
 	
 	osThreadDef(netTask, netThread, osPriorityNormal, 0, 1024);
   hNetThread = osThreadCreate(osThread(netTask), NULL);

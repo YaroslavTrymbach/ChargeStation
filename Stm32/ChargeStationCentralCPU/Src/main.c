@@ -152,6 +152,7 @@ void initConnectors(){
 		connector[i].isMeterValueRequest = true;
 		connector[i].pilotSygnalLevel = PILOT_SYGNAL_LEVEL_F;
 		connector[i].pilotSygnalPwm = PILOT_SYGNAL_PWM_UNKNOWN;
+		connector[i].noAnswerCnt = 0;
 		
 		connector[i].chargeTransaction.isActive = false;
 		connector[i].chargeTransaction.isClosed = true;
@@ -843,6 +844,8 @@ void mainDispatcher(void){
 	printf("ChargePointID: %s\n", settings->ChargePointId);
 	
 	fillOcppConfigurationWithDefValues(&ocppConfVaried, &ocppConfFixed, &ocppConfRestrict);
+	
+	
 	
 	initDisplay();
 	initConnectors();

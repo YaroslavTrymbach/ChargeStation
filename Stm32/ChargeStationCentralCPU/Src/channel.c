@@ -308,18 +308,32 @@ void dispatcherThread(void const * argument){
 			
 				prevValue = connector[i].status;
 				if(sendCommandToChannel(&connector[i], COMMAND_GET_PS_STATE, NULL)){
-					if(connector[i].status != prevValue){
+					connector[i].noAnswerCnt = 0;	
+          connector[i].online = true;					
+				}
+				else{
+					if(++(connector[i].noAnswerCnt) >= 5){
+						connector[i].status = CHARGE_POINT_STATUS_FAULTED;
+						connector[i].pilotSygnalLevel = PILOT_SYGNAL_LEVEL_F;
+						connector[i].pilotSygnalPwm = PILOT_SYGNAL_PWM_UNKNOWN;
+						connector[i].online = false;
+						connector[i].errorCode = 5;
+					}
+				}	
+        if(connector[i].status != prevValue){
 						printf("Status changed. A%.2X, newState = %d\n", connector[i].address, connector[i].status);
 						message.messageId = MESSAGE_CHANNEL_STATUS_CHANGED;
 						message.param1 = i;
 						sendMessage(&message);
-					}
 				}				
 			}
 		}
 		
 		for(i = 0; i < connectorCount; i++){
 			conn = &connector[i];
+			
+			if(!conn->online)
+				continue;
 			
 			//Start charging
 			if(conn->isNeedStartCharging){
