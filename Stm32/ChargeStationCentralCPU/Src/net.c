@@ -213,36 +213,6 @@ void sendMessageToMainDispatcher(GeneralMessage *message){
 	xQueueSend(hMainQueue, message, 10);
 }
 
-/*
-void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
-	int i;
-	RequestGetConfiguration request;
-	
-	char jsonData[512];
-	ConfGetConfiguration conf;
-	RpcPacket rpcPacket;
-	CiString50TypeListItem *lastUnKey;
-	CiString50TypeListItem *unKey;
-	KeyValueListItem *lastConfKey;
-	KeyValueListItem *confKey;
-	bool keyPassed;
-	
-	printf("processReqGetConfiguration Mock3\n");
-
-	jsonUnpackReqGetConfiguration(json, &request);
-
-	printf("GetConfiguration. Cnt = %d\n", request.keySize);
-	
-
-	rpcPacket.payload = (unsigned char*)jsonData;
-	rpcPacket.payloadSize = 512;
-	strcpy(rpcPacket.uniqueId, packet->uniqueId);
-
-	conf.unknownKey = NULL;
-	conf.configurationKey = NULL;
-	
-}*/
-
 void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	int i;
 	RequestGetConfiguration request;
@@ -282,8 +252,17 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
 				break;
+			case CONFIG_KEY_CONNECTION_TIMEOUT:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_CONNECTION_TIMEOUT, false, ocppConfVaried.connectionTimeOut);
+				break;
 			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
+				break;
+			case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE, false, ocppConfVaried.localAuthorizeOffline);
+				break;
+			case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_PRE_AUTHORIZE, false, ocppConfVaried.localPreAuthorize);
 				break;
 			default:
 				keyPassed = false;
@@ -356,7 +335,6 @@ void processConfBootNotification(cJSON* json){
 
 void processConfHeartbeat(cJSON* json){
 	ConfHeartbeat conf;
-	GeneralMessage message;
 	jsonUnpackConfHeartbeat(json, &conf);
 
 	printf("Server datetime: %.2d.%.2d.%.4d %.2d:%.2d:%.2d\n", 

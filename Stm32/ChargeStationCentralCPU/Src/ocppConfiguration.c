@@ -1,5 +1,8 @@
 #include "ocppConfiguration.h"
 
+#include "tools.h"
+#include "string.h"
+
 const char* CONFIG_KEY_STR_ALLOW_OFLINE_TX_FOR_UNKNOWN_ID     = "AllowOfflineTxForUnknownId";
 const char* CONFIG_KEY_STR_AUTHORIZATION_CACHE_ENABLED        = "AuthorizationCacheEnabled";
 const char* CONFIG_KEY_STR_AUTHORIZE_REMOTE_TX_REQUESTS       = "AuthorizeRemoteTxRequests";
@@ -130,4 +133,25 @@ int occpGetConfigKeyFromString(const char* s){
 	//CHECK_CONFIG_KEY();
 
 	return CONFIG_KEY_UNKNOWN;
+}
+
+bool ocppGetConfigValueFromStringInt(const char* s, int *value){
+	int outValue;
+	if(strToIntWithTrim(s, &outValue)){
+		*value = outValue;
+		return true;
+	}
+	return false;
+}
+
+bool ocppGetConfigValueFromStringBool(const char* s, bool *value){
+	if(strcmp(s, "true") == 0){
+		*value = true;
+		return true;
+	}
+	else if(strcmp(s, "false") == 0){
+		*value = false;
+		return true;
+	}
+	return false;
 }

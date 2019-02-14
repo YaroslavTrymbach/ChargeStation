@@ -60,6 +60,11 @@ typedef CiString20Type idToken;
 #define AUTHORIZATION_STATUS_INVALID       4
 #define AUTHORIZATION_STATUS_CONCURRENT_TX 5
 
+#define CONFIGURATION_STATUS_ACCEPTED        0
+#define CONFIGURATION_STATUS_REJECTED        1
+#define CONFIGURATION_STATUS_REBOOT_REQUIRED 2
+#define CONFIGURATION_STATUS_NOT_SUPPORTED   3
+
 #define REGISTRATION_STATUS_UNKNOWN  0
 #define REGISTRATION_STATUS_ACCEPTED 1
 #define REGISTRATION_STATUS_PENDING  2
@@ -136,7 +141,6 @@ typedef struct _RequestAuthorize{
 typedef struct _KeyValue{
 	CiString50Type key;
 	bool readonly;
-	//CiString500Type *value;
 	CiString500Type value;
 	bool vauleIsSet;
 }KeyValue;
@@ -165,6 +169,11 @@ typedef struct _RequestBootNotification {
    CiString20Type chargePointModel;
    CiString20Type chargePointVendor;
 }RequestBootNotification;
+
+typedef struct _RequestChangeConfiguration{
+	CiString50Type key;
+	CiString500Type value;
+}RequestChangeConfiguration;
 
 typedef struct _RequestGetConfiguration{
 	int keySize;
@@ -245,6 +254,10 @@ typedef struct _ConfBootNotifiaction{
 	int status;
 }ConfBootNotifiaction;
 
+typedef struct _ConfChangeConfiguration{
+	int status;
+}ConfChangeConfiguration;
+
 typedef struct _ConfGetConfiguration{
 	KeyValueListItem *configurationKey;
 	CiString50TypeListItem *unknownKey;
@@ -275,6 +288,7 @@ const char *getActionString(int action);
 const char *getChargePointErrorCodeString(int errorCode);
 const char *getChargePointStatusString(int status);
 const char *getUnlockStatusString(int status);
+const char *getConfigurationStatusString(int status);
 
 const char *ocppGetParamNameString(int param);
 

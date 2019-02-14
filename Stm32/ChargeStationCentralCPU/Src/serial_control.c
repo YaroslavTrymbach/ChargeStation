@@ -7,6 +7,7 @@
 #include "net.h"
 #include "lwip/netif.h"
 #include "string_ext.h"
+#include "tools.h"
 
 const char* STR_OK = "\r\nOK\r\n";
 const char* STR_NEW_LINE_OK = "\r\nOK";
@@ -75,7 +76,7 @@ void strupr(char *s){
 			s[i] -= 0x20;
 	}
 }*/
-
+/*
 bool charToInt(const char c, int *value){
 	if((c < 0x30) || (c > 0x39))
 		return false;
@@ -153,7 +154,7 @@ bool strToIntWithTrim(const char *s, int *value){
 	*value = res;
 	
 	return true;
-}
+}*/
 
 int getCommandFromStr(char *comStr){
 	return COMMAND_UNKNOWN;

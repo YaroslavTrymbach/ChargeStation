@@ -387,6 +387,16 @@ bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf
 	return true;
 }
 
+bool jsonPackConfChangeConfiguration(RpcPacket *rpcPacket, ConfChangeConfiguration *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addString(paramStr(STATUS), getConfigurationStatusString(conf->status));
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf){
 	openJsonFormation(rpcPacket->payload);
 
@@ -515,6 +525,30 @@ bool jsonUnpackReqUnlockConnector(cJSON* json, RequestUnlockConnector *req){
 	return true;
 }
 
+bool jsonUnpackReqChangeConfiguration(cJSON* json, RequestChangeConfiguration *req){
+	int size;
+	cJSON* jsonElement;
+	jsonElement = json->child;
+
+	req->value = NULL;
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_String){
+			if(isParam(jsonElement->string, OCPP_PARAM_KEY)){
+				strcpy(req->key, jsonElement->valuestring);
+			}
+			else if(isParam(jsonElement->string, OCPP_PARAM_VALUE)){
+				size = strlen(jsonElement->valuestring) + 1;
+				req->value = malloc(size);
+				strcpy(req->value, jsonElement->valuestring);
+			}
+		}
+
+		jsonElement = jsonElement->next;
+	}
+	return true;
+}
+
 bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req){
 	cJSON* jsonElement;
 	cJSON* jsonIter;
@@ -527,7 +561,6 @@ bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req){
 			if(isParam(jsonElement->string, OCPP_PARAM_KEY)){
 				jsonIter = jsonElement->child;
 				while(jsonIter != NULL){
-				//req->connectorId = jsonElement->valueint;
 					strcpy(req->key[req->keySize++], jsonIter->valuestring);
 					if(req->keySize >= CONFIGURATION_GET_MAX_KEYS)
 						break;

@@ -428,7 +428,7 @@ void mainThread(){
 			}
 		}
 		Sleep(5);
-
+/*
 		//Передача показаний счетчика, каждые 10 секунд
 		if(mCnt++ >= 2000){
 			mCnt = 0;
@@ -438,7 +438,7 @@ void mainThread(){
 		if(cnt++ > 1000){
 			sendHeartbeatRequest();
 			cnt = 0;
-		}
+		}*/
 	}
 
 	stopTransaction();
@@ -535,8 +535,17 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 			case CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS:
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_GET_CONFIGURATION_MAX_KEYS, true, CONFIGURATION_GET_MAX_KEYS);
 				break;
+			case CONFIG_KEY_CONNECTION_TIMEOUT:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_CONNECTION_TIMEOUT, false, ocppConfVaried.connectionTimeOut);
+				break;
 			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
+				break;
+			case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE, false, ocppConfVaried.localAuthorizeOffline);
+				break;
+			case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_PRE_AUTHORIZE, false, ocppConfVaried.localPreAuthorize);
 				break;
 			default:
 				keyPassed = false;
@@ -576,6 +585,65 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	ocppFreeKeyValueList(conf.configurationKey);
 	ocppFreeCiString50TypeList(conf.unknownKey);
 
+	sendConfMessage(&rpcPacket);
+}
+
+void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
+	RequestChangeConfiguration request; 
+	int iNewValue;
+	bool bNewValue;
+	char jsonData[512];
+	ConfChangeConfiguration conf;
+	RpcPacket rpcPacket;
+	int configKey;
+
+	jsonUnpackReqChangeConfiguration(json, &request);
+
+	printf("Request for change configuration Key=%s Value=%s\n", request.key, request.value);
+
+	conf.status = CONFIGURATION_STATUS_NOT_SUPPORTED;
+	configKey = occpGetConfigKeyFromString(request.key); 
+
+	switch(configKey){
+		case CONFIG_KEY_CONNECTION_TIMEOUT:
+			if(ocppGetConfigValueFromStringInt(request.value, &iNewValue)){
+				//Check that it is minimum 30 seconds
+				if(iNewValue >= 30){
+					ocppConfVaried.connectionTimeOut = iNewValue;
+					conf.status = CONFIGURATION_STATUS_ACCEPTED;
+				}
+				else{
+					conf.status = CONFIGURATION_STATUS_REJECTED;
+				}
+			}
+			else{
+				conf.status = CONFIGURATION_STATUS_REJECTED;
+			}
+			break;
+		case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
+		case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
+			if(ocppGetConfigValueFromStringBool(request.value, &bNewValue)){
+				conf.status = CONFIGURATION_STATUS_ACCEPTED;
+				if(configKey == CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE)
+					ocppConfVaried.localAuthorizeOffline = bNewValue;
+				else if(configKey == CONFIG_KEY_LOCAL_PRE_AUTHORIZE)
+					ocppConfVaried.localPreAuthorize = bNewValue;
+			}
+			else{
+				conf.status = CONFIGURATION_STATUS_REJECTED;
+			}
+			break;
+	}
+
+	if(request.value != NULL)
+		free(request.value);
+
+	//Send confirmation
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfChangeConfiguration(&rpcPacket, &conf);
 	sendConfMessage(&rpcPacket);
 }
 
@@ -650,6 +718,9 @@ void processRPCPacket(RpcPacket* packet){
 				break;
 			case ACTION_UNLOCK_CONNECTOR:
 				processReqUnlockConnector(packet, jsonRoot);
+				break;
+			case ACTION_CHANGE_CONFIGURATION:
+				processReqChangeConfiguration(packet, jsonRoot);
 				break;
 		}
 

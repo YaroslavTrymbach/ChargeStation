@@ -222,6 +222,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\tools.c"
+				>
+			</File>
+			<File
 				RelativePath=".\webSocket.c"
 				>
 			</File>
@@ -285,6 +289,10 @@
 			</File>
 			<File
 				RelativePath=".\tasks.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tools.h"
 				>
 			</File>
 			<File

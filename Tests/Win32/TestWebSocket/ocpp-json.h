@@ -16,6 +16,7 @@ bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *
 bool jsonPackReqStatusNotification(RpcPacket *rpcPacket, RequestStatusNotification *req);
 bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *req);
 
+bool jsonPackConfChangeConfiguration(RpcPacket *rpcPacket, ConfChangeConfiguration *conf);
 bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf);
 bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf);
 
@@ -25,6 +26,7 @@ bool jsonUnpackConfHeartbeat(cJSON* json, ConfHeartbeat *conf);
 bool jsonUnpackConfStartTransaction(cJSON* json, ConfStartTransaction *conf);
 
 //Request from Server
+bool jsonUnpackReqChangeConfiguration(cJSON* json, RequestChangeConfiguration *req);
 bool jsonUnpackReqGetConfiguration(cJSON* json, RequestGetConfiguration *req);
 bool jsonUnpackReqReset(cJSON* json, RequestReset *req);
 bool jsonUnpackReqUnlockConnector(cJSON* json, RequestUnlockConnector *req);

@@ -99,6 +99,11 @@ const char* UNLOCK_STATUS_STR_UNLOCKED      = "Unlocked\0";
 const char* UNLOCK_STATUS_STR_UNLOCK_FAILED = "UnlockFailed\0";
 const char* UNLOCK_STATUS_STR_NOT_SUPPORTED = "NotSupported\0";
 
+const char* CONFIGURATION_STATUS_STR_ACCEPTED        = "Accepted\0";
+const char* CONFIGURATION_STATUS_STR_REJECTED        = "Rejected\0";
+const char* CONFIGURATION_STATUS_STR_REBOOT_REQUIRED = "RebootRequired\0";
+const char* CONFIGURATION_STATUS_STR_NOT_SUPPORTED   = "NotSupported\0";
+
 const char* RESET_TYPE_STR_SOFT = "Soft\0";
 const char* RESET_TYPE_STR_HARD = "Hard\0";
 
@@ -195,6 +200,23 @@ const char *getChargePointStatusString(int status){
 		CASE_CP_STATUS_STR(RESERVED);
 		CASE_CP_STATUS_STR(UNAVAILABLE);
 		CASE_CP_STATUS_STR(FAULTED);
+	}
+
+	return res;
+}
+
+#define CASE_CONFIGURATION_STATUS_STR(name) case CONFIGURATION_STATUS_##name: \
+	                              res = CONFIGURATION_STATUS_STR_##name; \
+								  break
+
+const char *getConfigurationStatusString(int status){
+	const char* res = EMPTY_STRING;
+
+	switch(status){
+		CASE_CONFIGURATION_STATUS_STR(ACCEPTED);
+		CASE_CONFIGURATION_STATUS_STR(REJECTED);
+		CASE_CONFIGURATION_STATUS_STR(REBOOT_REQUIRED);
+		CASE_CONFIGURATION_STATUS_STR(NOT_SUPPORTED);
 	}
 
 	return res;
@@ -388,14 +410,14 @@ KeyValueListItem* ocppCreateKeyValueBool(int key, bool readonly, bool value){
 	return item;
 }
 
-MeterValueListItem* ocppCreateMeterValueItem(){
+MeterValueListItem* ocppCreateMeterValueItem(void){
 	MeterValueListItem *item = malloc(sizeof(MeterValueListItem));
 	item->next = NULL;
 	item->meterValue.samledValue = NULL;
 	return item;
 }
 
-SampledValueListItem* ocppCreateSampledValueItem(){
+SampledValueListItem* ocppCreateSampledValueItem(void){
 	SampledValueListItem *item = malloc(sizeof(SampledValueListItem));
 	item->next = NULL;
 	return item;

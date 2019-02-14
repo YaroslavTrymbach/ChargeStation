@@ -45,6 +45,9 @@
 // Struct with ocpp configuration that can be changed via server
 typedef struct _OcppConfigurationVaried{
 	bool authorizeRemoteTxRequests;
+	int connectionTimeOut;
+	bool localAuthorizeOffline;
+	bool localPreAuthorize;
 }OcppConfigurationVaried;
 
 // Struct with ocpp configuration that cannot be changed via server
@@ -59,3 +62,5 @@ typedef struct _OcppConfigurationRestrict{
 
 const char *ocppGetConfigKeyString(int configKey);
 int occpGetConfigKeyFromString(const char* s);
+bool ocppGetConfigValueFromStringInt(const char* s, int *value);
+bool ocppGetConfigValueFromStringBool(const char* s, bool *value);
