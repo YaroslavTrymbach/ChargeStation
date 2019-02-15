@@ -129,6 +129,22 @@ typedef CiString20Type idToken;
 #define OCPP_PARAM_METER_VALUE       18
 #define OCPP_PARAM_SAMPLED_VALUE     19
 
+#define OCPP_NUMBER_PROFILE 6
+
+#define OCPP_PROFILE_CORE                       0
+#define OCPP_PROFILE_FIRMWARE_MANAGEMENT        1
+#define OCPP_PROFILE_LOCAL_AUTH_LIST_MANAGEMENT 2
+#define OCPP_PROFILE_RESERVATION                3
+#define OCPP_PROFILE_SMART_CHARGING             4
+#define OCPP_PROFILE_REMOTE_TRIGGER             5
+
+#define OCPP_PROFILE_MASK_CORE                       (1 << OCPP_PROFILE_CORE)
+#define OCPP_PROFILE_MASK_FIRMWARE_MANAGEMENT        (1 << OCPP_PROFILE_FIRMWARE_MANAGEMENT)
+#define OCPP_PROFILE_MASK_LOCAL_AUTH_LIST_MANAGEMENT (1 << OCPP_PROFILE_LOCAL_AUTH_LIST_MANAGEMENT)
+#define OCPP_PROFILE_MASK_RESERVATION                (1 << OCPP_PROFILE_RESERVATION)
+#define OCPP_PROFILE_MASK_SMART_CHARGING             (1 << OCPP_PROFILE_SMART_CHARGING)
+#define OCPP_PROFILE_MASK_REMOTE_TRIGGER             (1 << OCPP_PROFILE_REMOTE_TRIGGER)
+
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
 	struct _CiString50TypeListItem *next;
@@ -289,6 +305,7 @@ const char *getChargePointErrorCodeString(int errorCode);
 const char *getChargePointStatusString(int status);
 const char *getUnlockStatusString(int status);
 const char *getConfigurationStatusString(int status);
+const char *ocppGetProfileString(int profile);
 
 const char *ocppGetParamNameString(int param);
 
@@ -308,5 +325,8 @@ void ocppAddSampledValue(MeterValue *meterValue, SampledValueListItem *value);
 
 KeyValueListItem* ocppCreateKeyValueInt(int key, bool readonly, int value);
 KeyValueListItem* ocppCreateKeyValueBool(int key, bool readonly, bool value);
+KeyValueListItem* ocppCreateKeyValueString(int key, bool readonly, char* value);
 MeterValueListItem* ocppCreateMeterValueItem(void);
 SampledValueListItem* ocppCreateSampledValueItem(void);
+
+char* ocppCreateProfileCSL(int mask);

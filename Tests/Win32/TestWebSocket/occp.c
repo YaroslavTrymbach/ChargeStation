@@ -104,6 +104,13 @@ const char* CONFIGURATION_STATUS_STR_REJECTED        = "Rejected\0";
 const char* CONFIGURATION_STATUS_STR_REBOOT_REQUIRED = "RebootRequired\0";
 const char* CONFIGURATION_STATUS_STR_NOT_SUPPORTED   = "NotSupported\0";
 
+const char* PROFILE_STR_CORE                       = "Core\0";
+const char* PROFILE_STR_FIRMWARE_MANAGEMENT        = "Firmware Management\0";
+const char* PROFILE_STR_LOCAL_AUTH_LIST_MANAGEMENT = "Local Auth List Management\0";
+const char* PROFILE_STR_RESERVATION                = "Reservation\0";
+const char* PROFILE_STR_SMART_CHARGING             = "Smart Charging\0";
+const char* PROFILE_STR_REMOTE_TRIGGER             = "Remote Trigger\0";
+
 const char* RESET_TYPE_STR_SOFT = "Soft\0";
 const char* RESET_TYPE_STR_HARD = "Hard\0";
 
@@ -219,6 +226,24 @@ const char *getConfigurationStatusString(int status){
 		CASE_CONFIGURATION_STATUS_STR(NOT_SUPPORTED);
 	}
 
+	return res;
+}
+
+#define CASE_PROFILE_STR(name) case OCPP_PROFILE_##name: \
+	                              res = PROFILE_STR_##name; \
+								  break
+
+const char *ocppGetProfileString(int profile){
+	const char* res = EMPTY_STRING;
+
+	switch(profile){
+		CASE_PROFILE_STR(CORE);
+		CASE_PROFILE_STR(FIRMWARE_MANAGEMENT);
+		CASE_PROFILE_STR(LOCAL_AUTH_LIST_MANAGEMENT);
+		CASE_PROFILE_STR(RESERVATION);
+		CASE_PROFILE_STR(SMART_CHARGING);
+		CASE_PROFILE_STR(REMOTE_TRIGGER);
+	}
 	return res;
 }
 
@@ -410,6 +435,14 @@ KeyValueListItem* ocppCreateKeyValueBool(int key, bool readonly, bool value){
 	return item;
 }
 
+KeyValueListItem* ocppCreateKeyValueString(int key, bool readonly, char* value){
+	KeyValueListItem *item = occpCreateKeyValueItem(key, readonly);
+	item->data.value = malloc(strlen(value)+1); //For bool value it's enough
+	strcpy(item->data.value, value);
+	item->data.vauleIsSet = true;
+	return item;
+}
+
 MeterValueListItem* ocppCreateMeterValueItem(void){
 	MeterValueListItem *item = malloc(sizeof(MeterValueListItem));
 	item->next = NULL;
@@ -436,4 +469,41 @@ void ocppAddSampledValue(MeterValue *meterValue, SampledValueListItem *value){
 		}
 		parent->next = value;
 	}
+}
+
+char* ocppCreateProfileCSL(int mask){
+	int size, cnt, curMask, i;
+	char* res;
+	//It is need to define neseccary size
+	size = 0;
+	cnt = 0;
+	curMask = 1;
+
+	for(i = 0; i < OCPP_NUMBER_PROFILE; i++){
+		if(curMask & mask){
+			size += strlen(ocppGetProfileString(i));
+			cnt++;
+		}
+		curMask <<= 1;
+	}
+
+	//Add spaces for commas and last zero char
+	size += cnt;
+
+	res = malloc(size);
+	
+	//Fill string with profiles
+	cnt = 0;
+	curMask = 1;
+	strcpy(res, "");
+	for(i = 0; i < OCPP_NUMBER_PROFILE; i++){
+		if(curMask & mask){
+			if(cnt++ > 0)
+				strcat(res, ",");
+			strcat(res, ocppGetProfileString(i)); 
+		}
+		curMask <<= 1;
+	}
+
+	return res;
 }

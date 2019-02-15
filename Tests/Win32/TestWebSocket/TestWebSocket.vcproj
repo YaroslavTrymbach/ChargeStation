@@ -240,6 +240,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chargePointSettings.h"
+				>
+			</File>
+			<File
 				RelativePath=".\chargePointTime.h"
 				>
 			</File>

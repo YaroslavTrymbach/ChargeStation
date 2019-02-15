@@ -14,6 +14,7 @@
 #include "chargePointTime.h"
 #include "chargeTransaction.h"
 #include "connector.h"
+#include "chargePointSettings.h"
 
 #define SERVER_PORT_NO 19200
 //#define SERVER_HOST    "192.168.1.69"
@@ -511,6 +512,7 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	KeyValueListItem *lastConfKey;
 	KeyValueListItem *confKey;
 	bool keyPassed;
+	char* sAnswer;
 
 	jsonUnpackReqGetConfiguration(json, &request);
 
@@ -538,15 +540,31 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 			case CONFIG_KEY_CONNECTION_TIMEOUT:
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_CONNECTION_TIMEOUT, false, ocppConfVaried.connectionTimeOut);
 				break;
-			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
-				confKey = ocppCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
-				break;
 			case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
 				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE, false, ocppConfVaried.localAuthorizeOffline);
 				break;
 			case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
 				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_PRE_AUTHORIZE, false, ocppConfVaried.localPreAuthorize);
 				break;
+			case CONFIG_KEY_NUMBER_OF_CONNECTORS:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_NUMBER_OF_CONNECTORS, true, CONFIGURATION_NUMBER_OF_CONNECTORS);
+				break;
+			case CONFIG_KEY_SUPPORTED_FEATURE_PROFILES:
+				sAnswer = ocppCreateProfileCSL(OCPP_PROFILE_MASK);
+				confKey = ocppCreateKeyValueString(CONFIG_KEY_SUPPORTED_FEATURE_PROFILES, true, sAnswer);
+				free(sAnswer);
+				break;
+
+			case CONFIG_KEY_LOCAL_AUTH_LIST_ENABLED:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_LOCAL_AUTH_LIST_ENABLED, true, LOCAL_AUTH_LIST_ENABLED);
+				break;
+			case CONFIG_KEY_LOCAL_AUTH_LIST_MAX_LENGTH:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_LOCAL_AUTH_LIST_MAX_LENGTH, true, LOCAL_AUTH_LIST_MAX_LENGTH);
+				break;
+			case CONFIG_KEY_SEND_LOCAL_LIST_MAX_LENGTH:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_SEND_LOCAL_LIST_MAX_LENGTH, true, LOCAL_AUTH_LIST_MAX_LENGTH);
+				break;
+
 			default:
 				keyPassed = false;
 		}

@@ -42,6 +42,10 @@
 #define CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT 33 
 #define CONFIG_KEY_WEB_SOCKET_PING_INTERVAL               34
 
+#define CONFIG_KEY_LOCAL_AUTH_LIST_ENABLED                40
+#define CONFIG_KEY_LOCAL_AUTH_LIST_MAX_LENGTH             41 
+#define CONFIG_KEY_SEND_LOCAL_LIST_MAX_LENGTH             42 
+
 // Struct with ocpp configuration that can be changed via server
 typedef struct _OcppConfigurationVaried{
 	bool authorizeRemoteTxRequests;
