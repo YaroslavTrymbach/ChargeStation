@@ -55,6 +55,7 @@ const char* OCPP_PARAM_NAME_STR_READONLY          = "readonly";
 const char* OCPP_PARAM_NAME_STR_TYPE              = "type";
 const char* OCPP_PARAM_NAME_STR_METER_VALUE       = "meterValue";
 const char* OCPP_PARAM_NAME_STR_SAMPLED_VALUE     = "sampledValue";
+const char* OCPP_PARAM_NAME_STR_LIST_VERSION      = "listVersion";
 //const char* OCPP_PARAM_NAME_STR_ = "";
 
 
@@ -288,6 +289,7 @@ const char *ocppGetParamNameString(int param){
 		CASE_PARAM_STR(TYPE);
 		CASE_PARAM_STR(METER_VALUE);
 		CASE_PARAM_STR(SAMPLED_VALUE);
+		CASE_PARAM_STR(LIST_VERSION);
 		//CASE_PARAM_STR();
 	}
 	return res;

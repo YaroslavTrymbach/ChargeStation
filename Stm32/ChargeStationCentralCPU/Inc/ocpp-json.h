@@ -18,6 +18,7 @@ bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *re
 
 bool jsonPackConfChangeConfiguration(RpcPacket *rpcPacket, ConfChangeConfiguration *conf);
 bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf);
+bool jsonPackConfGetLocalListVersion(RpcPacket *rpcPacket, ConfGetLocalListVersion *conf);
 bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf);
 
 bool jsonUnpackConfAuthorize(cJSON* json, ConfAuthorize *conf);

@@ -401,8 +401,18 @@ bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *co
 	openJsonFormation(rpcPacket->payload);
 
 	//addString("status", getUnlockStatusString(conf->status));
-	addString50list(ocppGetParamNameString(OCPP_PARAM_UNKNOWN_KEY), conf->unknownKey);
-	addKeyValueList(ocppGetParamNameString(OCPP_PARAM_CONFIGURATION_KEY), conf->configurationKey);
+	addString50list(paramStr(UNKNOWN_KEY), conf->unknownKey);
+	addKeyValueList(paramStr(CONFIGURATION_KEY), conf->configurationKey);
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
+bool jsonPackConfGetLocalListVersion(RpcPacket *rpcPacket, ConfGetLocalListVersion *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addInteger(paramStr(LIST_VERSION), conf->listVersion);
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;

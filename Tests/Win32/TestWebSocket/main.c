@@ -15,6 +15,7 @@
 #include "chargeTransaction.h"
 #include "connector.h"
 #include "chargePointSettings.h"
+#include "localAuthList.h"
 
 #define SERVER_PORT_NO 19200
 //#define SERVER_HOST    "192.168.1.69"
@@ -606,6 +607,25 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	sendConfMessage(&rpcPacket);
 }
 
+
+void processReqGetLocalListVersion(RpcPacket* packet, cJSON* json){
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfGetLocalListVersion conf;
+
+	//This request is empty. No need to parse it
+
+	//Send confirmation
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	conf.listVersion = localAuthList_getVersion();
+
+	jsonPackConfGetLocalListVersion(&rpcPacket, &conf);
+	sendConfMessage(&rpcPacket);
+}
+
 void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
 	RequestChangeConfiguration request; 
 	int iNewValue;
@@ -734,6 +754,9 @@ void processRPCPacket(RpcPacket* packet){
 			case ACTION_GET_CONFIGURATION:
 				processReqGetConfiguration(packet, jsonRoot);
 				break;
+			case ACTION_GET_LOCAL_LIST_VERSION:
+				processReqGetLocalListVersion(packet, jsonRoot);
+				break;
 			case ACTION_UNLOCK_CONNECTOR:
 				processReqUnlockConnector(packet, jsonRoot);
 				break;
@@ -861,10 +884,22 @@ bool initSocket(){
 	return true;
 }
 
+int initGeneral(){
+	AuthorizationData authItem;
+	localAuthList_clear();
+	authItem.idTagInfo.status = AUTHORIZATION_STATUS_ACCEPTED;
+	strcpy(authItem.idTag, "12345678");
+	localAuthList_add(&authItem);
+	authItem.idTagInfo.status = AUTHORIZATION_STATUS_BLOCKED;
+	strcpy(authItem.idTag, "AABBCCDD");
+	localAuthList_add(&authItem);
+	localAuthList_setVersion(55);
+}
+
 int main(){
 	struct tm time;
 	printf("TestWebSocket\n");
-	printf("Occp action string: %s\n", getActionString(ACTION_CANCEL_RESERVATION));
+	initGeneral();
 
 	getCurrentTime(&time);
 	printf("Current time: %.2d:%.2d:%.2d\n", time.tm_hour, time.tm_min, time.tm_sec);

@@ -22,6 +22,7 @@
 #include "chargePoint.h"
 #include "connector.h"
 #include "chargePointSettings.h"
+#include "localAuthList.h"
 
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 5 )
 #define READ_THREAD_PRIO (tskIDLE_PRIORITY + 5)
@@ -322,6 +323,83 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	sendConfMessageToServer(&rpcPacket);	
 }
 
+void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
+	RequestChangeConfiguration request; 
+	int iNewValue;
+	bool bNewValue;
+	char jsonData[512];
+	ConfChangeConfiguration conf;
+	RpcPacket rpcPacket;
+	int configKey;
+
+	jsonUnpackReqChangeConfiguration(json, &request);
+
+	printf("Request for change configuration Key=%s Value=%s\n", request.key, request.value);
+
+	conf.status = CONFIGURATION_STATUS_NOT_SUPPORTED;
+	configKey = occpGetConfigKeyFromString(request.key); 
+
+	switch(configKey){
+		case CONFIG_KEY_CONNECTION_TIMEOUT:
+			if(ocppGetConfigValueFromStringInt(request.value, &iNewValue)){
+				//Check that it is minimum 30 seconds
+				if(iNewValue >= 30){
+					ocppConfVaried.connectionTimeOut = iNewValue;
+					conf.status = CONFIGURATION_STATUS_ACCEPTED;
+				}
+				else{
+					conf.status = CONFIGURATION_STATUS_REJECTED;
+				}
+			}
+			else{
+				conf.status = CONFIGURATION_STATUS_REJECTED;
+			}
+			break;
+		case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
+		case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
+			if(ocppGetConfigValueFromStringBool(request.value, &bNewValue)){
+				conf.status = CONFIGURATION_STATUS_ACCEPTED;
+				if(configKey == CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE)
+					ocppConfVaried.localAuthorizeOffline = bNewValue;
+				else if(configKey == CONFIG_KEY_LOCAL_PRE_AUTHORIZE)
+					ocppConfVaried.localPreAuthorize = bNewValue;
+			}
+			else{
+				conf.status = CONFIGURATION_STATUS_REJECTED;
+			}
+			break;
+	}
+
+	if(request.value != NULL)
+		free(request.value);
+
+	//Send confirmation
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfChangeConfiguration(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
+void processReqGetLocalListVersion(RpcPacket* packet, cJSON* json){
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfGetLocalListVersion conf;
+
+	//This request is empty. No need to parse it
+
+	//Send confirmation
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	conf.listVersion = localAuthList_getVersion();
+
+	jsonPackConfGetLocalListVersion(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
 void processConfBootNotification(cJSON* json){
 	ConfBootNotifiaction conf;
 	GeneralMessage message;
@@ -422,6 +500,12 @@ void processRPCPacket(RpcPacket* packet){
 		switch(packet->action){
 			case ACTION_GET_CONFIGURATION:
 				processReqGetConfiguration(packet, jsonRoot);	
+				break;
+			case ACTION_CHANGE_CONFIGURATION:
+				processReqChangeConfiguration(packet, jsonRoot);
+				break;
+			case ACTION_GET_LOCAL_LIST_VERSION:
+				processReqGetLocalListVersion(packet, jsonRoot);
 				break;
 			case ACTION_UNLOCK_CONNECTOR:
 				//processReqUnlockConnector(packet, jsonRoot);

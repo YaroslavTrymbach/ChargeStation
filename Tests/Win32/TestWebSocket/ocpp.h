@@ -128,6 +128,7 @@ typedef CiString20Type idToken;
 #define OCPP_PARAM_TYPE              17
 #define OCPP_PARAM_METER_VALUE       18
 #define OCPP_PARAM_SAMPLED_VALUE     19
+#define OCPP_PARAM_LIST_VERSION      20
 
 #define OCPP_NUMBER_PROFILE 6
 
@@ -260,6 +261,11 @@ typedef struct _IdTagInfo{
 
 }IdTagInfo;
 
+typedef struct _AuthorizationData{
+	idToken idTag;
+	IdTagInfo idTagInfo;
+}AuthorizationData;
+
 typedef struct _ConfAuthorize{
 	IdTagInfo idTagInfo;
 }ConfAuthorize;
@@ -278,6 +284,10 @@ typedef struct _ConfGetConfiguration{
 	KeyValueListItem *configurationKey;
 	CiString50TypeListItem *unknownKey;
 }ConfGetConfiguration;
+
+typedef struct _ConfGetLocalListVersion{
+	int listVersion;
+}ConfGetLocalListVersion;
 
 typedef struct _ConfHeartbeat{
 	dateTime currentTime;

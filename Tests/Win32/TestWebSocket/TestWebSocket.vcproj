@@ -194,6 +194,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\localAuthList.c"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
 				>
 			</File>
@@ -261,6 +265,10 @@
 			</File>
 			<File
 				RelativePath=".\defTypes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\localAuthList.h"
 				>
 			</File>
 			<File

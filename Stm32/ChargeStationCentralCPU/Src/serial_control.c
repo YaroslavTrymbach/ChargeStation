@@ -15,12 +15,15 @@ const char* STR_NEW_LINE_OK = "\r\nOK";
 #define GET_BUF_SIZE 256
 #define MAX_COMMAND_LENGTH 32
 
+#define SEND_BUF_SIZE 1024
+
 #define getTickCount() pdMS_TO_TICKS(xTaskGetTickCount())
 
 char getBuf[GET_BUF_SIZE];
 int getCnt = 0;
 char commandStr[MAX_COMMAND_LENGTH];
 char params[GET_BUF_SIZE - MAX_COMMAND_LENGTH];
+char sendBuf[SEND_BUF_SIZE];
 
 osThreadId serialControlTaskHandle;
 static QueueHandle_t hMainQueue;
@@ -51,6 +54,12 @@ static uint8_t hTaskTag;
 #define COMMAND_EX_CHARGE_POINT_ID 7
 #define COMMAND_EX_RECONNECT       8
 
+#define COMMAND_EX_LOCALLISTSHOW   20
+#define COMMAND_EX_LOCALLISTADD    21
+#define COMMAND_EX_LOCALLISTDELETE 22
+#define COMMAND_EX_LOCALLISTCLEAR  23
+#define COMMAND_EX_LOCALLISTSAVE   24 
+
 #define DELIM_COMMA ','
 #define DELIM_POINT '.'
 
@@ -63,98 +72,17 @@ const char* COMMAND_STR_EX_SERVER_PORT     = "SERVERPORT\0";
 const char* COMMAND_STR_EX_SERVER_URI      = "SERVERURI\0";
 const char* COMMAND_STR_EX_CHARGE_POINT_ID = "CHARGEPOINTID\0";
 const char* COMMAND_STR_EX_RECONNECT       = "RECONNECT\0";
+const char* COMMAND_STR_EX_LOCALLISTSHOW   = "LOCALLISTSHOW\0";
+const char* COMMAND_STR_EX_LOCALLISTADD    = "LOCALLISTADD\0";
+const char* COMMAND_STR_EX_LOCALLISTDELETE = "LOCALLISTDELETE\0";
+const char* COMMAND_STR_EX_LOCALLISTCLEAR  = "LOCALLISTCLEAR\0";
+const char* COMMAND_STR_EX_LOCALLISTSAVE   = "LOCALLISTSAVE\0";
+//const char* COMMAND_STR_EX_       = "\0";
 
 extern struct netif gnetif;
 
 void sendMessage(int mesId);
-/*
-void strupr(char *s){
-	int i, len;
-	len = strlen(s);
-	for(i = 0; i < len; i++){
-		if((s[i] >= 'a') && (s[i] <= 'z'))
-			s[i] -= 0x20;
-	}
-}*/
-/*
-bool charToInt(const char c, int *value){
-	if((c < 0x30) || (c > 0x39))
-		return false;
-	*value = c - 0x30;
-	return true;
-}
 
-bool strToIntWithTrim(const char *s, int *value){
-#define STATE_START 0
-#define STATE_SIGN	1 
-#define STATE_DIGIT 2
-#define STATE_END	  3
-	int len, state, res, i, d;
-  bool isNeg, isFailed;
-	char c;
-  len	= strlen(s);
-	res = 0;
-	isNeg = false;
-	isFailed = false;
-	state = STATE_START;
-  for(i = 0; i < len; i++){
-		c = s[i];
-		switch(state){
-			case STATE_START:
-				if(charToInt(c, &d)){
-					res = d;
-					state = STATE_DIGIT;
-				}
-				else if(c == '-'){
-					isNeg = true;
-					state = STATE_SIGN;
-				}
-				else if(c != ' '){
-					isFailed = true;
-				}
-				break;
-			case STATE_SIGN:
-				//Only digit permitted
-			  if(charToInt(c, &d)){
-					res = d;
-					state = STATE_DIGIT;
-				}
-				else{
-					isFailed = true;
-				}
-				break;	
-			case STATE_DIGIT:
-				if(charToInt(c, &d)){
-					res *= 10;
-					res += d;
-				}
-				else if(c == ' '){
-					state = STATE_END;
-				}
-				else{
-					isFailed = true;
-				}
-				break;
-			case STATE_END:
-				//Only spaces is permitted
-			  if(c != ' ')
-					isFailed = true;
-				break;
-		}
-		if(isFailed)
-			break;
-	}		
-	
-	if(isFailed || (state < STATE_DIGIT))
-		return false;
-	
-	if(isNeg)
-		res = res * (-1);
-	
-	*value = res;
-	
-	return true;
-}*/
 
 int getCommandFromStr(char *comStr){
 	return COMMAND_UNKNOWN;
@@ -175,6 +103,12 @@ int getCommandExFromStr(char *comStr){
 	CHECK_COMMAND(SERVER_URI);
 	CHECK_COMMAND(CHARGE_POINT_ID);
 	CHECK_COMMAND(RECONNECT);
+  CHECK_COMMAND(LOCALLISTSHOW);
+	CHECK_COMMAND(LOCALLISTADD);	
+	CHECK_COMMAND(LOCALLISTDELETE);
+	CHECK_COMMAND(LOCALLISTCLEAR);	
+	CHECK_COMMAND(LOCALLISTSAVE);	
+	//CHECK_COMMAND();
 	
 	return COMMAND_UNKNOWN;
 }
@@ -211,7 +145,6 @@ void sendString(const char *s){
 								                    break
 
 void sendReadResultString(int command, const char *s){
-	char sendStr[256];
 	const  char *comStr = STR_EMPTY;
 	switch(command){
 		CASE_COMMAND_EX_STR(TIME);
@@ -220,8 +153,8 @@ void sendReadResultString(int command, const char *s){
 		CASE_COMMAND_EX_STR(SERVER_PORT);
 		CASE_COMMAND_EX_STR(SERVER_URI);
 	}
-	sprintf(sendStr, "\r\n+%s: %s\r\nOK\r\n", comStr, s);
-	sendString(sendStr);
+	sprintf(sendBuf, "\r\n+%s: %s\r\nOK\r\n", comStr, s);
+	sendString(sendBuf);
 }
 
 void sendString2(const char *s){
@@ -236,13 +169,13 @@ void sendError(const char *errS){
 	sendString(s);
 }
 
-void sendHelloString(){
+void sendHelloString(void){
 	char s[64];
 	sprintf(s, "Kvant ChargeStation");
 	sendString(s);
 }
 
-void sendTime(){
+void sendTime(void){
 	char s[64];
 	struct tm t;
 	getCurrentTime(&t);
@@ -253,6 +186,9 @@ void sendTime(){
 	           t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
 	strcat(s, STR_NEW_LINE_OK);
 	sendString(s);*/
+}
+
+void sendLocalList(void){
 }
 
 void sendLocalIp(){
@@ -517,7 +453,9 @@ void processCommandExRead(int command){
 			st = Settings_get();
 			answerStr = st->ChargePointId;
 			break;
-		
+		case COMMAND_EX_LOCALLISTSHOW:
+			sendLocalList();
+			break;
 		default:
 			return;
 	}
