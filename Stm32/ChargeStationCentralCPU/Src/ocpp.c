@@ -248,6 +248,23 @@ const char *ocppGetProfileString(int profile){
 	return res;
 }
 
+#define CASE_AUTH_STATUS_STR(name) case AUTHORIZATION_STATUS_##name: \
+	                              res = AUTHORIZATION_STATUS_STR_##name; \
+								  break
+
+const char *ocppGetAuthorizationStatusString(int status){
+	const char* res = EMPTY_STRING;
+
+	switch(status){
+		CASE_AUTH_STATUS_STR(ACCEPTED);
+		CASE_AUTH_STATUS_STR(BLOCKED);
+		CASE_AUTH_STATUS_STR(EXPIRED);
+		CASE_AUTH_STATUS_STR(INVALID);
+		CASE_AUTH_STATUS_STR(CONCURRENT_TX);
+	}
+	return res;
+}
+
 const char *getUnlockStatusString(int status){
 	const char* res = EMPTY_STRING;
 
@@ -296,7 +313,7 @@ const char *ocppGetParamNameString(int param){
 }
 
 
-int occpGetActionFromString(const char* s){
+int ocppGetActionFromString(const char* s){
 
 #define CHECK_ACTION(name) if(strcmp(s, ACTION_STR_##name) == 0) \
 		                     return ACTION_##name;

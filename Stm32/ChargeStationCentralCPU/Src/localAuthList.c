@@ -1,6 +1,9 @@
 #include "localAuthList.h"
 #include "ocpp.h"
 #include "string.h"
+#include "stdint.h"
+#include "flash.h"
+#include "flashMap.h"
 
 typedef struct _TLocalAuthList{
 	int version;
@@ -59,4 +62,21 @@ AuthorizationData* localAuthList_getData(int index){
 	else{
 		return NULL;
 	}
+}
+
+void localAuthList_load(void){	
+	uint32_t *p;
+	p = (uint32_t*)flash_getSectorAddress(FLASH_SECTOR_LOCALLIST);
+	if(*p == 0xFFFFFFFF){
+		//If setting is not set yet. Fill it with default values
+		localAuthList_clear();
+		return;
+	}
+	
+	//Copy setting from flash
+	memcpy(&localAuthList, p, sizeof(localAuthList));
+}
+
+bool localAuthList_save(void){
+	return flash_writeSector(FLASH_SECTOR_LOCALLIST, (void*)&localAuthList, sizeof(localAuthList));
 }

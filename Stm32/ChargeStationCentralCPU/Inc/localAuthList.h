@@ -2,6 +2,9 @@
 
 #define LOCAL_AUTH_LIST_MAX_LENGTH 256
 
+void localAuthList_load(void);
+bool localAuthList_save(void);
+
 int localAuthList_getVersion(void);
 void localAuthList_setVersion(int newVersion);
 

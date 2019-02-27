@@ -73,6 +73,7 @@
 #include "connector.h"
 #include "chargePoint.h"
 #include "indication.h"
+#include "localAuthList.h"
 
 /* USER CODE END Includes */
 
@@ -842,6 +843,8 @@ void mainDispatcher(void){
 	Settings_init();
 	settings = Settings_get();
 	printf("ChargePointID: %s\n", settings->ChargePointId);
+	
+	localAuthList_load();
 	
 	fillOcppConfigurationWithDefValues(&ocppConfVaried, &ocppConfFixed, &ocppConfRestrict);
 	

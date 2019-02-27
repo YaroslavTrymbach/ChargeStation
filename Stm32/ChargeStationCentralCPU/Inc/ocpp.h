@@ -316,10 +316,11 @@ const char *getChargePointStatusString(int status);
 const char *getUnlockStatusString(int status);
 const char *getConfigurationStatusString(int status);
 const char *ocppGetProfileString(int profile);
+const char *ocppGetAuthorizationStatusString(int status);
 
 const char *ocppGetParamNameString(int param);
 
-int occpGetActionFromString(const char* s);
+int ocppGetActionFromString(const char* s);
 int occpConfigKeyFromString(const char* s);
 int occpGetRegistrationStatusFromString(const char* s);
 int occpGetAuthorizationStatusFromString(const char* s);

@@ -26,7 +26,7 @@ bool fixParsedParam(RpcPacket *outPacket){
 			strcpy(outPacket->uniqueId, parsedStr);  
 			break;
 		case PARAM_ACTION:
-			outPacket->action = occpGetActionFromString(parsedStr);
+			outPacket->action = ocppGetActionFromString(parsedStr);
 			break;
 	}
 	return true;

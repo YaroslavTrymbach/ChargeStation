@@ -1,9 +1,8 @@
 #include "settings.h"
 #include "stm32f4xx_hal.h"
 #include <string.h>
+#include "flashMap.h"
 
-#define FLASH_SECTOR_NUMBER 12 //Номер сектора в котором хранятся настройки
-#define FLASH_SECTOR_PTR 0x08100000 //Начальный адресс сектора в котором хранятся настройки
 
 #define ADDRESS_CPU_UNIQUE_ID 0x1FFF7A10
 
@@ -14,7 +13,7 @@
 
 ChargePointSetting workSettings;
 
-const void *flashStartAddress = (void*)FLASH_SECTOR_PTR;
+const void *flashStartAddress = (void*)FLASH_SECTOR_PTR_SETTINGS;
 
 
 void setDefValues(void){
@@ -64,7 +63,7 @@ bool Settings_save(void){
 	
 	//Erasing sector
 	eraseInit.TypeErase = FLASH_TYPEERASE_SECTORS;
-	eraseInit.Sector = FLASH_SECTOR_NUMBER;
+	eraseInit.Sector = FLASH_SECTOR_SETTINGS;
 	eraseInit.NbSectors = 1;
 	eraseInit.VoltageRange = FLASH_VOLTAGE_RANGE_3;
 	
@@ -79,7 +78,7 @@ bool Settings_save(void){
 	if(writeSize % 4)
 		wordNumber++;
 	
-	dstAdr = FLASH_SECTOR_PTR;
+	dstAdr = FLASH_SECTOR_PTR_SETTINGS;
 	pSrc = (uint32_t*)&workSettings;
 	for(i = 0; i < wordNumber; i++){
 		if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, dstAdr, *pSrc) != HAL_OK){

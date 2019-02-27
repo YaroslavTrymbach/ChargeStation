@@ -8,6 +8,8 @@
 #include "lwip/netif.h"
 #include "string_ext.h"
 #include "tools.h"
+#include "localAuthList.h"
+#include "ocpp.h"
 
 const char* STR_OK = "\r\nOK\r\n";
 const char* STR_NEW_LINE_OK = "\r\nOK";
@@ -141,11 +143,9 @@ void sendString(const char *s){
 }
 
 #define CASE_COMMAND_EX_STR(name) case COMMAND_EX_##name: \
-	                                  comStr = COMMAND_STR_EX_##name; \
-								                    break
+	                                  return COMMAND_STR_EX_##name; \
 
-void sendReadResultString(int command, const char *s){
-	const  char *comStr = STR_EMPTY;
+const char* getCommandString(int command){
 	switch(command){
 		CASE_COMMAND_EX_STR(TIME);
 		CASE_COMMAND_EX_STR(LOCAL_IP);
@@ -153,7 +153,11 @@ void sendReadResultString(int command, const char *s){
 		CASE_COMMAND_EX_STR(SERVER_PORT);
 		CASE_COMMAND_EX_STR(SERVER_URI);
 	}
-	sprintf(sendBuf, "\r\n+%s: %s\r\nOK\r\n", comStr, s);
+	return STR_EMPTY;
+}
+
+void sendReadResultString(int command, const char *s){	
+	sprintf(sendBuf, "\r\n+%s: %s\r\nOK\r\n", getCommandString(command), s);
 	sendString(sendBuf);
 }
 
@@ -182,13 +186,22 @@ void sendTime(void){
 	sprintf(s, "%.4d-%.2d-%.2d %.2d:%.2d:%.2d", 
 	           t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
 	sendReadResultString(COMMAND_EX_TIME, s);
-	/*sprintf(s, "+TIME: %.4d-%.2d-%.2d %.2d:%.2d:%.2d", 
-	           t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
-	strcat(s, STR_NEW_LINE_OK);
-	sendString(s);*/
 }
 
 void sendLocalList(void){
+	int i, size;
+	AuthorizationData* data;
+	size = localAuthList_getSize();
+	sprintf(sendBuf, "\r\n+%s: %d", getCommandString(COMMAND_EX_LOCALLISTSHOW), size);
+	sendString(sendBuf);
+	
+	for(i = 0; i < size; i++){
+		data = localAuthList_getData(i);
+		sprintf(sendBuf, "\r\n%d %s %s", i + 1, data->idTag, ocppGetAuthorizationStatusString(data->idTagInfo.status));
+		sendString(sendBuf);
+	}
+	
+	sendOK();
 }
 
 void sendLocalIp(){
@@ -388,6 +401,63 @@ void writeChargePointID(char *arg){
 	sendMessage(MESSAGE_SER_CONTROL_SET_CHARGE_POINT_ID);
 }
 
+void writeLocalListAdd(char *arg){
+	AuthorizationData authItem;
+	char* tagId;
+	int i, iVal;
+	char c;
+	bool badParam;
+	
+	tagId = getParam(&arg, DELIM_COMMA);
+	//Check tag
+	badParam = false;
+	if(strlen(tagId) != 8){
+		badParam = true;
+	}
+	else{
+		strupr(tagId);
+		for(i = 0; i < 8; i++){
+			c = tagId[i];
+			if( (!((c >= '0') && (c <= '9'))) && (!((c >= 'A') && (c <= 'F')))){
+				badParam = true;
+				break;
+			}
+		}
+	}
+	if(badParam){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	if(strlen(arg) == 0){
+		//State is not set. So set default (accepted)
+		iVal = AUTHORIZATION_STATUS_ACCEPTED;
+	}
+	else{
+		if(!getParamInt(&arg, DELIM_COMMA, &iVal)){
+			badParam = true;
+		}
+		else{
+			if((iVal < 1) || (iVal > 5))
+				badParam = true;
+		}
+		if(badParam){
+			sendError(ERROR_STR_INVALID_PARAMETERS);
+			return;
+		}
+	}
+	
+	strcpy(authItem.idTag, tagId);
+	authItem.idTagInfo.status = iVal;
+	localAuthList_add(&authItem);
+	
+	sendOK();
+}
+
+void writeLocalListDelete(char *arg){
+	sendOK();
+}
+
 void execSaveSettings(){
 	if(Settings_save()){
 		sendOK();
@@ -395,6 +465,20 @@ void execSaveSettings(){
 	else{
 		sendError(ERROR_STR_EXEC_FAILED);
 	}
+}
+
+void execLocalListSave(){
+	if(localAuthList_save()){
+		sendOK();
+	}
+	else{
+		sendError(ERROR_STR_EXEC_FAILED);
+	}
+}
+
+void execLocalListClear(){
+	localAuthList_clear();
+	sendOK();
 }
 
 void execReconnect(){
@@ -421,6 +505,12 @@ void processCommandExWrite(int command, char *arg){
 		case COMMAND_EX_CHARGE_POINT_ID:
 			writeChargePointID(arg);
 			break;
+		case COMMAND_EX_LOCALLISTADD:
+			writeLocalListAdd(arg);
+			break;
+		case COMMAND_EX_LOCALLISTDELETE:
+			writeLocalListDelete(arg);
+			break;		
 	}
 }
 
@@ -455,7 +545,7 @@ void processCommandExRead(int command){
 			break;
 		case COMMAND_EX_LOCALLISTSHOW:
 			sendLocalList();
-			break;
+		  return;
 		default:
 			return;
 	}
@@ -470,6 +560,12 @@ void processCommandExExec(int command){
 			break;
 		case COMMAND_EX_RECONNECT:
 			execReconnect();
+			break;
+		case COMMAND_EX_LOCALLISTSAVE:
+			execLocalListSave();
+			break;
+		case COMMAND_EX_LOCALLISTCLEAR:
+			execLocalListClear();
 			break;
 	}
 }

@@ -202,11 +202,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\occp.c"
+				RelativePath=".\ocpp-json.c"
 				>
 			</File>
 			<File
-				RelativePath=".\ocpp-json.c"
+				RelativePath=".\ocpp.c"
 				>
 			</File>
 			<File
