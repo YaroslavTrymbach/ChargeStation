@@ -13,8 +13,6 @@ bool isConnected = false;
 bool isLinkUpDone = false;
 int e_sock = - 1;
 
-bool NET_ETH_check_link_up();
-
 void doLinkUp(){
 	ChargePointSetting *settings;
 	
@@ -22,17 +20,17 @@ void doLinkUp(){
 	
 	//netif_set_up(&gnetif);
 	
-	if (netif_is_link_up(&gnetif))
+	//if (netif_is_link_up(&gnetif))
   {
     // When the netif is fully configured this function must be called 
     netif_set_up(&gnetif);
 		isLinkUpDone = true;
   }
-  else
+  /*else
   {
     // When the netif link is down this function must be called 
-    netif_set_down(&gnetif);
-  }
+    //netif_set_down(&gnetif);
+  }*/
 
 	if(settings->isDHCPEnabled)
 		dhcp_start(&gnetif);
@@ -108,6 +106,7 @@ bool NET_ETH_connect(void){
   server.sin_port = htons(remotePort);
 	
 	if (connect(e_sock , (struct sockaddr *)&server , sizeof(server)) < 0){
+		  //printf("NetEth connect failed\n");
 			NET_ETH_close();
       return false;
   }
@@ -179,9 +178,19 @@ int NET_ETH_recv(void *data, int size){
 	return res;
 }
 
-bool NET_ETH_check_link_up(){
+bool NET_ETH_check_link_up(void){
 	uint32_t phyreg;
+	bool isLinkUp;
 
 	HAL_ETH_ReadPHYRegister(&heth, PHY_BSR, &phyreg);
-	return ((phyreg & PHY_LINKED_STATUS) != 0);
+	isLinkUp = ((phyreg & PHY_LINKED_STATUS) != 0);
+	
+	if(isLinkUp){
+		netif_set_link_up(&gnetif);
+	}
+	else{
+		netif_set_link_down(&gnetif);
+	}
+	
+	return isLinkUp;
 }

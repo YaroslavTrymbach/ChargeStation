@@ -406,6 +406,7 @@ end;
 procedure TChannel.UnconnectAutomobile;
 begin
   FAutomobile := nil;
+  FChargePower := CHARGE_POWER_NONE;
 end;
 
 { TChargeThread }

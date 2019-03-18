@@ -762,11 +762,6 @@
               <FilePath>..\Src\rpc.c</FilePath>
             </File>
             <File>
-              <FileName>occp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Src\occp.c</FilePath>
-            </File>
-            <File>
               <FileName>cJSON.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\cJSON.c</FilePath>
@@ -845,6 +840,21 @@
               <FileName>localAuthList.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\localAuthList.c</FilePath>
+            </File>
+            <File>
+              <FileName>flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>ocpp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\ocpp.c</FilePath>
+            </File>
+            <File>
+              <FileName>chargePointState.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\chargePointState.c</FilePath>
             </File>
           </Files>
         </Group>

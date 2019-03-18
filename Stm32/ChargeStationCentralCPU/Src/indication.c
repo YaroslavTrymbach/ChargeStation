@@ -21,8 +21,8 @@ void Indication_PrintAllChannels(void){
 };
 
 void Indication_PrintChannel(int channel){
-	char s[20];
-	char endS[20];
+	char s[21];
+	char endS[21];
 	int endPos, cnt, i;
 	ChargePointConnector *conn;
 	bool showMeter = false;

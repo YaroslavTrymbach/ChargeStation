@@ -540,7 +540,7 @@ static void readThread(void const * argument){
 			xSemaphoreGive(hReadThreadSuspendEvent);
 			osThreadSuspend(NULL);
 		}
-		res = NET_CONN_recv(buf, 500);
+		res = NET_CONN_recv(buf, 255);
 
 		if(res > 0){
 			buf[res] = '\0';

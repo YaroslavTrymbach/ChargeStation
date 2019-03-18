@@ -74,6 +74,7 @@
 #include "chargePoint.h"
 #include "indication.h"
 #include "localAuthList.h"
+#include "chargePointState.h"
 
 /* USER CODE END Includes */
 
@@ -103,6 +104,7 @@ uint32_t lastUserButtonPressTick = 0;
 ChargePointSetting *settings;
 bool isNeedSetTime = true;
 uint32_t lastCheckedTagId = 0;
+uint32_t lastCheckedTagTick = 0;
 
 OcppConfigurationVaried ocppConfVaried;
 OcppConfigurationFixed ocppConfFixed;
@@ -130,6 +132,10 @@ void StartDefaultTask(void const * argument);
 #define PACK_TO_PARAM_BYTE3(param, value) param |= ((value & 0xFF) << 24)
 
 /* USER CODE END PFP */
+
+#define CAP_CARD_DECLINED "CARD DECLINED"
+#define CAP_CARD_ACCEPTED "CARD ACCEPTED"
+#define MES_NO_CONNECTION "NO CONNECTION"
 
 /* USER CODE BEGIN 0 */
 
@@ -588,21 +594,41 @@ bool checkChargeTransactionByTag(int tagId){
 	return false;
 }
 
-void startChargeTransaction(int channel, int tagId){
+bool checkTagInLocalAuthList(int tagId){
+	idToken tag;
+	AuthorizationData *data;
+	sprintf(tag, "%.8X", tagId);
+	data = localAuthList_getDataByTag(tag);
+	if(data == NULL)
+		return false;
+	return (data->idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED);
+}
+
+void startChargeTransaction(int tagId){
 	ChargePointConnector *conn;
 	NetInputMessage netMessage;
+	int i;
 	
-	conn = &connector[channel];
-	conn->userTagId = tagId;
-	conn->chargeTransaction.startMeterValue = conn->meterValue;
-	conn->chargeTransaction.isActive = true;
-	conn->chargeTransaction.isClosed = false;
+	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+		conn = &connector[i];
+		if(conn->status == CHARGE_POINT_STATUS_PREPARING){
+			
+			conn->userTagId = tagId;
+			conn->chargeTransaction.startMeterValue = conn->meterValue;
+	    conn->chargeTransaction.isActive = true;
+	    conn->chargeTransaction.isClosed = false;
 	
-	netMessage.messageId = NET_INPUT_MESSAGE_START_TRANSACTION;
-	netMessage.param1 = (int)conn;
-	NET_sendInputMessage(&netMessage);
+			if(cpState_isServerOnline()){
+				netMessage.messageId = NET_INPUT_MESSAGE_START_TRANSACTION;
+				netMessage.param1 = (int)conn;
+				NET_sendInputMessage(&netMessage);
+			}
 	
-	Channel_startCharging(channel);
+	    Channel_startCharging(i);
+			
+			return;
+		}
+	}
 }
 
 void stopChargeTransaction(int channel){
@@ -627,15 +653,53 @@ void acceptAuth(int tagId, bool success){
 	Indication_ShowMessage(s, NULL, 5000);	
 	
 	if(success){
+		startChargeTransaction(tagId);
+	}
+}
+
+void processEnabledTag(uint32_t cardId){
+	NetInputMessage netMessage;
+	char s[32];
+	bool needNetworkCheck = false;
+	
+	printf("CardId 0x%.8X\n", cardId);
 		
-		//Check if someone connector is ready
-		for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
-			conn = &connector[i];
-			if(conn->status == CHARGE_POINT_STATUS_PREPARING){
-				startChargeTransaction(i, tagId);
-				return;
-			}
+	if((cardId == lastCheckedTagId) && ((HAL_GetTick() - lastCheckedTagTick) < 5000))
+		return;
+	lastCheckedTagId = cardId;
+	lastCheckedTagTick = HAL_GetTick();
+	
+	sprintf(s, "CardId 0x%.8X", cardId);
+	Indication_ShowMessage("Card discovered", s, 5000);
+				
+	if(checkChargeTransactionByTag(cardId))
+		return;
+	
+	if(cpState_isServerOnline()){
+		if(ocppConfVaried.localPreAuthorize){
+			if(!checkTagInLocalAuthList(cardId))
+				needNetworkCheck = true;
 		}
+		else{
+			needNetworkCheck = true;
+		}
+	}
+	else{
+		if((!ocppConfVaried.localAuthorizeOffline) || (!checkTagInLocalAuthList(cardId)) ){
+				Indication_ShowMessage(CAP_CARD_DECLINED, MES_NO_CONNECTION, 5000);
+				return;
+		}
+	}
+	
+	if(needNetworkCheck){
+		netMessage.messageId = NET_INPUT_MESSAGE_AUTHORIZE;
+		netMessage.param1 = cardId;
+		NET_sendInputMessage(&netMessage);
+	}
+	else{
+		// Just start charging
+		startChargeTransaction(cardId);
+		Indication_ShowMessage(CAP_CARD_ACCEPTED, NULL, 5000);
 	}
 }
 
@@ -653,6 +717,7 @@ void processMessageFromNET(GeneralMessage *message){
 				netMessage.messageId = NET_INPUT_MESSAGE_SEND_CHARGE_POINT_STATUS;
 				NET_sendInputMessage(&netMessage);
 			}
+			cpState_setServerOnline(NET_is_station_accepted());
 			break;
 		case MESSAGE_NET_AUTHORIZE:
 			acceptAuth(message->param2, message->param1);
@@ -725,28 +790,13 @@ void processMessageFromChannels(GeneralMessage *message){
 }
 
 void processMessageFromRFID(GeneralMessage *message){
-	uint32_t cardId;
-	char s[32];
+
 	NetInputMessage netMessage;
 	
 	printf("Main task. Message from RFID is got\n");
 	switch(message->messageId){
 		case MESSAGE_RFID_FOUND_CARD:
-			cardId = message->param1;
-			printf("CardId 0x%.8X\n", cardId);
-		
-		  if(cardId != lastCheckedTagId){
-				sprintf(s, "CardId 0x%.8X\n", cardId);
-				Indication_ShowMessage("Card discovered", s, 5000);
-				
-				if(!checkChargeTransactionByTag(cardId)){
-					netMessage.messageId = NET_INPUT_MESSAGE_AUTHORIZE;
-					netMessage.param1 = cardId;
-					NET_sendInputMessage(&netMessage);
-				}
-				
-				lastCheckedTagId = cardId;
-			}
+			processEnabledTag(message->param1);
 			break;
 		case MESSAGE_RFID_CONNECTION:
 			if(message->param1){

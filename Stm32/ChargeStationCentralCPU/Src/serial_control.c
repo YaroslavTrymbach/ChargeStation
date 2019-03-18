@@ -9,6 +9,7 @@
 #include "string_ext.h"
 #include "tools.h"
 #include "localAuthList.h"
+#include "chargePointState.h"
 #include "ocpp.h"
 
 const char* STR_OK = "\r\nOK\r\n";
@@ -47,14 +48,15 @@ static uint8_t hTaskTag;
 
 #define COMMAND_UNKNOWN 0
 
-#define COMMAND_EX_TIME            1
-#define COMMAND_EX_LOCAL_IP        2
-#define COMMAND_EX_SAVE_SETTINGS   3
-#define COMMAND_EX_SERVER_HOST     4
-#define COMMAND_EX_SERVER_PORT     5
-#define COMMAND_EX_SERVER_URI      6
-#define COMMAND_EX_CHARGE_POINT_ID 7
-#define COMMAND_EX_RECONNECT       8
+#define COMMAND_EX_TIME               1
+#define COMMAND_EX_LOCAL_IP           2
+#define COMMAND_EX_SAVE_SETTINGS      3
+#define COMMAND_EX_SERVER_HOST        4
+#define COMMAND_EX_SERVER_PORT        5
+#define COMMAND_EX_SERVER_URI         6
+#define COMMAND_EX_CHARGE_POINT_ID    7
+#define COMMAND_EX_RECONNECT          8
+#define COMMAND_EX_CHARGE_POINT_STATE 9
 
 #define COMMAND_EX_LOCALLISTSHOW   20
 #define COMMAND_EX_LOCALLISTADD    21
@@ -74,13 +76,13 @@ const char* COMMAND_STR_EX_SERVER_PORT     = "SERVERPORT\0";
 const char* COMMAND_STR_EX_SERVER_URI      = "SERVERURI\0";
 const char* COMMAND_STR_EX_CHARGE_POINT_ID = "CHARGEPOINTID\0";
 const char* COMMAND_STR_EX_RECONNECT       = "RECONNECT\0";
-const char* COMMAND_STR_EX_LOCALLISTSHOW   = "LOCALLISTSHOW\0";
-const char* COMMAND_STR_EX_LOCALLISTADD    = "LOCALLISTADD\0";
-const char* COMMAND_STR_EX_LOCALLISTDELETE = "LOCALLISTDELETE\0";
-const char* COMMAND_STR_EX_LOCALLISTCLEAR  = "LOCALLISTCLEAR\0";
-const char* COMMAND_STR_EX_LOCALLISTSAVE   = "LOCALLISTSAVE\0";
+const char* COMMAND_STR_EX_CHARGE_POINT_STATE = "CHARGEPOINTSTATE\0";
+const char* COMMAND_STR_EX_LOCALLISTSHOW      = "LOCALLISTSHOW\0";
+const char* COMMAND_STR_EX_LOCALLISTADD       = "LOCALLISTADD\0";
+const char* COMMAND_STR_EX_LOCALLISTDELETE    = "LOCALLISTDELETE\0";
+const char* COMMAND_STR_EX_LOCALLISTCLEAR     = "LOCALLISTCLEAR\0";
+const char* COMMAND_STR_EX_LOCALLISTSAVE      = "LOCALLISTSAVE\0";
 //const char* COMMAND_STR_EX_       = "\0";
-
 extern struct netif gnetif;
 
 void sendMessage(int mesId);
@@ -110,6 +112,7 @@ int getCommandExFromStr(char *comStr){
 	CHECK_COMMAND(LOCALLISTDELETE);
 	CHECK_COMMAND(LOCALLISTCLEAR);	
 	CHECK_COMMAND(LOCALLISTSAVE);	
+	CHECK_COMMAND(CHARGE_POINT_STATE);														
 	//CHECK_COMMAND();
 	
 	return COMMAND_UNKNOWN;
@@ -152,8 +155,28 @@ const char* getCommandString(int command){
 		CASE_COMMAND_EX_STR(SERVER_HOST);
 		CASE_COMMAND_EX_STR(SERVER_PORT);
 		CASE_COMMAND_EX_STR(SERVER_URI);
+		CASE_COMMAND_EX_STR(CHARGE_POINT_ID);	
+		CASE_COMMAND_EX_STR(CHARGE_POINT_STATE);	
+// CASE_COMMAND_EX_STR();				
 	}
 	return STR_EMPTY;
+}
+
+bool checkTagId(char *tag){
+	int i;
+	char c;
+	if(strlen(tag) != 8){
+		return false;
+	}
+
+	for(i = 0; i < 8; i++){
+		c = tag[i];
+		if( (!((c >= '0') && (c <= '9'))) && (!((c >= 'A') && (c <= 'F')))){
+			return false;
+		}
+	}
+	
+	return true;
 }
 
 void sendReadResultString(int command, const char *s){	
@@ -202,6 +225,22 @@ void sendLocalList(void){
 	}
 	
 	sendOK();
+}
+
+void sendChargePointState(void){
+	sprintf(sendBuf, "\r\n+%s:", getCommandString(COMMAND_EX_CHARGE_POINT_STATE));
+	sendString(sendBuf);
+	sprintf(sendBuf, "\r\nnetworkOnline: %d", cpState_isNetworkOnline() ? 1 : 0);
+	sendString(sendBuf);
+	sprintf(sendBuf, "\r\nserverOnline: %d", cpState_isServerOnline() ? 1 : 0);
+	sendString(sendBuf);
+	sendOK();
+}
+
+void sendChargePointId(void){
+	ChargePointSetting* st;
+	st = Settings_get();
+	sendReadResultString(COMMAND_EX_CHARGE_POINT_ID, st->ChargePointId);
 }
 
 void sendLocalIp(){
@@ -404,31 +443,18 @@ void writeChargePointID(char *arg){
 void writeLocalListAdd(char *arg){
 	AuthorizationData authItem;
 	char* tagId;
-	int i, iVal;
-	char c;
+	int iVal;
 	bool badParam;
 	
 	tagId = getParam(&arg, DELIM_COMMA);
+	strupr(tagId);
 	//Check tag
-	badParam = false;
-	if(strlen(tagId) != 8){
-		badParam = true;
-	}
-	else{
-		strupr(tagId);
-		for(i = 0; i < 8; i++){
-			c = tagId[i];
-			if( (!((c >= '0') && (c <= '9'))) && (!((c >= 'A') && (c <= 'F')))){
-				badParam = true;
-				break;
-			}
-		}
-	}
-	if(badParam){
+	if(!checkTagId(tagId)){
 		sendError(ERROR_STR_INVALID_PARAMETERS);
 		return;
 	}
 	
+	badParam = false;
 	if(strlen(arg) == 0){
 		//State is not set. So set default (accepted)
 		iVal = AUTHORIZATION_STATUS_ACCEPTED;
@@ -455,6 +481,54 @@ void writeLocalListAdd(char *arg){
 }
 
 void writeLocalListDelete(char *arg){
+	int opType;
+	int iParam;
+	bool badParam;
+	char* tagId;
+	
+	badParam = false;
+	if(!getParamInt(&arg, DELIM_COMMA, &opType)){
+		badParam = true;
+	}
+	else{
+		if((opType < 1) || (opType > 2))
+			badParam = true;
+	}
+	if(badParam){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
+	
+	if(opType == 1){
+		//Delete by index
+		if(!getParamInt(&arg, DELIM_COMMA, &iParam)){
+			badParam = true;
+		}
+		else if(!localAuthList_deleteByIndex(iParam-1)){
+			badParam = true;
+		}
+	}
+	else if(opType == 2){
+		//Delete by tag		
+		tagId = getParam(&arg, DELIM_COMMA);
+		strupr(tagId);
+		//Check tag
+		if(checkTagId(tagId)){
+			if(!localAuthList_deleteByTag(tagId)){
+				badParam = true;
+			}
+		}
+		else{
+			badParam = true;
+		}
+	}
+	
+	if(badParam){
+		sendError(ERROR_STR_INVALID_PARAMETERS);
+		return;
+	}
+	
 	sendOK();
 }
 
@@ -540,12 +614,14 @@ void processCommandExRead(int command){
 		  answerStr = s;
 			break;
 		case COMMAND_EX_CHARGE_POINT_ID:
-			st = Settings_get();
-			answerStr = st->ChargePointId;
-			break;
+			sendChargePointId();
+			return;
 		case COMMAND_EX_LOCALLISTSHOW:
 			sendLocalList();
 		  return;
+		case COMMAND_EX_CHARGE_POINT_STATE:
+			sendChargePointState();
+			return;
 		default:
 			return;
 	}
@@ -657,7 +733,6 @@ void processLine(void){
 
 void serialControlThread(void const * argument){
 	char c;
-	int cnt = 0;
 	int state = STATE_WAIT_HEAD1;
   //Creating queue for receive 
 	hSerialControlGetCharQueue = xQueueCreate(64, sizeof(char));
