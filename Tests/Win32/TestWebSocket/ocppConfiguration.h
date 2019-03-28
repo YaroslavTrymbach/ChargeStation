@@ -52,6 +52,13 @@ typedef struct _OcppConfigurationVaried{
 	int connectionTimeOut;
 	bool localAuthorizeOffline;
 	bool localPreAuthorize;
+	int clockAlignedDataInterval;
+	int heartbeatInterval;
+	int meterValuesSampleInterval;
+	int resetRetries;
+	bool stopTransactionOnEVSideDisconnect;
+	bool stopTransactionOnInvalidId;
+	bool unlockConnectorOnEVSideDisconnect;
 }OcppConfigurationVaried;
 
 // Struct with ocpp configuration that cannot be changed via server

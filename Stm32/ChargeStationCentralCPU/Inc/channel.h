@@ -14,3 +14,5 @@ bool Channel_start(uint8_t taskTag, QueueHandle_t queue, ChargePointConnector *c
 
 void Channel_startCharging(int ch);
 void Channel_haltCharging(int ch);
+
+void Channel_unlockConnector(int ch);

@@ -3,8 +3,9 @@
 #include <FreeRTOS.h>
 #include <queue.h>
 
-#define MESSAGE_NET_SERVER_ACCEPT   1
-#define MESSAGE_NET_AUTHORIZE       2 
+#define MESSAGE_NET_SERVER_ACCEPT    1
+#define MESSAGE_NET_AUTHORIZE        2 
+#define MESSAGE_NET_UNLOCK_CONNECTOR 3
 
 #define NET_INPUT_MESSAGE_RECONNECT                1
 #define NET_INPUT_MESSAGE_AUTHORIZE                2

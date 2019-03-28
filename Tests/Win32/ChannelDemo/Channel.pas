@@ -65,10 +65,14 @@ type
     FAutomobile: TAutomobile;
     FChargePower: Integer;
     FPostAction: Integer;
+    FVehicleConfigId: Integer;
+    FConnectorLocked: Boolean;
     procedure OnPowerConsumed(value: Integer);
     procedure setStatus(const Value: Integer);
     procedure startCharging;
     procedure stopChargingThread;
+    procedure lockConnector;
+    function unlockConnector: Boolean;
     function GetAutomobileConnected: Boolean;
   public
     public Constructor Create;
@@ -77,6 +81,7 @@ type
     property Status: Integer read fStatus write setStatus;
     property MeterOn: Boolean read fMeterOn;
     property MeterValue: Integer read fMeterValue;
+    property VehicleConfigId: Integer read FVehicleConfigId;
     function Init(node: IXmlNode): Boolean;
     procedure Load(node: IXmlNode);
     procedure Save(node: IXmlNode);
@@ -121,6 +126,7 @@ const
   ATTRIB_STATUS      = 'status';
   ATTRIB_METER_ON    = 'meterOn';
   ATTRIB_METER_VALUE = 'meterValue';
+  ATTRIB_VEHICLE_ID = 'vehicleId';
 
   POST_ACTION_NONE           = 0;
   POST_ACTION_START_CHARGING = 1;
@@ -235,6 +241,8 @@ begin
 
   fAddress := node.GetIntAttr(ATTRIB_ADDRESS, 0);
   fAdrStr := IntToHex(fAddress, 2);
+
+  FVehicleConfigId := node.GetIntAttr(ATTRIB_VEHICLE_ID, 0);
   fChargeThread := nil;
 
   Result := True;
@@ -246,6 +254,11 @@ begin
   fStatus := node.GetIntAttr(ATTRIB_STATUS);
   fMeterOn := node.GetBoolAttr(ATTRIB_METER_ON);
   fMeterValue := node.GetIntAttr(ATTRIB_METER_VALUE);
+end;
+
+procedure TChannel.lockConnector;
+begin
+  FConnectorLocked := True;
 end;
 
 procedure TChannel.OnPowerConsumed(value: Integer);
@@ -308,6 +321,14 @@ begin
           end;
           Answer := Answer + IntToStr(FChargePower);
           OutStr := '!' + fAdrStr + Answer;
+        end
+        else if (Str = 'L') then
+        begin
+          if FConnectorLocked then
+            Answer := '1'
+          else
+            Answer := '0';
+          OutStr := '!' + fAdrStr + Answer;  
         end;
           //OutStr := '>' + '22002500260027003831393140314131';
       end;
@@ -331,6 +352,13 @@ begin
       begin
         FPostAction := POST_ACTION_HALT_CHARGING;
         OutStr := '!' + fAdrStr;
+      end
+      else if(Str = 'U') then
+      begin
+        if unlockConnector then
+          OutStr := '!' + fAdrStr
+        else
+          OutStr := '?' + fAdrStr;
       end
       else
         OutStr := '?' + fAdrStr;
@@ -407,6 +435,13 @@ procedure TChannel.UnconnectAutomobile;
 begin
   FAutomobile := nil;
   FChargePower := CHARGE_POWER_NONE;
+end;
+
+function TChannel.unlockConnector: Boolean;
+begin
+  FConnectorLocked := False;
+
+  Result := not FConnectorLocked;
 end;
 
 { TChargeThread }

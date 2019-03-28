@@ -580,13 +580,17 @@ void toggleBlueLed(void){
 
 bool checkChargeTransactionByTag(int tagId){
 	int i;
+	char s[32];
 	ChargePointConnector *conn;
 	//Check if someony with this tag is charging
 	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
 		conn = &connector[i];
 		if(conn->userTagId == tagId){
-			if(conn->status != CHARGE_POINT_STATUS_FINISHING)
+			if(conn->status != CHARGE_POINT_STATUS_FINISHING){
+				sprintf(s, "Channel %d", i+1);
+				Indication_ShowMessage("Finish charging", s, 2000);
 				Channel_haltCharging(i);
+			}
 			return true;
 		}
 	}
@@ -721,6 +725,9 @@ void processMessageFromNET(GeneralMessage *message){
 			break;
 		case MESSAGE_NET_AUTHORIZE:
 			acceptAuth(message->param2, message->param1);
+			break;
+		case MESSAGE_NET_UNLOCK_CONNECTOR:
+			Channel_unlockConnector(message->param1 - 1);
 			break;
 	}
 }

@@ -282,6 +282,27 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 			case CONFIG_KEY_SEND_LOCAL_LIST_MAX_LENGTH:
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_SEND_LOCAL_LIST_MAX_LENGTH, true, LOCAL_AUTH_LIST_MAX_LENGTH);
 				break;
+			case CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL, false, ocppConfVaried.clockAlignedDataInterval);
+				break;
+			case CONFIG_KEY_HEARTBEAT_INTERVAL:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_HEARTBEAT_INTERVAL, false, ocppConfVaried.heartbeatInterval);
+				break;
+			case CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL, false, ocppConfVaried.meterValuesSampleInterval);
+				break;
+			case CONFIG_KEY_RESET_RETRIES:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_RESET_RETRIES, false, ocppConfVaried.resetRetries);
+				break;
+			case CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT, false, ocppConfVaried.stopTransactionOnEVSideDisconnect);
+				break;
+			case CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID, false, ocppConfVaried.stopTransactionOnInvalidId);
+				break;
+			case CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT, false, ocppConfVaried.unlockConnectorOnEVSideDisconnect);
+				break;
 			default:
 				keyPassed = false;
 		}
@@ -355,14 +376,46 @@ void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
 				conf.status = CONFIGURATION_STATUS_REJECTED;
 			}
 			break;
+		//Boolean values
 		case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
 		case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
+		case CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT:
+		case CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID:
+		case CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT:
 			if(ocppGetConfigValueFromStringBool(request.value, &bNewValue)){
 				conf.status = CONFIGURATION_STATUS_ACCEPTED;
 				if(configKey == CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE)
 					ocppConfVaried.localAuthorizeOffline = bNewValue;
 				else if(configKey == CONFIG_KEY_LOCAL_PRE_AUTHORIZE)
 					ocppConfVaried.localPreAuthorize = bNewValue;
+				else if(configKey == CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT)
+					ocppConfVaried.stopTransactionOnEVSideDisconnect = bNewValue;
+				else if(configKey == CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID)
+					ocppConfVaried.stopTransactionOnInvalidId = bNewValue;
+				else if(configKey == CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT)
+					ocppConfVaried.unlockConnectorOnEVSideDisconnect = bNewValue;
+			}
+			else{
+				conf.status = CONFIGURATION_STATUS_REJECTED;
+			}
+			break;
+		//Integer values
+		case CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL:
+		case CONFIG_KEY_HEARTBEAT_INTERVAL:
+		case CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL:
+		case CONFIG_KEY_RESET_RETRIES:
+			if(ocppGetConfigValueFromStringInt(request.value, &iNewValue)){
+				conf.status = CONFIGURATION_STATUS_ACCEPTED;
+				if(configKey == CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL)
+					ocppConfVaried.clockAlignedDataInterval = iNewValue;
+				else if(configKey == CONFIG_KEY_HEARTBEAT_INTERVAL){
+					ocppConfVaried.heartbeatInterval = iNewValue;
+					heartbeatInterval = ocppConfVaried.heartbeatInterval*1000;
+				}
+				else if(configKey == CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL)
+					ocppConfVaried.meterValuesSampleInterval = iNewValue;
+				else if(configKey == CONFIG_KEY_RESET_RETRIES)
+					ocppConfVaried.resetRetries = iNewValue;
 			}
 			else{
 				conf.status = CONFIGURATION_STATUS_REJECTED;
@@ -400,6 +453,18 @@ void processReqGetLocalListVersion(RpcPacket* packet, cJSON* json){
 	sendConfMessageToServer(&rpcPacket);
 }
 
+void processReqUnlockConnector(RpcPacket* packet, cJSON* json){
+	RequestUnlockConnector request;
+	GeneralMessage message;
+	
+	jsonUnpackReqUnlockConnector(json, &request);
+
+	message.messageId = MESSAGE_NET_UNLOCK_CONNECTOR;
+	message.param1 = request.connectorId;
+	//message.param2 = authTagId;
+	sendMessageToMainDispatcher(&message);
+}
+
 void processConfBootNotification(cJSON* json){
 	ConfBootNotifiaction conf;
 	GeneralMessage message;
@@ -415,6 +480,8 @@ void processConfBootNotification(cJSON* json){
 		setCurrentTime(&conf.currentTime);
 		
 		stationAccepted = true;
+
+		ocppConfVaried.heartbeatInterval = conf.interval;
 		heartbeatInterval = conf.interval*1000;
 	}
 	else{
@@ -508,7 +575,7 @@ void processRPCPacket(RpcPacket* packet){
 				processReqGetLocalListVersion(packet, jsonRoot);
 				break;
 			case ACTION_UNLOCK_CONNECTOR:
-				//processReqUnlockConnector(packet, jsonRoot);
+				processReqUnlockConnector(packet, jsonRoot);
 				break;
 		}
 
@@ -519,7 +586,7 @@ void processRPCPacket(RpcPacket* packet){
 }
 
 static void readThread(void const * argument){
-	int res, status, size;
+	int res, size;
 	char s[128];
 	char buf[256];
 	char *sp;

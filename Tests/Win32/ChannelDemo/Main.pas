@@ -99,7 +99,7 @@ var
 implementation
 
 uses
-  Common,IniFiles, DataThreads, SimpleXML, yIniFiles;
+  Common,IniFiles, DataThreads, SimpleXML, yIniFiles, VehicleConfig;
 
 const
 // ------------XML - Кофигурация---------------
@@ -112,10 +112,11 @@ const
   NodeNameParity        = 'Parity';
   NodeNameType          = 'Type';
   NodeNameAdress        = 'Adress';
+  NodeNameVehicles      = 'Vehicles';
 
   NodeNameWork          = 'Work';
   NodeNameTurnOn        = 'TurnOn';
-  NodeNameIndex         = 'Index';  
+  NodeNameIndex         = 'Index';
 
 var
   IniFile : TIniFile;
@@ -174,6 +175,7 @@ begin
   SetDatParams;
 
   DrawStr := TStringList.Create;
+  VehicleConfigList := TVehicleConfigList.Create;
 
   for i:=0 to ComBufSize-1 do ComBuf[i].ID:=0;
 
@@ -545,8 +547,13 @@ begin
       else
         channel.Free;
     end;
-  end;    
-  aDoc.Save(FileName);
+  end;
+  //aDoc.Save(FileName);
+
+  //Конфигурации автомобилей
+  aElem := rootElem.SelectSingleNode(NodeNameVehicles);
+  VehicleConfigList.Load(aElem);
+
 
   //Вроде все в порядке
   ComPortUst := lComPortUst;
@@ -804,6 +811,7 @@ end;
 procedure TfmMain.FormDestroy(Sender: TObject);
 begin
   fChannelList.Free;
+  VehicleConfigList.Free;
 end;
 
 end.

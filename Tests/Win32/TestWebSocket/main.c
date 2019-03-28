@@ -21,9 +21,9 @@
 //#define SERVER_HOST    "192.168.1.69"
 //#define SERVER_PORT_NO 19201
 //#define SERVER_HOST "127.0.0.1"
-#define SERVER_HOST    "192.168.1.63"
+//#define SERVER_HOST    "192.168.1.63"
 //#define SERVER_HOST    "192.168.1.64"
-//#define SERVER_HOST    "192.168.1.65"
+#define SERVER_HOST    "192.168.1.65"
 //#define SERVER_HOST    "192.168.1.100"
 //#define SERVER_HOST    "192.168.1.101"
 //#define SERVER_HOST "192.168.77.7"
@@ -566,6 +566,31 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 				confKey = ocppCreateKeyValueInt(CONFIG_KEY_SEND_LOCAL_LIST_MAX_LENGTH, true, LOCAL_AUTH_LIST_MAX_LENGTH);
 				break;
 
+			case CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL, false, ocppConfVaried.clockAlignedDataInterval);
+				break;
+
+			case CONFIG_KEY_HEARTBEAT_INTERVAL:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_HEARTBEAT_INTERVAL, false, ocppConfVaried.heartbeatInterval);
+				break;
+
+			case CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL, false, ocppConfVaried.meterValuesSampleInterval);
+				break;
+			
+			case CONFIG_KEY_RESET_RETRIES:
+				confKey = ocppCreateKeyValueInt(CONFIG_KEY_RESET_RETRIES, false, ocppConfVaried.resetRetries);
+				break;
+
+			case CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT, false, ocppConfVaried.stopTransactionOnEVSideDisconnect);
+				break;
+			case CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID, false, ocppConfVaried.stopTransactionOnInvalidId);
+				break;
+			case CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT:
+				confKey = ocppCreateKeyValueBool(CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT, false, ocppConfVaried.unlockConnectorOnEVSideDisconnect);
+				break;
 			default:
 				keyPassed = false;
 		}
@@ -658,14 +683,44 @@ void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
 				conf.status = CONFIGURATION_STATUS_REJECTED;
 			}
 			break;
+		//Boolean values
 		case CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE:
 		case CONFIG_KEY_LOCAL_PRE_AUTHORIZE:
+		case CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT:
+		case CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID:
+		case CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT:
 			if(ocppGetConfigValueFromStringBool(request.value, &bNewValue)){
 				conf.status = CONFIGURATION_STATUS_ACCEPTED;
 				if(configKey == CONFIG_KEY_LOCAL_AUTHORIZE_OFFLINE)
 					ocppConfVaried.localAuthorizeOffline = bNewValue;
 				else if(configKey == CONFIG_KEY_LOCAL_PRE_AUTHORIZE)
 					ocppConfVaried.localPreAuthorize = bNewValue;
+				else if(configKey == CONFIG_KEY_STOP_TRANSACTION_ON_EV_SIDE_DISCONNECT)
+					ocppConfVaried.stopTransactionOnEVSideDisconnect = bNewValue;
+				else if(configKey == CONFIG_KEY_STOP_TRANSACTION_ON_INVALID_ID)
+					ocppConfVaried.stopTransactionOnInvalidId = bNewValue;
+				else if(configKey == CONFIG_KEY_UNLOCK_CONNECTOR_ON_EV_SIDE_DISCONNECT)
+					ocppConfVaried.unlockConnectorOnEVSideDisconnect = bNewValue;
+			}
+			else{
+				conf.status = CONFIGURATION_STATUS_REJECTED;
+			}
+			break;
+		//Integer values
+		case CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL:
+		case CONFIG_KEY_HEARTBEAT_INTERVAL:
+		case CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL:
+		case CONFIG_KEY_RESET_RETRIES:
+			if(ocppGetConfigValueFromStringInt(request.value, &iNewValue)){
+				conf.status = CONFIGURATION_STATUS_ACCEPTED;
+				if(configKey == CONFIG_KEY_CLOCK_ALIGNED_DATA_INTERVAL)
+					ocppConfVaried.clockAlignedDataInterval = iNewValue;
+				else if(configKey == CONFIG_KEY_HEARTBEAT_INTERVAL)
+					ocppConfVaried.heartbeatInterval = iNewValue;
+				else if(configKey == CONFIG_KEY_METER_VALUES_SAMPLE_INTERVAL)
+					ocppConfVaried.meterValuesSampleInterval = iNewValue;
+				else if(configKey == CONFIG_KEY_RESET_RETRIES)
+					ocppConfVaried.resetRetries = iNewValue;
 			}
 			else{
 				conf.status = CONFIGURATION_STATUS_REJECTED;

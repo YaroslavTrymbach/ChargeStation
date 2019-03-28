@@ -35,6 +35,7 @@ typedef struct _ChargePointConnector{
 	bool isMeterValueRequest; //Request for getting meterValue from channel controller
 	bool isNeedStartCharging;
 	bool isNeedHaltCharging;
+	bool isNeedUnlockConnector;
 	int pilotSygnalLevel;
 	int pilotSygnalPwm;
 	ChargeTransaction chargeTransaction;

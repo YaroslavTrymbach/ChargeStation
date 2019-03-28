@@ -70,7 +70,7 @@ type
 implementation
 
 uses
-  Common, ChangeStatus;
+  Common, ChangeStatus, VehicleConfig;
 
 {$R *.dfm}
 
@@ -158,8 +158,15 @@ begin
 end;
 
 procedure TIdemFram.InitAutomobile;
+var
+  vehicleConfig: TVehicleConfig;
+  Capacity: Integer;
 begin
-  FAutomobile := TAutomobile.Create(120);
+  Capacity := 120;
+  vehicleConfig := vehicleConfigList.getConfigById(fChannel.VehicleConfigId);
+  if vehicleConfig <> nil then
+    Capacity := vehicleConfig.Capacity;
+  FAutomobile := TAutomobile.Create(Capacity);
 
   edCapacity.Text := IntToStr(FAutomobile.Capacity);
   edLevel.Text := IntToStr(FAutomobile.ChargeLevel);

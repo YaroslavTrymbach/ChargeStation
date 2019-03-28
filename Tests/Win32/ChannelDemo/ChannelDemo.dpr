@@ -10,7 +10,8 @@ uses
   yIniFiles in 'yIniFiles.pas',
   Channel in 'Channel.pas',
   ChangeStatus in 'ChangeStatus.pas' {fmChangeStatus},
-  Automobile in 'Automobile.pas';
+  Automobile in 'Automobile.pas',
+  VehicleConfig in 'VehicleConfig.pas';
 
 {$R *.res}
 

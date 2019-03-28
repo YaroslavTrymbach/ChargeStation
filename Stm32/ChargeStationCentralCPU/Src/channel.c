@@ -19,11 +19,13 @@ int requestCommand;
 static uint8_t hTaskTag;
 static QueueHandle_t hMainQueue;
 
-#define COMMAND_GET_STATUS      1
-#define COMMAND_START_CHARGING  2
-#define COMMAND_HALT_CHARGING   3
-#define COMMAND_GET_METER_VALUE 4
-#define COMMAND_GET_PS_STATE    5
+#define COMMAND_GET_STATUS       1
+#define COMMAND_START_CHARGING   2
+#define COMMAND_HALT_CHARGING    3
+#define COMMAND_GET_METER_VALUE  4
+#define COMMAND_GET_PS_STATE     5
+#define COMMAND_UNLOCK_CONNECTOR 6
+#define COMMAND_GET_LOCK_STATE   7
 
 #define FIFO_IN_SIZE 128
 unsigned char fifo_in[FIFO_IN_SIZE];
@@ -267,14 +269,17 @@ bool sendCommandToChannel(ChargePointConnector *conn, int command, char *data){
 		case COMMAND_GET_PS_STATE:
 			sprintf(sendStr, "$0%dP\r", conn->address);
 			break;
+		case COMMAND_GET_METER_VALUE:
+			sprintf(sendStr, "$0%dM\r", conn->address);
+			break;
 		case COMMAND_START_CHARGING:
 			sprintf(sendStr, "#0%dS\r", conn->address);
 			break;
 		case COMMAND_HALT_CHARGING:
 			sprintf(sendStr, "#0%dH\r", conn->address);
 			break;
-		case COMMAND_GET_METER_VALUE:
-			sprintf(sendStr, "$0%dM\r", conn->address);
+		case COMMAND_UNLOCK_CONNECTOR:
+			sprintf(sendStr, "#0%dU\r", conn->address);
 			break;
 		default:
 			return false;
@@ -351,6 +356,13 @@ void dispatcherThread(void const * argument){
 					sendMessage(&message);
 				}				
 			}
+			
+			//UnlockConnector
+			if(conn->isNeedUnlockConnector){
+				if(sendCommandToChannel(conn, COMMAND_UNLOCK_CONNECTOR, NULL)){
+					conn->isNeedUnlockConnector = false;
+				}
+			}
 
 			//Meter value
 			if(conn->isMeterValueRequest){
@@ -396,6 +408,11 @@ void Channel_startCharging(int ch){
 
 void Channel_haltCharging(int ch){
 	connector[ch].isNeedHaltCharging = true;
+}
+
+void Channel_unlockConnector(int ch){
+	if((ch >= 0) && (ch < connectorCount))
+		connector[ch].isNeedUnlockConnector = true;
 }
 
 void USART2_IRQHandler(void){	

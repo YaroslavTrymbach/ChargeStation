@@ -194,6 +194,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\flash.c"
+				>
+			</File>
+			<File
 				RelativePath=".\localAuthList.c"
 				>
 			</File>
