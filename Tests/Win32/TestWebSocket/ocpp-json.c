@@ -419,6 +419,26 @@ bool jsonPackConfGetLocalListVersion(RpcPacket *rpcPacket, ConfGetLocalListVersi
 	return true;
 }
 
+bool jsonPackConfRemoteStartTransaction(RpcPacket *rpcPacket, ConfRemoteStartTransaction *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addString(paramStr(STATUS), ocppGetRemoteStartStopStatusString(conf->status));
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
+bool jsonPackConfRemoteStopTransaction(RpcPacket *rpcPacket, ConfRemoteStopTransaction *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	//addInteger(paramStr(LIST_VERSION), conf->listVersion);
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool isParam(const char *s, int paramName){
 	const char *name;
 	bool res;
@@ -599,5 +619,32 @@ bool jsonUnpackReqReset(cJSON* json, RequestReset *req){
 
 	return true;
 }
+
+bool jsonUnpackReqRemoteStartTransaction(cJSON* json, RequestRemoteStartTransaction *req){
+	cJSON* jsonElement;
+	jsonElement = json->child;
+
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_Number){
+			if(isParam(jsonElement->string, OCPP_PARAM_CONNECTOR_ID)){
+				req->connectorId = jsonElement->valueint;
+			}
+		}
+		else if(jsonElement->type == cJSON_String){
+			if(isParam(jsonElement->string, OCPP_PARAM_ID_TAG)){
+				strncpy(req->idTag, jsonElement->valuestring, 20);
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+
+	return true;
+}
+
+bool jsonUnpackReqRemoteStopTransaction(cJSON* json, RequestRemoteStopTransaction *req){
+	return true;
+}
+
 
 

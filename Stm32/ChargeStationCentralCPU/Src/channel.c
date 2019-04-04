@@ -174,6 +174,18 @@ bool processAnswerGetPilotSygnalState(ChargePointConnector *conn, char *s, int l
 	return true;
 }
 
+bool processAnswerUnlockConnector(ChargePointConnector *conn, char *s, int len, char startChar){
+	if(startChar == START_CHAR_SUCCESS)
+		conn->isLocked = false;
+	else if(startChar == START_CHAR_ERROR)
+		conn->isLocked = true;
+	else
+		return false;
+	
+	return true;
+}
+
+
 bool processAnswerGetMeterValue(ChargePointConnector *conn, char *s, int len, char startChar){
 	int iVal;
 	bool isSuccess;
@@ -201,7 +213,7 @@ bool processAnswerGetMeterValue(ChargePointConnector *conn, char *s, int len, ch
 
 static void readThread(void const *argument){
 	int size;
-	int i, address, iVal;
+	int i, address;
 	uint8_t getStr[128];
 	char *answer;
 	char startChar;
@@ -247,6 +259,9 @@ static void readThread(void const *argument){
 						break;
 					case COMMAND_GET_METER_VALUE:
 						isSuccess = processAnswerGetMeterValue(requestConnector, answer, size, startChar);
+						break;
+					case COMMAND_UNLOCK_CONNECTOR:
+						isSuccess = processAnswerUnlockConnector(requestConnector, answer, size, startChar);
 						break;
 				}
 				
@@ -361,6 +376,10 @@ void dispatcherThread(void const * argument){
 			if(conn->isNeedUnlockConnector){
 				if(sendCommandToChannel(conn, COMMAND_UNLOCK_CONNECTOR, NULL)){
 					conn->isNeedUnlockConnector = false;
+					message.messageId = MESSAGE_CHANNEL_UNLOCK_CONNECTOR;
+					message.param1 = conn->isLocked ? UNLOCK_STATUS_UNLOCK_FAILED : UNLOCK_STATUS_UNLOCKED;
+					message.param2 = conn->uniqMesIndUnlockConnector;
+					sendMessage(&message);
 				}
 			}
 
@@ -410,9 +429,11 @@ void Channel_haltCharging(int ch){
 	connector[ch].isNeedHaltCharging = true;
 }
 
-void Channel_unlockConnector(int ch){
-	if((ch >= 0) && (ch < connectorCount))
+void Channel_unlockConnector(int ch, int uniqMesInd){
+	if((ch >= 0) && (ch < connectorCount)){
 		connector[ch].isNeedUnlockConnector = true;
+		connector[ch].uniqMesIndUnlockConnector = uniqMesInd;
+	}
 }
 
 void USART2_IRQHandler(void){	

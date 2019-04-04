@@ -751,6 +751,30 @@ void processReqUnlockConnector(RpcPacket* packet, cJSON* json){
 	isMessageActive = true;
 }
 
+void processReqRemoteStartTransaction(RpcPacket* packet, cJSON* json){
+	RequestRemoteStartTransaction request;
+
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfRemoteStartTransaction conf;
+
+	jsonUnpackReqRemoteStartTransaction(json, &request);
+
+	conf.status = REMOTE_STARTSTOP_STATUS_ACCEPTED;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfRemoteStartTransaction(&rpcPacket, &conf);
+	sendConfMessage(&rpcPacket);
+}
+
+void processReqRemoteStopTransaction(RpcPacket* packet, cJSON* json){
+	RequestRemoteStopTransaction request;
+	jsonUnpackReqRemoteStopTransaction(json, &request);
+}
+
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
 	cJSON* jsonElement;
@@ -817,6 +841,12 @@ void processRPCPacket(RpcPacket* packet){
 				break;
 			case ACTION_CHANGE_CONFIGURATION:
 				processReqChangeConfiguration(packet, jsonRoot);
+				break;
+			case ACTION_REMOTE_START_TRANSACTION:
+				processReqRemoteStartTransaction(packet, jsonRoot);
+				break;
+			case ACTION_REMOTE_STOP_TRANSACTION:
+				processReqRemoteStopTransaction(packet, jsonRoot);
 				break;
 		}
 

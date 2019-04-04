@@ -29,6 +29,8 @@
 
 static QueueHandle_t hMainQueue;
 static uint8_t hTaskTag;
+
+typedef char unicIdType[37];
   
 int remote_port = 19201;
 char remote_host[64];
@@ -66,7 +68,12 @@ int heartbeatInterval = 5000;
 int retryWebSocketHandshakeInterval = 0;
 
 int SendCallAction = 0;
-char* SendCallId[37];
+//char* SendCallId[37];
+unicIdType SendCallId;
+
+#define UNIQ_ID_POOL_SIZE 4
+unicIdType uniqIdPool[UNIQ_ID_POOL_SIZE];
+int unicIdPoolPos = 0;
 
 SemaphoreHandle_t hGetEvent;
 SemaphoreHandle_t hCallAnswerEvent;
@@ -74,7 +81,7 @@ SemaphoreHandle_t hReadThreadSuspendEvent;
 
 bool isReadThreadNeedSuspend = false;
 
-int authTagId;
+idToken authTagId;
 
 extern struct netif gnetif;
 
@@ -461,8 +468,26 @@ void processReqUnlockConnector(RpcPacket* packet, cJSON* json){
 
 	message.messageId = MESSAGE_NET_UNLOCK_CONNECTOR;
 	message.param1 = request.connectorId;
-	//message.param2 = authTagId;
+	message.param2 = unicIdPoolPos;
 	sendMessageToMainDispatcher(&message);
+}
+
+void processReqRemoteStartTransaction(RpcPacket* packet, cJSON* json){
+	RequestRemoteStartTransaction request;
+	GeneralMessage message;
+
+	jsonUnpackReqRemoteStartTransaction(json, &request);
+	
+	message.messageId = MESSAGE_NET_REMOTE_START_TRANSACTION;
+	message.param1 = request.connectorId;
+	message.param2 = unicIdPoolPos;
+	strcpy(message.tokenId, request.idTag);
+	sendMessageToMainDispatcher(&message);
+}
+
+void processReqRemoteStopTransaction(RpcPacket* packet, cJSON* json){
+	RequestRemoteStopTransaction request;
+	jsonUnpackReqRemoteStopTransaction(json, &request);
 }
 
 void processConfBootNotification(cJSON* json){
@@ -514,7 +539,7 @@ void processConfAuthorize(cJSON* json){
 	
 	message.messageId = MESSAGE_NET_AUTHORIZE;
 	message.param1 = (conf.idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED) ? 1 : 0;
-	message.param2 = authTagId;
+	strcpy(message.tokenId, authTagId);
 	sendMessageToMainDispatcher(&message);
 }
 
@@ -564,6 +589,8 @@ void processRPCPacket(RpcPacket* packet){
 	}
 	else if (packet->messageType == MES_TYPE_CALL){
 		//Запрос от сервера
+		//Save uniq message id in pool
+		memcpy(uniqIdPool[unicIdPoolPos], packet->uniqueId, 37);
 		switch(packet->action){
 			case ACTION_GET_CONFIGURATION:
 				processReqGetConfiguration(packet, jsonRoot);	
@@ -577,8 +604,15 @@ void processRPCPacket(RpcPacket* packet){
 			case ACTION_UNLOCK_CONNECTOR:
 				processReqUnlockConnector(packet, jsonRoot);
 				break;
+			case ACTION_REMOTE_START_TRANSACTION:
+				processReqRemoteStartTransaction(packet, jsonRoot);
+				break;
+			case ACTION_REMOTE_STOP_TRANSACTION:
+				processReqRemoteStopTransaction(packet, jsonRoot);
+				break;
 		}
-
+		if(++unicIdPoolPos >= UNIQ_ID_POOL_SIZE)
+			unicIdPoolPos = 0;
 	}
 
 	cJSON_Delete2(jsonRoot);
@@ -701,7 +735,7 @@ void suspendReadThread(void){
 	xSemaphoreTake(hReadThreadSuspendEvent, pdMS_TO_TICKS(1000));
 }
 
-void sendAuthorizationRequest(uint32_t tagId){
+void sendAuthorizationRequest(idToken tagId){
 	char jsonData[512];
 	RequestAuthorize request;
 	RpcPacket rpcPacket;
@@ -711,7 +745,8 @@ void sendAuthorizationRequest(uint32_t tagId){
 
 	printf("send autorize request\n");
 	
-	sprintf(request.idTag, "%.8X", tagId);
+	//sprintf(request.idTag, "%.8X", tagId);
+	strcpy(request.idTag, tagId);
 
 	jsonPackReqAuthorize(&rpcPacket, &request);
 
@@ -816,6 +851,20 @@ void sendStopTransaction(ChargePointConnector *conn){
 	sendMessageToServer(&rpcPacket);
 }
 
+void sendAnswerUnlockConnector(int status, int uniqIdIndex){
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfUnlockConnector conf;
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, uniqIdPool[uniqIdIndex], 37);
+	
+	conf.status = status;
+	jsonPackConfUnlockConnector(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
 void reconnect(){
 	printf("NET: Reconnect\n");
 	suspendReadThread();
@@ -904,7 +953,7 @@ void netThread(void const * argument){
 				  //return;
 					break;
 				case NET_INPUT_MESSAGE_AUTHORIZE:
-					authTagId = message.param1;
+					strcpy(authTagId, message.tagId);
 					sendAuthorizationRequest(authTagId);
 					break;
 				case NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS:
@@ -927,6 +976,9 @@ void netThread(void const * argument){
 					break;
 				case NET_INPUT_MESSAGE_STOP_TRANSACTION:
 					sendStopTransaction((ChargePointConnector*)message.param1);
+					break;
+				case NET_INPUT_MESSAGE_UNLOCK_CONNECTOR_ANSWER:
+					sendAnswerUnlockConnector(message.param1, message.uniqIdIndex);
 					break;
 			}
 			

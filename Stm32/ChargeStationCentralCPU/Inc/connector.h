@@ -1,6 +1,7 @@
 #pragma once
 
 #include "chargeTransaction.h"
+#include "ocpp.h"
 
 #ifndef _WIN32
 #include <stdbool.h>
@@ -28,7 +29,7 @@ typedef struct _ChargePointConnector{
 	int address;
 	int status;
 	bool online;
-	int userTagId;
+	idToken userTagId;
 	int meterValue;
 	int meterValueError;
 	bool isMeterValueSet;
@@ -36,9 +37,11 @@ typedef struct _ChargePointConnector{
 	bool isNeedStartCharging;
 	bool isNeedHaltCharging;
 	bool isNeedUnlockConnector;
+	int uniqMesIndUnlockConnector;
 	int pilotSygnalLevel;
 	int pilotSygnalPwm;
 	ChargeTransaction chargeTransaction;
 	int errorCode;
 	int noAnswerCnt;
+	bool isLocked;
 }ChargePointConnector;

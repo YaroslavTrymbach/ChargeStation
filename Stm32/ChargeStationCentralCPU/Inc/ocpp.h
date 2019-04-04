@@ -18,6 +18,8 @@ typedef struct tm dateTime;
 
 typedef CiString20Type idToken;
 
+#define ID_TOKEN_SIZE 20
+
 //Configuration constant
 #define CONFIGURATION_GET_MAX_KEYS 16
 #define CONFIGURATION_NUMBER_OF_CONNECTORS 4
@@ -146,6 +148,9 @@ typedef CiString20Type idToken;
 #define OCPP_PROFILE_MASK_SMART_CHARGING             (1 << OCPP_PROFILE_SMART_CHARGING)
 #define OCPP_PROFILE_MASK_REMOTE_TRIGGER             (1 << OCPP_PROFILE_REMOTE_TRIGGER)
 
+#define REMOTE_STARTSTOP_STATUS_ACCEPTED 0
+#define REMOTE_STARTSTOP_STATUS_REJECTED 1
+
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
 	struct _CiString50TypeListItem *next;
@@ -202,8 +207,16 @@ typedef struct _RequestMeterValues{
 	int transactionId;
 	bool useTransactionId;
 	MeterValueListItem *meterValue;
-
 }RequestMeterValues;
+
+typedef struct _RequestRemoteStartTransaction{
+	int connectorId;
+	idToken idTag;
+}RequestRemoteStartTransaction;
+
+typedef struct _RequestRemoteStopTransaction{
+	int transactionId;
+}RequestRemoteStopTransaction;
 
 typedef struct _RequestStartTransaction{
 	int connectorId;
@@ -293,6 +306,14 @@ typedef struct _ConfHeartbeat{
 	dateTime currentTime;
 }ConfHeartbeat;
 
+typedef struct _ConfRemoteStartTransaction{
+	int status;
+}ConfRemoteStartTransaction;
+
+typedef struct _ConfRemoteStopTransaction{
+	int status;
+}ConfRemoteStopTransaction;
+
 typedef struct _ConfStartTransaction{
 	IdTagInfo idTagInfo;
 	int transactionId;
@@ -317,6 +338,7 @@ const char *getUnlockStatusString(int status);
 const char *getConfigurationStatusString(int status);
 const char *ocppGetProfileString(int profile);
 const char *ocppGetAuthorizationStatusString(int status);
+const char *ocppGetRemoteStartStopStatusString(int status);
 
 const char *ocppGetParamNameString(int param);
 
