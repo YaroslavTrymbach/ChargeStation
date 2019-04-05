@@ -314,7 +314,7 @@ void dispatcherThread(void const * argument){
 	GeneralMessage message;
 	ChargePointConnector *conn;
 	
-	maxWaitAnswerTick = pdMS_TO_TICKS(10);
+	maxWaitAnswerTick = pdMS_TO_TICKS(20);
 	
 	turnOnInterrupt();
 	
@@ -377,8 +377,9 @@ void dispatcherThread(void const * argument){
 				if(sendCommandToChannel(conn, COMMAND_UNLOCK_CONNECTOR, NULL)){
 					conn->isNeedUnlockConnector = false;
 					message.messageId = MESSAGE_CHANNEL_UNLOCK_CONNECTOR;
-					message.param1 = conn->isLocked ? UNLOCK_STATUS_UNLOCK_FAILED : UNLOCK_STATUS_UNLOCKED;
-					message.param2 = conn->uniqMesIndUnlockConnector;
+					message.param1 = (int)conn;
+					//message.param1 = conn->isLocked ? UNLOCK_STATUS_UNLOCK_FAILED : UNLOCK_STATUS_UNLOCKED;
+					//message.param2 = conn->uniqMesIndUnlockConnector;
 					sendMessage(&message);
 				}
 			}

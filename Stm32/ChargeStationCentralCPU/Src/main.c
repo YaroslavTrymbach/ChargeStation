@@ -111,6 +111,8 @@ OcppConfigurationFixed ocppConfFixed;
 OcppConfigurationRestrict ocppConfRestrict;
 ChargePointConnector connector[CONFIGURATION_NUMBER_OF_CONNECTORS];
 
+bool remoteStartTransactionProcessing = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -163,6 +165,7 @@ void initConnectors(){
 		
 		connector[i].chargeTransaction.isActive = false;
 		connector[i].chargeTransaction.isClosed = true;
+		connector[i].chargeTransaction.stopReason = -1;
 	}
 }
 
@@ -589,6 +592,7 @@ bool checkChargeTransactionByTag(idToken tagId){
 			if(conn->status != CHARGE_POINT_STATUS_FINISHING){
 				sprintf(s, "Channel %d", i+1);
 				Indication_ShowMessage("Finish charging", s, 2000);
+				conn->chargeTransaction.stopReason = OCPP_REASON_LOCAL;
 				Channel_haltCharging(i);
 			}
 			return true;
@@ -606,12 +610,20 @@ bool checkTagInLocalAuthList(idToken tagId){
 	return (data->idTagInfo.status == AUTHORIZATION_STATUS_ACCEPTED);
 }
 
-void startChargeTransaction(idToken tagId){
+void startChargeTransaction(idToken tagId, int connectorId){
 	ChargePointConnector *conn;
 	NetInputMessage netMessage;
-	int i;
+	int i, iStart, iEnd;
+	if(connectorId == -1){
+		iStart = 0;
+		iEnd = CONFIGURATION_NUMBER_OF_CONNECTORS;
+	}
+	else{
+		iStart = connectorId;
+		iEnd = iStart + 1;
+	}
 	
-	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+	for(i = iStart; i < iEnd; i++){
 		conn = &connector[i];
 		if(conn->status == CHARGE_POINT_STATUS_PREPARING){
 			
@@ -654,16 +666,16 @@ void sendUnlockConnectorAnswer(int status, int uniqIdIndex){
 	NET_sendInputMessage(&netMessage);
 }
 
+
+
 void acceptAuth(idToken tagId, bool success){
 	char s[32];
-	int i;
-	ChargePointConnector *conn;
 	sprintf(s, "Authorize %s", success ? "SUCCESS" : "FAILED");
 	printf("%s\n", s);
 	Indication_ShowMessage(s, NULL, 5000);	
 	
 	if(success){
-		startChargeTransaction(tagId);
+		startChargeTransaction(tagId, -1);
 	}
 }
 
@@ -679,7 +691,7 @@ void processEnabledTag(idToken cardId){
 	strcpy(lastCheckedTagId, cardId);
 	lastCheckedTagTick = HAL_GetTick();
 	
-	sprintf(s, "CardId 0x%.8X", cardId);
+	sprintf(s, "CardId %s", cardId);
 	Indication_ShowMessage("Card discovered", s, 5000);
 				
 	if(checkChargeTransactionByTag(cardId))
@@ -708,18 +720,82 @@ void processEnabledTag(idToken cardId){
 	}
 	else{
 		// Just start charging
-		startChargeTransaction(cardId);
+		startChargeTransaction(cardId, -1);
 		Indication_ShowMessage(CAP_CARD_ACCEPTED, NULL, 5000);
 	}
 }
 
+void sendRemoteStartTransactionAnswer(int status, int uniqIdIndex){
+	NetInputMessage netMessage;
+	netMessage.messageId = NET_INPUT_MESSAGE_REMOTE_START_TRANSACTION_ANSWER;
+	netMessage.param1 = status;
+	netMessage.uniqIdIndex = uniqIdIndex;
+	NET_sendInputMessage(&netMessage);
+}
+
+void sendRemoteStopTransactionAnswer(int status, int uniqIdIndex){
+	NetInputMessage netMessage;
+	netMessage.messageId = NET_INPUT_MESSAGE_REMOTE_STOP_TRANSACTION_ANSWER;
+	netMessage.param1 = status;
+	netMessage.uniqIdIndex = uniqIdIndex;
+	NET_sendInputMessage(&netMessage);
+}
+
 void remoteStartTransaction(GeneralMessage *message){
 	bool authRemoteTxRequests;
+	int uniqIdIndex;
+	int connectorId;
+	idToken idTag;
+	
+	connectorId = message->param1;
+	uniqIdIndex = message->param2;
+	
+	if(remoteStartTransactionProcessing || (connectorId < 0) || (connectorId > CONFIGURATION_NUMBER_OF_CONNECTORS)) {
+		//Previous operation is not processed yet or invalid connector Id
+		//reject new operation
+		sendRemoteStartTransactionAnswer(REMOTE_STARTSTOP_STATUS_REJECTED, uniqIdIndex);
+		return;
+	}
+		
 	
 	authRemoteTxRequests = ocppConfRestrict.authorizeRemoteTxRequestsReadOnly ? ocppConfFixed.authorizeRemoteTxRequests:  ocppConfVaried.authorizeRemoteTxRequests;
-	
 	if(authRemoteTxRequests){
 		
+	}
+	
+	strcpy(idTag, message->tokenId);
+	sendRemoteStartTransactionAnswer(REMOTE_STARTSTOP_STATUS_ACCEPTED, uniqIdIndex);
+	startChargeTransaction(idTag, connectorId - 1); 
+}
+
+void remoteStopTransaction(GeneralMessage *message){
+	int uniqIdIndex;
+	int transactionId;
+	bool taIsFound;
+	ChargePointConnector *conn;
+	int i;
+	
+	transactionId = message->param1;
+	uniqIdIndex = message->param2;
+	
+	taIsFound = false;
+	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+		conn = &connector[i];
+		if((conn->chargeTransaction.id == transactionId) && conn->chargeTransaction.isActive){
+			taIsFound = true;
+			break;
+		}
+	}
+	
+	if(taIsFound){
+		sendRemoteStopTransactionAnswer(REMOTE_STARTSTOP_STATUS_ACCEPTED, uniqIdIndex);
+		Indication_ShowMessage("Remote finish", "of charging", 2000);
+		conn->chargeTransaction.stopReason = OCPP_REASON_REMOTE;
+		Channel_haltCharging(i);
+		//stopChargeTransaction(i);
+	}
+	else{
+		sendRemoteStopTransactionAnswer(REMOTE_STARTSTOP_STATUS_REJECTED, uniqIdIndex);
 	}
 }
 
@@ -749,21 +825,20 @@ void processMessageFromNET(GeneralMessage *message){
 			remoteStartTransaction(message);
 			break;
 		case MESSAGE_NET_REMOTE_STOP_TRANSACTION:
+			remoteStopTransaction(message);
 			break;
 	}
 }
 
-void onChannelStatusChanged(int connIndex){
-	ChargePointConnector *conn;
+void onChannelStatusChanged(ChargePointConnector *conn){
 	NetInputMessage netMessage;
-	conn = &connector[connIndex];
 	
 	//If connection with server is present it is need to send new status 
 	if(NET_is_station_accepted()){
 		netMessage.messageId = NET_INPUT_MESSAGE_SEND_CONNECTOR_STATUS;
 		netMessage.param1 = 0;
-		PACK_TO_PARAM_BYTE0(netMessage.param1, connIndex + 1);
-		PACK_TO_PARAM_BYTE1(netMessage.param1, connector[connIndex].status);
+		PACK_TO_PARAM_BYTE0(netMessage.param1, conn->id);
+		PACK_TO_PARAM_BYTE1(netMessage.param1, conn->status);
 		PACK_TO_PARAM_BYTE2(netMessage.param1, CHARGE_POINT_ERROR_CODE_NO_ERROR);
 		NET_sendInputMessage(&netMessage);
 	}
@@ -780,7 +855,29 @@ void onChannelStatusChanged(int connIndex){
 			conn->isMeterValueRequest = true;
 			break;
 	}
-	Indication_PrintChannel(connIndex);
+	Indication_PrintChannel(conn->id - 1, conn);
+}
+
+void finishUnlockConnector(GeneralMessage *message){
+	int uniqIdIndex;
+	int status;
+	ChargePointConnector *conn;
+	
+	conn = (ChargePointConnector*)message->param1;
+	uniqIdIndex = conn->uniqMesIndUnlockConnector;
+	
+	status = conn->isLocked ? UNLOCK_STATUS_UNLOCK_FAILED : UNLOCK_STATUS_UNLOCKED;
+	
+	sendUnlockConnectorAnswer(status, uniqIdIndex);
+	
+	if((!conn->isLocked) && conn->chargeTransaction.isActive){
+		//It is need to close transaction
+		conn->status = CHARGE_POINT_STATUS_FINISHING;
+		conn->isMeterValueRequest = true; //Need request meterValue for close transaction
+		conn->chargeTransaction.stopReason = OCPP_REASON_UNLOCK_COMMAND;
+		conn->chargeTransaction.isActive = false;
+		onChannelStatusChanged(conn);
+	}
 }
 
 void processMessageFromChannels(GeneralMessage *message){
@@ -790,7 +887,8 @@ void processMessageFromChannels(GeneralMessage *message){
 	switch(message->messageId){
 		case MESSAGE_CHANNEL_STATUS_CHANGED:
 			connIndex = message->param1;
-			onChannelStatusChanged(connIndex);
+		  conn = &connector[connIndex];
+			onChannelStatusChanged(conn);
 			break;
 		case MESSAGE_CHANNEL_CHARGING_HALTED:
 			connIndex = message->param1;
@@ -798,14 +896,14 @@ void processMessageFromChannels(GeneralMessage *message){
 		  conn->status = CHARGE_POINT_STATUS_FINISHING;
 		  conn->isMeterValueRequest = true; //Need request meterValue for close transaction
 		  conn->chargeTransaction.isActive = false;
-		  onChannelStatusChanged(connIndex);
+		  onChannelStatusChanged(conn);
 			break;
 		case MESSAGE_CHANNEL_GET_METER_VALUE:
 			connIndex = message->param1;
 		  conn = &connector[connIndex];
 		  if(conn->chargeTransaction.isActive){
 				//Need update screen
-				Indication_PrintChannel(connIndex);
+				Indication_PrintChannel(conn->id - 1, conn);
 			}
 			else{
 				if(!conn->chargeTransaction.isClosed){
@@ -815,7 +913,7 @@ void processMessageFromChannels(GeneralMessage *message){
 			}
 			break;
 		case MESSAGE_CHANNEL_UNLOCK_CONNECTOR:
-			sendUnlockConnectorAnswer(message->param1, message->param2);
+			finishUnlockConnector(message);
 			break;			
 	}
 }

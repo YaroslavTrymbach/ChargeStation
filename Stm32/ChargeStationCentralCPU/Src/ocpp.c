@@ -118,6 +118,18 @@ const char* PROFILE_STR_REMOTE_TRIGGER             = "Remote Trigger\0";
 const char* RESET_TYPE_STR_SOFT = "Soft\0";
 const char* RESET_TYPE_STR_HARD = "Hard\0";
 
+const char* OCPP_REASON_STR_DEAUTHORIZED    = "DeAuthorized\0";
+const char* OCPP_REASON_STR_EMERGENCY_STOP  = "EmergencyStop\0";
+const char* OCPP_REASON_STR_EV_DISCONNECTED = "EVDisconnected\0";
+const char* OCPP_REASON_STR_HARD_RESET      = "HardReset\0";
+const char* OCPP_REASON_STR_LOCAL           = "Local\0";
+const char* OCPP_REASON_STR_OTHER           = "Other\0";
+const char* OCPP_REASON_STR_POWER_LOSS      = "PowerLoss\0";
+const char* OCPP_REASON_STR_REBOOT          = "Reboot\0";
+const char* OCPP_REASON_STR_REMOTE          = "Remote\0";
+const char* OCPP_REASON_STR_SOFT_RESET      = "SoftReset\0";
+const char* OCPP_REASON_STR_UNLOCK_COMMAND  = "UnlockCommand\0";
+
 #define BOOLEAN_STR_FALSE "false\0"
 #define BOOLEAN_STR_TRUE  "true\0"
 
@@ -264,6 +276,28 @@ const char *ocppGetAuthorizationStatusString(int status){
 		CASE_AUTH_STATUS_STR(EXPIRED);
 		CASE_AUTH_STATUS_STR(INVALID);
 		CASE_AUTH_STATUS_STR(CONCURRENT_TX);
+	}
+	return res;
+}
+
+#define CASE_REASON_STR(name) case OCPP_REASON_##name: \
+	                              res = OCPP_REASON_STR_##name; \
+								  break
+
+const char *ocppGetReasonString(int reason){
+	const char* res = EMPTY_STRING;
+	switch(reason){
+		CASE_REASON_STR(DEAUTHORIZED);
+		CASE_REASON_STR(EMERGENCY_STOP);
+		CASE_REASON_STR(EV_DISCONNECTED);
+		CASE_REASON_STR(HARD_RESET);
+		CASE_REASON_STR(LOCAL);
+		CASE_REASON_STR(OTHER);
+		CASE_REASON_STR(POWER_LOSS);
+		CASE_REASON_STR(REBOOT);
+		CASE_REASON_STR(REMOTE);
+		CASE_REASON_STR(SOFT_RESET);
+		CASE_REASON_STR(UNLOCK_COMMAND);
 	}
 	return res;
 }

@@ -487,7 +487,14 @@ void processReqRemoteStartTransaction(RpcPacket* packet, cJSON* json){
 
 void processReqRemoteStopTransaction(RpcPacket* packet, cJSON* json){
 	RequestRemoteStopTransaction request;
+	GeneralMessage message;
+	
 	jsonUnpackReqRemoteStopTransaction(json, &request);
+	
+	message.messageId = MESSAGE_NET_REMOTE_STOP_TRANSACTION;
+	message.param1 = request.transactionId;
+	message.param2 = unicIdPoolPos;
+	sendMessageToMainDispatcher(&message);
 }
 
 void processConfBootNotification(cJSON* json){
@@ -818,7 +825,7 @@ void sendStartTransaction(ChargePointConnector *conn){
 	printf("send startTransaction request. connId = %d\n", conn->id);
 	
 	request.connectorId = conn->id;
-	sprintf(request.idTag, "%.8X", conn->userTagId);
+	strcpy(request.idTag, conn->userTagId);
 	request.meterStart = conn->meterValue;
 	request.useReservationId = false;
 	getCurrentTime(&request.timestamp);
@@ -844,7 +851,13 @@ void sendStopTransaction(ChargePointConnector *conn){
 	request.meterStop = conn->chargeTransaction.stopMeterValue;
 	getCurrentTime(&request.timestamp);
 	request.useIdTag = false;
-	request.useReason = false;
+	if(conn->chargeTransaction.stopReason >= 0){
+		request.useReason = true;
+		request.reason = conn->chargeTransaction.stopReason;
+	}
+	else
+		request.useReason = false;
+	
 
 	jsonPackReqStopTransaction(&rpcPacket, &request);
 
@@ -862,6 +875,34 @@ void sendAnswerUnlockConnector(int status, int uniqIdIndex){
 	
 	conf.status = status;
 	jsonPackConfUnlockConnector(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
+void sendAnswerRemoteStartTransaction(int status, int uniqIdIndex){
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfRemoteStartTransaction conf;
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, uniqIdPool[uniqIdIndex], 37);
+	
+	conf.status = status;
+	jsonPackConfRemoteStartTransaction(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
+void sendAnswerRemoteStopTransaction(int status, int uniqIdIndex){
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfRemoteStopTransaction conf;
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, uniqIdPool[uniqIdIndex], 37);
+	
+	conf.status = status;
+	jsonPackConfRemoteStopTransaction(&rpcPacket, &conf);
 	sendConfMessageToServer(&rpcPacket);
 }
 
@@ -979,6 +1020,12 @@ void netThread(void const * argument){
 					break;
 				case NET_INPUT_MESSAGE_UNLOCK_CONNECTOR_ANSWER:
 					sendAnswerUnlockConnector(message.param1, message.uniqIdIndex);
+					break;
+				case NET_INPUT_MESSAGE_REMOTE_START_TRANSACTION_ANSWER:
+					sendAnswerRemoteStartTransaction(message.param1, message.uniqIdIndex);
+					break;
+				case NET_INPUT_MESSAGE_REMOTE_STOP_TRANSACTION_ANSWER:
+					sendAnswerRemoteStopTransaction(message.param1, message.uniqIdIndex);
 					break;
 			}
 			

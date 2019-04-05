@@ -151,6 +151,18 @@ typedef CiString20Type idToken;
 #define REMOTE_STARTSTOP_STATUS_ACCEPTED 0
 #define REMOTE_STARTSTOP_STATUS_REJECTED 1
 
+#define OCPP_REASON_DEAUTHORIZED    0
+#define OCPP_REASON_EMERGENCY_STOP  1
+#define OCPP_REASON_EV_DISCONNECTED 2
+#define OCPP_REASON_HARD_RESET      3
+#define OCPP_REASON_LOCAL           4
+#define OCPP_REASON_OTHER           5
+#define OCPP_REASON_POWER_LOSS      6
+#define OCPP_REASON_REBOOT          7
+#define OCPP_REASON_REMOTE          8
+#define OCPP_REASON_SOFT_RESET      9
+#define OCPP_REASON_UNLOCK_COMMAND  10
+
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
 	struct _CiString50TypeListItem *next;
@@ -339,6 +351,7 @@ const char *getConfigurationStatusString(int status);
 const char *ocppGetProfileString(int profile);
 const char *ocppGetAuthorizationStatusString(int status);
 const char *ocppGetRemoteStartStopStatusString(int status);
+const char *ocppGetReasonString(int reason);
 
 const char *ocppGetParamNameString(int param);
 

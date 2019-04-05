@@ -326,7 +326,8 @@ void stopTransaction(){
 	request.meterStop = 17;
 	getCurrentTime(&request.timestamp);
 	request.useIdTag = false;
-	request.useReason = false;
+	request.useReason = true;
+	request.reason = OCPP_REASON_LOCAL;
 
 	jsonPackReqStopTransaction(&rpcPacket, &request);
 
@@ -430,13 +431,13 @@ void mainThread(){
 			}
 		}
 		Sleep(5);
-/*
+
 		//Передача показаний счетчика, каждые 10 секунд
 		if(mCnt++ >= 2000){
 			mCnt = 0;
 			sendPowerMeter(++powerConsumed);
 		}
-
+/*
 		if(cnt++ > 1000){
 			sendHeartbeatRequest();
 			cnt = 0;

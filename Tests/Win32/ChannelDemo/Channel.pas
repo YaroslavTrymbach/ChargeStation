@@ -3,7 +3,7 @@ unit Channel;
 interface
 
 uses
-  Contnrs, Classes,
+  Contnrs, Classes, Windows,
   Common, SimpleXML, Automobile;
 
 const
@@ -51,6 +51,27 @@ type
     property OnPowerConsumed: TOnEventPowerConsumed read FOnPowerConsumed write FOnPowerConsumed;
   end;
 
+  TChannelMessage = class
+  private
+    FName: String;
+    FMesStr: String;
+  public
+    constructor Create(Name: String; MesStr: String);
+    property Name: String read FName;
+    property MessageString: String read FMesStr;
+  end;
+
+  TChannelMessenger = class
+  private
+    FMainWnd: Cardinal; //Окно в которое будут посылаться оповешения о приходе новых сообщений
+    FNotifyMessage: Cardinal; // Id сообщения, которое будет отсылаться
+    FCritSect: TRTLCriticalSection;
+    FMesList: TObjectList;
+  public
+    constructor Create(MainWnd: Cardinal; NotifyMessage: Cardinal);
+    destructor Destroy; override;
+  end;
+
   TChannel = class
   private
     fAddress: Integer;
@@ -67,6 +88,7 @@ type
     FPostAction: Integer;
     FVehicleConfigId: Integer;
     FConnectorLocked: Boolean;
+    FChannelMessenger: TChannelMessenger;
     procedure OnPowerConsumed(value: Integer);
     procedure setStatus(const Value: Integer);
     procedure startCharging;
@@ -116,7 +138,7 @@ function ChannelGetStatusString(status: Integer): String;
 implementation
 
 uses
-  SysUtils, Windows;
+  SysUtils;
 
 const
   MODULE_NAME = 'ChargePointConnector';
@@ -202,6 +224,7 @@ end;
 
 procedure TChannel.ConnectAutomobile(Automobile: TAutomobile);
 begin
+  Automobile.SetResistorToInitState;
   FAutomobile := Automobile;
 end;
 
@@ -433,6 +456,7 @@ end;
 
 procedure TChannel.UnconnectAutomobile;
 begin
+  stopChargingThread;
   FAutomobile := nil;
   FChargePower := CHARGE_POWER_NONE;
 end;
@@ -469,6 +493,31 @@ end;
 procedure TChargeThread.Stop;
 begin
   fActive := False;
+end;
+
+{ TChannelMessage }
+
+constructor TChannelMessage.Create(Name, MesStr: String);
+begin
+  FName := Name;
+  FMesStr := MesStr;
+end;
+
+{ TChannelMessenger }
+
+constructor TChannelMessenger.Create(MainWnd: Cardinal; NotifyMessage: Cardinal);
+begin
+  FMainWnd := MainWnd;
+  FNotifyMessage := NotifyMessage;
+  FMesList := TObjectList.Create;
+  InitializeCriticalSection(FCritSect);
+end;
+
+destructor TChannelMessenger.Destroy;
+begin
+  FMesList.Free;
+  DeleteCriticalSection(FCritSect);
+  inherited;
 end;
 
 end.

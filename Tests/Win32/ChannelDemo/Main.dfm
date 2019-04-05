@@ -1,6 +1,6 @@
 object fmMain: TfmMain
-  Left = 138
-  Top = 144
+  Left = 192
+  Top = 145
   Width = 793
   Height = 528
   Caption = 'ChannelsDemo'
@@ -153,7 +153,7 @@ object fmMain: TfmMain
     TabOrder = 1
     object tpProtocol: TToolBar
       Left = 2
-      Top = 379
+      Top = 320
       Width = 317
       Height = 29
       Align = alBottom
@@ -200,7 +200,7 @@ object fmMain: TfmMain
       Left = 2
       Top = 15
       Width = 317
-      Height = 364
+      Height = 305
       Align = alClient
       Font.Charset = RUSSIAN_CHARSET
       Font.Color = clWindowText
@@ -213,7 +213,7 @@ object fmMain: TfmMain
     end
     object GroupBox2: TGroupBox
       Left = 2
-      Top = 408
+      Top = 349
       Width = 317
       Height = 60
       Align = alBottom
@@ -245,6 +245,30 @@ object fmMain: TfmMain
         Text = #1042#1089#1077
         Items.Strings = (
           #1042#1089#1077)
+      end
+    end
+    object GroupBox3: TGroupBox
+      Left = 2
+      Top = 409
+      Width = 317
+      Height = 59
+      Align = alBottom
+      Caption = #1057#1086#1086#1073#1097#1077#1085#1080#1103
+      TabOrder = 3
+      object lbMessages: TListBox
+        Left = 2
+        Top = 15
+        Width = 313
+        Height = 42
+        Align = alClient
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Lucida Console'
+        Font.Style = []
+        ItemHeight = 11
+        ParentFont = False
+        TabOrder = 0
       end
     end
   end

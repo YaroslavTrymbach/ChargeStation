@@ -29,6 +29,7 @@ type
   public
     constructor Create(Cap: Integer);
     function ConsumeEnergy(Value: Integer): Integer;
+    procedure SetResistorToInitState;
     property Capacity: Integer read FCapacity;
     property ChargeLevel: Integer read FChargeLevel write SetChargeLevel;
     property ResistorState: Integer read FResistorState write SetResisorState;
@@ -119,6 +120,12 @@ begin
   FResistorState := Value;
   if Assigned(FOnResistorStateChanged) then
     FOnResistorStateChanged(FResistorState);
+end;
+
+procedure TAutomobile.SetResistorToInitState;
+begin
+  ResistorState := RESISTOR_STATE_B;
+  FChargingAllow := False;
 end;
 
 end.

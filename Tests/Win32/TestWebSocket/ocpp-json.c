@@ -303,11 +303,11 @@ bool jsonPackReqMeterValues(RpcPacket *rpcPacket, RequestMeterValues *req){
 	rpcPacket->action = ACTION_METER_VALUES;
 
 	openJsonFormation(rpcPacket->payload);
-	addInteger(ocppGetParamNameString(OCPP_PARAM_CONNECTOR_ID), req->connectorId);
+	addInteger(paramStr(CONNECTOR_ID), req->connectorId);
 	if(req->useTransactionId){
-		addInteger(ocppGetParamNameString(OCPP_PARAM_TRANSACTION_ID), req->transactionId);
+		addInteger(paramStr(TRANSACTION_ID), req->transactionId);
 	}
-	addMeterValueList(ocppGetParamNameString(OCPP_PARAM_METER_VALUE), req->meterValue);
+	addMeterValueList(paramStr(METER_VALUE), req->meterValue);
 
 
 	closeJsonFormation();
@@ -319,13 +319,13 @@ bool jsonPackReqStartTransaction(RpcPacket *rpcPacket, RequestStartTransaction *
 	rpcPacket->action = ACTION_START_TRANSACTION;
 
 	openJsonFormation(rpcPacket->payload);
-	addInteger(ocppGetParamNameString(OCPP_PARAM_CONNECTOR_ID), req->connectorId);
-	addIdToken(ocppGetParamNameString(OCPP_PARAM_ID_TAG), req->idTag);
-	addInteger(ocppGetParamNameString(OCPP_PARAM_METER_START), req->meterStart);
+	addInteger(paramStr(CONNECTOR_ID), req->connectorId);
+	addIdToken(paramStr(ID_TAG), req->idTag);
+	addInteger(paramStr(METER_START), req->meterStart);
 	addDateTime(paramStr(TIMESTAMP), req->timestamp);
 
 	if(req->useReservationId)
-		addInteger(ocppGetParamNameString(OCPP_PARAM_RESERVATION_ID), req->reservationId);
+		addInteger(paramStr(RESERVATION_ID), req->reservationId);
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;
@@ -343,7 +343,7 @@ bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *re
 	addInteger(paramStr(TRANSACTION_ID), req->transactionId);
 
 	if(req->useReason)
-		addInteger(paramStr(REASON), req->reason);
+		addString(paramStr(REASON), ocppGetReasonString(req->reason));
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;
@@ -432,7 +432,7 @@ bool jsonPackConfRemoteStartTransaction(RpcPacket *rpcPacket, ConfRemoteStartTra
 bool jsonPackConfRemoteStopTransaction(RpcPacket *rpcPacket, ConfRemoteStopTransaction *conf){
 	openJsonFormation(rpcPacket->payload);
 
-	//addInteger(paramStr(LIST_VERSION), conf->listVersion);
+	addString(paramStr(STATUS), ocppGetRemoteStartStopStatusString(conf->status));
 
 	closeJsonFormation();
 	rpcPacket->payloadLen = outCnt;
@@ -623,6 +623,7 @@ bool jsonUnpackReqReset(cJSON* json, RequestReset *req){
 bool jsonUnpackReqRemoteStartTransaction(cJSON* json, RequestRemoteStartTransaction *req){
 	cJSON* jsonElement;
 	jsonElement = json->child;
+	req->connectorId = 0;
 
 	while(jsonElement != NULL){
 		
@@ -643,6 +644,19 @@ bool jsonUnpackReqRemoteStartTransaction(cJSON* json, RequestRemoteStartTransact
 }
 
 bool jsonUnpackReqRemoteStopTransaction(cJSON* json, RequestRemoteStopTransaction *req){
+	cJSON* jsonElement;
+	jsonElement = json->child;
+	
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_Number){
+			if(isParam(jsonElement->string, OCPP_PARAM_TRANSACTION_ID)){
+				req->transactionId = jsonElement->valueint;
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+	
 	return true;
 }
 

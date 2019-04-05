@@ -16,22 +16,20 @@ void Indication_Init(ChargePointConnector *conn){
 void Indication_PrintAllChannels(void){
 	int i;
 	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
-		Indication_PrintChannel(i);
+		Indication_PrintChannel(i, &connector[i]);
 	}
 };
 
-void Indication_PrintChannel(int channel){
+void Indication_PrintChannel(int line, ChargePointConnector *conn){
 	char s[21];
 	char endS[21];
 	int endPos, cnt, i;
-	ChargePointConnector *conn;
 	bool showMeter = false;
 	
 	if(isMessageShown)
 		return;
 	
-	conn = &connector[channel];
-	sprintf(s, "C%d ", channel + 1);
+	sprintf(s, "C%d ", conn->id);
 	
 	switch(conn->status){
 		case CHARGE_POINT_STATUS_AVAILABLE:
@@ -78,7 +76,7 @@ void Indication_PrintChannel(int channel){
 		strcat(s, endS);
 	}
 	
-	Display_PrintStrLeft(channel, s);
+	Display_PrintStrLeft(line, s);
 };
 
 void Indication_ShowMessage(char *s1, char *s2, int time){

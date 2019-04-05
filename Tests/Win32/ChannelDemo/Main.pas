@@ -15,6 +15,8 @@ const
   CAPTION_BUTTON_OPEN   = 'Открыть порт';
   CAPTION_BUTTON_CLOSE  = 'Закрыть порт';
 
+  WM_CHANNEL_NOTIFY = WM_USER + 1;
+
 type
   TfmMain = class(TForm)
     Panel1: TPanel;
@@ -51,6 +53,8 @@ type
     cbApplyFilter: TCheckBox;
     cbChannel: TComboBox;
     Label4: TLabel;
+    GroupBox3: TGroupBox;
+    lbMessages: TListBox;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btOpenClick(Sender: TObject);
@@ -71,6 +75,7 @@ type
     DrawStr : TStrings;
     ComUstError : integer;
     fChannelList: TChannelList;
+    fChannelMessenger: TChannelMessenger;
     procedure LoadIdem;
     procedure ReadFromIniFile;
     procedure WriteToIniFile;
@@ -184,6 +189,8 @@ begin
   EmptyConfig;
 
   TestVal := 80;
+
+  fChannelMessenger := TChannelMessenger.Create(self.Handle, WM_CHANNEL_NOTIFY);
 end;
 
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -812,6 +819,7 @@ procedure TfmMain.FormDestroy(Sender: TObject);
 begin
   fChannelList.Free;
   VehicleConfigList.Free;
+  fChannelMessenger.Free;
 end;
 
 end.
