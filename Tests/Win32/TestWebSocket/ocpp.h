@@ -110,6 +110,9 @@ typedef CiString20Type idToken;
 #define RESET_TYPE_SOFT    1
 #define RESET_TYPE_HARD    2
 
+#define OCPP_RESET_STATUS_ACCEPTED   0
+#define OCPP_RESET_STATUS_REJECTED   1
+
 #define OCPP_PARAM_CURRENT_TIME      0
 #define OCPP_PARAM_INTERVAL          1
 #define OCPP_PARAM_STATUS            2
@@ -326,6 +329,10 @@ typedef struct _ConfRemoteStopTransaction{
 	int status;
 }ConfRemoteStopTransaction;
 
+typedef struct _ConfReset{
+	int status;
+}ConfReset;
+
 typedef struct _ConfStartTransaction{
 	IdTagInfo idTagInfo;
 	int transactionId;
@@ -352,6 +359,7 @@ const char *ocppGetProfileString(int profile);
 const char *ocppGetAuthorizationStatusString(int status);
 const char *ocppGetRemoteStartStopStatusString(int status);
 const char *ocppGetReasonString(int reason);
+const char *ocppGetResetStatusString(int status);
 
 const char *ocppGetParamNameString(int param);
 

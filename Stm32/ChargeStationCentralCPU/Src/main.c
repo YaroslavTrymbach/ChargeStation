@@ -679,6 +679,16 @@ void acceptAuth(idToken tagId, bool success){
 	}
 }
 
+void makeReboot(void){
+	HAL_NVIC_SystemReset();
+}
+
+void processChannelFullCycleNotify(int reason){
+	if(reason == FULL_CYCLE_NOTIFY_REASON_REBOOT){
+		makeReboot();
+	}
+}
+
 void processEnabledTag(idToken cardId){
 	NetInputMessage netMessage;
 	char s[32];
@@ -741,6 +751,7 @@ void sendRemoteStopTransactionAnswer(int status, int uniqIdIndex){
 	NET_sendInputMessage(&netMessage);
 }
 
+
 void remoteStartTransaction(GeneralMessage *message){
 	bool authRemoteTxRequests;
 	int uniqIdIndex;
@@ -799,6 +810,29 @@ void remoteStopTransaction(GeneralMessage *message){
 	}
 }
 
+
+
+void remoteReset(GeneralMessage *message){
+	int resetType;
+	int i;
+	ChargePointConnector *conn;
+
+	resetType = message->param1;
+	
+	/*if(resetType == RESET_TYPE_HARD){
+		resetStatus = OCPP_RESET_STATUS_ACCEPTED;
+	}*/
+	
+	for(i = 0; i < CONFIGURATION_NUMBER_OF_CONNECTORS; i++){
+		conn = &connector[i];
+		conn->isNeedReset = true;
+	}
+	
+	Channel_requestFullCycleNotify(FULL_CYCLE_NOTIFY_REASON_REBOOT);
+	
+	//makeReboot();
+}
+
 void processMessageFromNET(GeneralMessage *message){
 	NetInputMessage netMessage;
 	printf("Main task. Message from NET is got\n");
@@ -826,6 +860,9 @@ void processMessageFromNET(GeneralMessage *message){
 			break;
 		case MESSAGE_NET_REMOTE_STOP_TRANSACTION:
 			remoteStopTransaction(message);
+			break;
+		case MESSAGE_NET_RESET:
+			remoteReset(message);
 			break;
 	}
 }
@@ -914,7 +951,10 @@ void processMessageFromChannels(GeneralMessage *message){
 			break;
 		case MESSAGE_CHANNEL_UNLOCK_CONNECTOR:
 			finishUnlockConnector(message);
-			break;			
+			break;
+		case MESSAGE_CHANNEL_FULL_CYCLE_NOTIFY:
+			processChannelFullCycleNotify(message->param1);
+			break;	
 	}
 }
 

@@ -103,6 +103,9 @@ const char* UNLOCK_STATUS_STR_NOT_SUPPORTED = "NotSupported\0";
 const char* REMOTE_STARTSTOP_STATUS_STR_ACCEPTED = "Accepted\0";
 const char* REMOTE_STARTSTOP_STATUS_STR_REJECTED = "Rejected\0";
 
+const char* OCPP_RESET_STATUS_STR_ACCEPTED = "Accepted\0";
+const char* OCPP_RESET_STATUS_STR_REJECTED = "Rejected\0";
+
 const char* CONFIGURATION_STATUS_STR_ACCEPTED        = "Accepted\0";
 const char* CONFIGURATION_STATUS_STR_REJECTED        = "Rejected\0";
 const char* CONFIGURATION_STATUS_STR_REBOOT_REQUIRED = "RebootRequired\0";
@@ -328,6 +331,19 @@ const char *ocppGetRemoteStartStopStatusString(int status){
 			break;
 		case REMOTE_STARTSTOP_STATUS_REJECTED:
 			res = REMOTE_STARTSTOP_STATUS_STR_REJECTED;
+			break;
+	}
+	return res;
+}
+
+const char *ocppGetResetStatusString(int status){
+	const char* res = EMPTY_STRING;
+	switch(status){
+		case OCPP_RESET_STATUS_ACCEPTED:
+			res = OCPP_RESET_STATUS_STR_ACCEPTED;
+			break;
+		case OCPP_RESET_STATUS_REJECTED:
+			res = OCPP_RESET_STATUS_STR_REJECTED;
 			break;
 	}
 	return res;

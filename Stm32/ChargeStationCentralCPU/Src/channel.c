@@ -26,6 +26,7 @@ static QueueHandle_t hMainQueue;
 #define COMMAND_GET_PS_STATE     5
 #define COMMAND_UNLOCK_CONNECTOR 6
 #define COMMAND_GET_LOCK_STATE   7
+#define COMMAND_RESET            8
 
 #define FIFO_IN_SIZE 128
 unsigned char fifo_in[FIFO_IN_SIZE];
@@ -35,6 +36,7 @@ bool fifo_in_is_full = false;
 static ChargePointConnector *connector;
 static int connectorCount;
 uint32_t maxWaitAnswerTick;
+bool requestFullCycleNotifyReboot = false;
 
 void usart_infifo_put(uint8_t c){
 	fifo_in[fifo_in_pos_end++] = c;
@@ -263,6 +265,9 @@ static void readThread(void const *argument){
 					case COMMAND_UNLOCK_CONNECTOR:
 						isSuccess = processAnswerUnlockConnector(requestConnector, answer, size, startChar);
 						break;
+					case COMMAND_RESET:
+						isSuccess = true;
+						break;
 				}
 				
 				if(isSuccess)
@@ -296,6 +301,9 @@ bool sendCommandToChannel(ChargePointConnector *conn, int command, char *data){
 		case COMMAND_UNLOCK_CONNECTOR:
 			sprintf(sendStr, "#0%dU\r", conn->address);
 			break;
+		case COMMAND_RESET:
+			sprintf(sendStr, "#0%dR\r", conn->address);
+			break;
 		default:
 			return false;
 	}
@@ -313,6 +321,8 @@ void dispatcherThread(void const * argument){
 	int prevValue;
 	GeneralMessage message;
 	ChargePointConnector *conn;
+	bool needSendFullCycleNotify = false;
+	int fullCycleNotifyReason;
 	
 	maxWaitAnswerTick = pdMS_TO_TICKS(20);
 	
@@ -349,6 +359,12 @@ void dispatcherThread(void const * argument){
 			}
 		}
 		
+		if(requestFullCycleNotifyReboot){
+			requestFullCycleNotifyReboot = false;
+			needSendFullCycleNotify = true;
+			fullCycleNotifyReason = FULL_CYCLE_NOTIFY_REASON_REBOOT;
+		}
+		
 		for(i = 0; i < connectorCount; i++){
 			conn = &connector[i];
 			
@@ -383,6 +399,13 @@ void dispatcherThread(void const * argument){
 					sendMessage(&message);
 				}
 			}
+			
+			//Reset
+			if(conn->isNeedReset){
+				if(sendCommandToChannel(conn, COMMAND_RESET, NULL)){
+					conn->isNeedReset = false;
+				}
+			}
 
 			//Meter value
 			if(conn->isMeterValueRequest){
@@ -393,6 +416,13 @@ void dispatcherThread(void const * argument){
 					sendMessage(&message);
 				}
 			}
+		}
+		
+		if(needSendFullCycleNotify){
+			needSendFullCycleNotify = false;
+			message.messageId = MESSAGE_CHANNEL_FULL_CYCLE_NOTIFY;
+			message.param1 = fullCycleNotifyReason;
+			sendMessage(&message);
 		}
 	}
 }
@@ -435,6 +465,10 @@ void Channel_unlockConnector(int ch, int uniqMesInd){
 		connector[ch].isNeedUnlockConnector = true;
 		connector[ch].uniqMesIndUnlockConnector = uniqMesInd;
 	}
+}
+
+void Channel_requestFullCycleNotify(int reason){
+	requestFullCycleNotifyReboot = true;
 }
 
 void USART2_IRQHandler(void){	

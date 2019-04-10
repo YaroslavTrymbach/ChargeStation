@@ -70,6 +70,9 @@ type
   public
     constructor Create(MainWnd: Cardinal; NotifyMessage: Cardinal);
     destructor Destroy; override;
+
+    procedure pushMessage(mes: TChannelMessage);
+    function popMessage: TChannelMessage;
   end;
 
   TChannel = class
@@ -96,6 +99,8 @@ type
     procedure lockConnector;
     function unlockConnector: Boolean;
     function GetAutomobileConnected: Boolean;
+    procedure MakeReset;
+    procedure SendChannelMessage(mes: String);
   public
     public Constructor Create;
     property Address: Integer read fAddress;
@@ -104,6 +109,7 @@ type
     property MeterOn: Boolean read fMeterOn;
     property MeterValue: Integer read fMeterValue;
     property VehicleConfigId: Integer read FVehicleConfigId;
+    property ChannelMessenger: TChannelMessenger read FChannelMessenger write FChannelMessenger;
     function Init(node: IXmlNode): Boolean;
     procedure Load(node: IXmlNode);
     procedure Save(node: IXmlNode);
@@ -226,11 +232,14 @@ procedure TChannel.ConnectAutomobile(Automobile: TAutomobile);
 begin
   Automobile.SetResistorToInitState;
   FAutomobile := Automobile;
+
+  SendChannelMessage('Automobile connected');
 end;
 
 constructor TChannel.Create;
 begin
   FAutomobile := nil;
+  FChannelMessenger := nil;
   FChargePower := CHARGE_POWER_NONE;
 end;
 
@@ -282,6 +291,11 @@ end;
 procedure TChannel.lockConnector;
 begin
   FConnectorLocked := True;
+end;
+
+procedure TChannel.MakeReset;
+begin
+  SendChannelMessage('Reset');
 end;
 
 procedure TChannel.OnPowerConsumed(value: Integer);
@@ -379,9 +393,17 @@ begin
       else if(Str = 'U') then
       begin
         if unlockConnector then
-          OutStr := '!' + fAdrStr
+        begin
+          FPostAction := POST_ACTION_HALT_CHARGING;
+          OutStr := '!' + fAdrStr;
+        end
         else
           OutStr := '?' + fAdrStr;
+      end
+      else if(Str = 'R') then
+      begin
+        makeReset;
+        OutStr := '!' + fAdrStr;
       end
       else
         OutStr := '?' + fAdrStr;
@@ -397,6 +419,17 @@ begin
   node.SetIntAttr(ATTRIB_STATUS, fStatus);
   node.SetBoolAttr(ATTRIB_METER_ON, fMeterOn);
   node.SetIntAttr(ATTRIB_METER_VALUE, fMeterValue);
+end;
+
+procedure TChannel.SendChannelMessage(mes: String);
+var
+  ChannelName: String;
+begin
+  if FChannelMessenger = nil then
+    Exit;
+
+  ChannelName := 'Ch' + fAdrStr;
+  FChannelMessenger.pushMessage(TChannelMessage.Create(ChannelName, mes));
 end;
 
 procedure TChannel.setMeterOn(isOn: Boolean);
@@ -459,12 +492,15 @@ begin
   stopChargingThread;
   FAutomobile := nil;
   FChargePower := CHARGE_POWER_NONE;
+
+  SendChannelMessage('Automobile unconnected');
 end;
 
 function TChannel.unlockConnector: Boolean;
 begin
   FConnectorLocked := False;
 
+  SendChannelMessage('Unlock connector');
   Result := not FConnectorLocked;
 end;
 
@@ -518,6 +554,30 @@ begin
   FMesList.Free;
   DeleteCriticalSection(FCritSect);
   inherited;
+end;
+
+function TChannelMessenger.popMessage: TChannelMessage;
+var
+  res: TChannelMessage;
+begin
+  if(FMesList.Count > 0) then
+  begin
+    EnterCriticalSection(FCritSect);
+    res := FMesList.First as TChannelMessage;
+    FMesList.Extract(res);
+    LeaveCriticalSection(FCritSect);
+    Result := res;
+  end
+  else
+    Result := nil;
+end;
+
+procedure TChannelMessenger.pushMessage(mes: TChannelMessage);
+begin
+  EnterCriticalSection(FCritSect);
+  FMesList.Add(mes);
+  LeaveCriticalSection(FCritSect);
+  PostMessage(FMainWnd, FNotifyMessage, 0, 0);
 end;
 
 end.

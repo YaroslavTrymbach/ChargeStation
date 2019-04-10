@@ -93,6 +93,8 @@ type
     procedure ShowComPortUstError;
     procedure rwIni(bRead : boolean);
     procedure SetUIComPort;
+  protected
+    procedure OnChannelMessengerNotify(var Message: TMessage); message WM_CHANNEL_NOTIFY;
   public
     { Public declarations }
   end;
@@ -549,6 +551,7 @@ begin
     if (aElem2.NodeName = NodeNameChannel) then
     begin
       channel := TChannel.Create;
+      channel.ChannelMessenger := FChannelMessenger;
       if(channel.Init(aElem2)) then
         fChannelList.Add(channel)
       else
@@ -820,6 +823,21 @@ begin
   fChannelList.Free;
   VehicleConfigList.Free;
   fChannelMessenger.Free;
+end;
+
+procedure TfmMain.OnChannelMessengerNotify(var Message: TMessage);
+var
+  ChMes: TChannelMessage;
+  S: String;
+begin
+  ChMes := FChannelMessenger.popMessage;
+  while ChMes <> nil do
+  begin
+    S := ChMes.Name + ': ' + ChMes.MessageString;
+    lbMessages.Items.Add(S);
+    ChMes.Free;
+    ChMes := FChannelMessenger.popMessage;
+  end;
 end;
 
 end.

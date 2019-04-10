@@ -13,6 +13,7 @@ typedef struct _ChargeTransaction{
 	int meterValue;
 	int startMeterValue;
 	int stopMeterValue;
+	int stopReason;
 }ChargeTransaction;
 
 void chargeTransaction_reset(ChargeTransaction *trans);

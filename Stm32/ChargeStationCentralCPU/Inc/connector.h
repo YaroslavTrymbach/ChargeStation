@@ -37,6 +37,7 @@ typedef struct _ChargePointConnector{
 	bool isNeedStartCharging;
 	bool isNeedHaltCharging;
 	bool isNeedUnlockConnector;
+	bool isNeedReset;
 	int uniqMesIndUnlockConnector;
 	int pilotSygnalLevel;
 	int pilotSygnalPwm;

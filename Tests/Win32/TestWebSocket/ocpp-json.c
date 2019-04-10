@@ -439,6 +439,16 @@ bool jsonPackConfRemoteStopTransaction(RpcPacket *rpcPacket, ConfRemoteStopTrans
 	return true;
 }
 
+bool jsonPackConfReset(RpcPacket *rpcPacket, ConfReset *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addString(paramStr(STATUS), ocppGetResetStatusString(conf->status));
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool isParam(const char *s, int paramName){
 	const char *name;
 	bool res;

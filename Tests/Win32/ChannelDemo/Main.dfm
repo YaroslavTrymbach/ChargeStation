@@ -153,7 +153,7 @@ object fmMain: TfmMain
     TabOrder = 1
     object tpProtocol: TToolBar
       Left = 2
-      Top = 320
+      Top = 279
       Width = 317
       Height = 29
       Align = alBottom
@@ -200,7 +200,7 @@ object fmMain: TfmMain
       Left = 2
       Top = 15
       Width = 317
-      Height = 305
+      Height = 264
       Align = alClient
       Font.Charset = RUSSIAN_CHARSET
       Font.Color = clWindowText
@@ -213,7 +213,7 @@ object fmMain: TfmMain
     end
     object GroupBox2: TGroupBox
       Left = 2
-      Top = 349
+      Top = 308
       Width = 317
       Height = 60
       Align = alBottom
@@ -249,9 +249,9 @@ object fmMain: TfmMain
     end
     object GroupBox3: TGroupBox
       Left = 2
-      Top = 409
+      Top = 368
       Width = 317
-      Height = 59
+      Height = 100
       Align = alBottom
       Caption = #1057#1086#1086#1073#1097#1077#1085#1080#1103
       TabOrder = 3
@@ -259,7 +259,7 @@ object fmMain: TfmMain
         Left = 2
         Top = 15
         Width = 313
-        Height = 42
+        Height = 83
         Align = alClient
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText

@@ -21,6 +21,7 @@ bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *co
 bool jsonPackConfGetLocalListVersion(RpcPacket *rpcPacket, ConfGetLocalListVersion *conf);
 bool jsonPackConfRemoteStartTransaction(RpcPacket *rpcPacket, ConfRemoteStartTransaction *conf);
 bool jsonPackConfRemoteStopTransaction(RpcPacket *rpcPacket, ConfRemoteStopTransaction *conf);
+bool jsonPackConfReset(RpcPacket *rpcPacket, ConfReset *conf);
 bool jsonPackConfUnlockConnector(RpcPacket *rpcPacket, ConfUnlockConnector *conf);
 
 bool jsonUnpackConfAuthorize(cJSON* json, ConfAuthorize *conf);

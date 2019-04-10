@@ -776,6 +776,30 @@ void processReqRemoteStopTransaction(RpcPacket* packet, cJSON* json){
 	jsonUnpackReqRemoteStopTransaction(json, &request);
 }
 
+void processReqReset(RpcPacket* packet, cJSON* json){
+	RequestReset request;
+
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfReset conf;
+
+	jsonUnpackReqReset(json, &request);
+
+	if(request.type == RESET_TYPE_HARD){
+		conf.status = OCPP_RESET_STATUS_ACCEPTED;
+	}
+	else{
+		conf.status = OCPP_RESET_STATUS_REJECTED;
+	}
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfReset(&rpcPacket, &conf);
+	sendConfMessage(&rpcPacket);
+}
+
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
 	cJSON* jsonElement;
@@ -848,6 +872,9 @@ void processRPCPacket(RpcPacket* packet){
 				break;
 			case ACTION_REMOTE_STOP_TRANSACTION:
 				processReqRemoteStopTransaction(packet, jsonRoot);
+				break;
+			case ACTION_RESET:
+				processReqReset(packet, jsonRoot);
 				break;
 		}
 

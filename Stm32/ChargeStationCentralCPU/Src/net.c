@@ -497,6 +497,30 @@ void processReqRemoteStopTransaction(RpcPacket* packet, cJSON* json){
 	sendMessageToMainDispatcher(&message);
 }
 
+void processReqReset(RpcPacket* packet, cJSON* json){
+	RequestReset request;
+	GeneralMessage message;
+	
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfReset conf;
+	
+	jsonUnpackReqReset(json, &request);
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, packet->uniqueId, 37);
+	
+	conf.status = OCPP_RESET_STATUS_ACCEPTED;
+	jsonPackConfReset(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+	
+	message.messageId = MESSAGE_NET_RESET;
+	message.param1 = request.type;
+
+	sendMessageToMainDispatcher(&message);
+}
+
 void processConfBootNotification(cJSON* json){
 	ConfBootNotifiaction conf;
 	GeneralMessage message;
@@ -616,6 +640,9 @@ void processRPCPacket(RpcPacket* packet){
 				break;
 			case ACTION_REMOTE_STOP_TRANSACTION:
 				processReqRemoteStopTransaction(packet, jsonRoot);
+				break;
+			case ACTION_RESET:
+				processReqReset(packet, jsonRoot);
 				break;
 		}
 		if(++unicIdPoolPos >= UNIQ_ID_POOL_SIZE)

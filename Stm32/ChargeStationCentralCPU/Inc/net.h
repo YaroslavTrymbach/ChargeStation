@@ -9,6 +9,7 @@
 #define MESSAGE_NET_UNLOCK_CONNECTOR         3
 #define MESSAGE_NET_REMOTE_START_TRANSACTION 4
 #define MESSAGE_NET_REMOTE_STOP_TRANSACTION  5
+#define MESSAGE_NET_RESET                    6
 
 #define NET_INPUT_MESSAGE_RECONNECT                       1
 #define NET_INPUT_MESSAGE_AUTHORIZE                       2
