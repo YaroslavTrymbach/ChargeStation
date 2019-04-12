@@ -166,6 +166,14 @@ typedef CiString20Type idToken;
 #define OCPP_REASON_SOFT_RESET      9
 #define OCPP_REASON_UNLOCK_COMMAND  10
 
+#define OCPP_AVAILABILITY_TYPE_UNKNOWN     0 
+#define OCPP_AVAILABILITY_TYPE_INOPERATIVE 1 
+#define OCPP_AVAILABILITY_TYPE_OPERATIVE   2
+
+#define OCPP_AVAILABILITY_STATUS_ACCEPTED  0
+#define OCPP_AVAILABILITY_STATUS_REJECTED  1
+#define OCPP_AVAILABILITY_STATUS_SCHEDULED 2
+
 typedef struct _CiString50TypeListItem{
 	CiString50Type data;
 	struct _CiString50TypeListItem *next;
@@ -206,6 +214,11 @@ typedef struct _RequestBootNotification {
    CiString20Type chargePointModel;
    CiString20Type chargePointVendor;
 }RequestBootNotification;
+
+typedef struct _RequestChangeAvailability{
+	int connectorId;
+	int type;
+}RequestChangeAvailability;
 
 typedef struct _RequestChangeConfiguration{
 	CiString50Type key;
@@ -298,6 +311,10 @@ typedef struct _ConfAuthorize{
 	IdTagInfo idTagInfo;
 }ConfAuthorize;
 
+typedef struct _ConfChangeAvailability{
+	int status;
+}ConfChangeAvailability;
+
 typedef struct _ConfBootNotifiaction{
 	dateTime currentTime;
 	int interval;
@@ -360,6 +377,7 @@ const char *ocppGetAuthorizationStatusString(int status);
 const char *ocppGetRemoteStartStopStatusString(int status);
 const char *ocppGetReasonString(int reason);
 const char *ocppGetResetStatusString(int status);
+const char *ocppGetAvailabilityStatusString(int status);
 
 const char *ocppGetParamNameString(int param);
 
@@ -368,6 +386,7 @@ int occpConfigKeyFromString(const char* s);
 int occpGetRegistrationStatusFromString(const char* s);
 int occpGetAuthorizationStatusFromString(const char* s);
 int occpGetResetTypeFromString(const char* s);
+int occpGetAvailabiltyTypeFromString(const char* s);
 
 void ocppFreeCiString50TypeList(CiString50TypeListItem *list);
 void ocppFreeKeyValueList(KeyValueListItem *list);

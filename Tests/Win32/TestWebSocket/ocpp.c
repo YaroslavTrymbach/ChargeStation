@@ -133,6 +133,13 @@ const char* OCPP_REASON_STR_REMOTE          = "Remote\0";
 const char* OCPP_REASON_STR_SOFT_RESET      = "SoftReset\0";
 const char* OCPP_REASON_STR_UNLOCK_COMMAND  = "UnlockCommand\0";
 
+const char* OCPP_AVAILABILITY_TYPE_STR_INOPERATIVE = "Inoperative\0"; 
+const char* OCPP_AVAILABILITY_TYPE_STR_OPERATIVE   = "Operative\0";
+
+const char* OCPP_AVAILABILITY_STATUS_STR_ACCEPTED  = "Accepted\0";
+const char* OCPP_AVAILABILITY_STATUS_STR_REJECTED  = "Rejected\0";
+const char* OCPP_AVAILABILITY_STATUS_STR_SCHEDULED = "Scheduled\0";
+
 #define BOOLEAN_STR_FALSE "false\0"
 #define BOOLEAN_STR_TRUE  "true\0"
 
@@ -349,6 +356,22 @@ const char *ocppGetResetStatusString(int status){
 	return res;
 }
 
+const char *ocppGetAvailabilityStatusString(int status){
+	const char* res = EMPTY_STRING;
+	switch(status){
+		case OCPP_AVAILABILITY_STATUS_ACCEPTED:
+			res = OCPP_AVAILABILITY_STATUS_STR_ACCEPTED;
+			break;
+		case OCPP_AVAILABILITY_STATUS_REJECTED:
+			res = OCPP_AVAILABILITY_STATUS_STR_REJECTED;
+			break;
+		case OCPP_AVAILABILITY_STATUS_SCHEDULED:
+			res = OCPP_AVAILABILITY_STATUS_STR_SCHEDULED;
+			break;
+	}
+	return res;
+}
+
 const char *ocppGetParamNameString(int param){
 	const char* res = EMPTY_STRING;
 	switch(param){
@@ -446,6 +469,14 @@ int occpGetResetTypeFromString(const char* s){
 	if(strcmp(s, RESET_TYPE_STR_HARD) == 0)
 		return RESET_TYPE_HARD;
 	return RESET_TYPE_UNKNOWN;
+}
+
+int occpGetAvailabiltyTypeFromString(const char* s){
+	if(strcmp(s, OCPP_AVAILABILITY_TYPE_STR_INOPERATIVE) == 0)
+		return OCPP_AVAILABILITY_TYPE_INOPERATIVE;
+	if(strcmp(s, OCPP_AVAILABILITY_TYPE_STR_OPERATIVE) == 0)
+		return OCPP_AVAILABILITY_TYPE_OPERATIVE;
+	return OCPP_AVAILABILITY_TYPE_UNKNOWN;
 }
 
 void ocppFreeCiString50TypeList(CiString50TypeListItem *list){

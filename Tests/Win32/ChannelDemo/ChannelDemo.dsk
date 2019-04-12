@@ -6,11 +6,11 @@ File_3=SourceModule,'D:\MyDelphi\Delphi6\IdemDemo\Main.pas',0,1,245,31,250,1,0
 File_4=SourceModule,'D:\MyDelphi\Delphi6\IdemDemo\Idem.pas',0,1,268,19,361,0,0
 
 [Modules]
-Module0=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
-Module1=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas
+Module0=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas
+Module1=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChangeStatus.pas
 Module2=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas
-Module3=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChangeStatus.pas
-Module4=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\SimpleXML.pas
+Module3=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\SimpleXML.pas
+Module4=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas
 Module5=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\VehicleConfig.pas
 Module6=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Automobile.pas
 Module7=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\DataThreads.pas
@@ -18,17 +18,7 @@ Module8=D:\ChargeStation\Git\Tests\Win32\ChannelDemo\ChannelDemo.dpr
 Count=9
 EditWindowCount=1
 
-[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas]
-ModuleType=SourceModule
-FormState=0
-FormOnTop=0
-
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Main.pas]
-ModuleType=SourceModule
-FormState=1
-FormOnTop=0
-
-[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas]
 ModuleType=SourceModule
 FormState=1
 FormOnTop=0
@@ -38,7 +28,17 @@ ModuleType=SourceModule
 FormState=1
 FormOnTop=1
 
+[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\IdemFrame.pas]
+ModuleType=SourceModule
+FormState=1
+FormOnTop=0
+
 [D:\ChargeStation\Git\Tests\Win32\ChannelDemo\SimpleXML.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[D:\ChargeStation\Git\Tests\Win32\ChannelDemo\Channel.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
@@ -69,7 +69,7 @@ FormOnTop=0
 
 [EditWindow0]
 ViewCount=9
-CurrentView=7
+CurrentView=2
 View0=0
 View1=1
 View2=2

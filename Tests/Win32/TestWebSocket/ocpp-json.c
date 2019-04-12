@@ -449,6 +449,16 @@ bool jsonPackConfReset(RpcPacket *rpcPacket, ConfReset *conf){
 	return true;
 }
 
+bool jsonPackConfChangeAvailability(RpcPacket *rpcPacket, ConfChangeAvailability *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addString(paramStr(STATUS), ocppGetAvailabilityStatusString(conf->status));
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool isParam(const char *s, int paramName){
 	const char *name;
 	bool res;
@@ -542,6 +552,27 @@ bool jsonUnpackConfStartTransaction(cJSON* json, ConfStartTransaction *conf){
 		else if(jsonElement->type == cJSON_Number){
 			if(isParam(jsonElement->string, OCPP_PARAM_TRANSACTION_ID)){
 				conf->transactionId = jsonElement->valueint;
+			}
+		}
+		jsonElement = jsonElement->next;
+	}
+	return true;
+}
+
+bool jsonUnpackReqChangeAvailability(cJSON* json, RequestChangeAvailability *req){
+	cJSON* jsonElement;
+	jsonElement = json->child;
+
+	while(jsonElement != NULL){
+		
+		if(jsonElement->type == cJSON_Number){
+			if(isParam(jsonElement->string, OCPP_PARAM_CONNECTOR_ID)){
+				req->connectorId = jsonElement->valueint;
+			}
+		}
+		else if(jsonElement->type == cJSON_String){
+			if(isParam(jsonElement->string, OCPP_PARAM_TYPE)){
+				req->type = occpGetAvailabiltyTypeFromString(jsonElement->valuestring);
 			}
 		}
 		jsonElement = jsonElement->next;

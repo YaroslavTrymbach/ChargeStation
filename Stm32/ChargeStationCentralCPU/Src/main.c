@@ -751,6 +751,14 @@ void sendRemoteStopTransactionAnswer(int status, int uniqIdIndex){
 	NET_sendInputMessage(&netMessage);
 }
 
+void sendChangeAvailabilityAnswer(int status, int uniqIdIndex){
+	NetInputMessage netMessage;
+	netMessage.messageId = NET_INPUT_MESSAGE_CHANGE_AVAILABILITY;
+	netMessage.param1 = status;
+	netMessage.uniqIdIndex = uniqIdIndex;
+	NET_sendInputMessage(&netMessage);
+}
+
 
 void remoteStartTransaction(GeneralMessage *message){
 	bool authRemoteTxRequests;
@@ -833,6 +841,18 @@ void remoteReset(GeneralMessage *message){
 	//makeReboot();
 }
 
+void changeAvalability(GeneralMessage *message){
+	int availType;
+	int connId;
+	int uniqIdIndex;
+	
+	availType = message->param1 & 0xFF;
+	connId = (message->param1 >> 8) & 0xFF; 
+	uniqIdIndex = message->param2;
+	
+	sendChangeAvailabilityAnswer(OCPP_AVAILABILITY_STATUS_REJECTED, uniqIdIndex);
+}
+
 void processMessageFromNET(GeneralMessage *message){
 	NetInputMessage netMessage;
 	printf("Main task. Message from NET is got\n");
@@ -863,6 +883,9 @@ void processMessageFromNET(GeneralMessage *message){
 			break;
 		case MESSAGE_NET_RESET:
 			remoteReset(message);
+			break;
+		case MESSAGE_NET_CHANGE_AVAILABILITY:
+			changeAvalability(message);
 			break;
 	}
 }

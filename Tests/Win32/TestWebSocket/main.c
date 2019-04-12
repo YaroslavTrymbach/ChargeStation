@@ -741,6 +741,42 @@ void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
 	sendConfMessage(&rpcPacket);
 }
 
+
+
+void processReqChangeAvailability(RpcPacket* packet, cJSON* json){
+	RequestChangeAvailability request;
+
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfChangeAvailability conf;
+
+	jsonUnpackReqChangeAvailability(json, &request);
+
+	if(request.type == OCPP_AVAILABILITY_TYPE_INOPERATIVE){
+		printf("ChangeAvalability Inoperative\n");
+		conf.status = OCPP_AVAILABILITY_STATUS_ACCEPTED;
+	}
+	else if(request.type == OCPP_AVAILABILITY_TYPE_OPERATIVE){
+		printf("ChangeAvalability Operative\n");
+		conf.status = OCPP_AVAILABILITY_STATUS_REJECTED;
+	}
+	else{
+		printf("ChangeAvalability Unknown\n");
+	}
+
+	if(request.connectorId == 2){
+		conf.status = OCPP_AVAILABILITY_STATUS_SCHEDULED;
+	}
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfChangeAvailability(&rpcPacket, &conf);
+	sendConfMessage(&rpcPacket);
+}
+
+
 void processReqUnlockConnector(RpcPacket* packet, cJSON* json){
 	RequestUnlockConnector request;
 	jsonUnpackReqUnlockConnector(json, &request);
@@ -866,6 +902,9 @@ void processRPCPacket(RpcPacket* packet){
 				break;
 			case ACTION_CHANGE_CONFIGURATION:
 				processReqChangeConfiguration(packet, jsonRoot);
+				break;
+			case ACTION_CHANGE_AVAILABILITY:
+				processReqChangeAvailability(packet, jsonRoot);
 				break;
 			case ACTION_REMOTE_START_TRANSACTION:
 				processReqRemoteStartTransaction(packet, jsonRoot);

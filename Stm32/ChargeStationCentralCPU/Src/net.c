@@ -351,6 +351,19 @@ void processReqGetConfiguration(RpcPacket* packet, cJSON* json){
 	sendConfMessageToServer(&rpcPacket);	
 }
 
+void processReqChangeAvailability(RpcPacket* packet, cJSON* json){
+	RequestChangeAvailability request; 
+	GeneralMessage message;
+	
+	jsonUnpackReqChangeAvailability(json, &request);
+	
+	message.messageId = MESSAGE_NET_CHANGE_AVAILABILITY;
+	message.param1 = request.type | (request.connectorId << 8);
+	message.param2 = unicIdPoolPos;
+
+	sendMessageToMainDispatcher(&message);
+}	
+
 void processReqChangeConfiguration(RpcPacket* packet, cJSON* json){
 	RequestChangeConfiguration request; 
 	int iNewValue;
@@ -625,6 +638,9 @@ void processRPCPacket(RpcPacket* packet){
 		switch(packet->action){
 			case ACTION_GET_CONFIGURATION:
 				processReqGetConfiguration(packet, jsonRoot);	
+				break;
+			case ACTION_CHANGE_AVAILABILITY:
+				processReqChangeAvailability(packet, jsonRoot);	
 				break;
 			case ACTION_CHANGE_CONFIGURATION:
 				processReqChangeConfiguration(packet, jsonRoot);
@@ -933,6 +949,20 @@ void sendAnswerRemoteStopTransaction(int status, int uniqIdIndex){
 	sendConfMessageToServer(&rpcPacket);
 }
 
+void sendAnswerChangeAvailability(int status, int uniqIdIndex){
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfChangeAvailability conf;
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, uniqIdPool[uniqIdIndex], 37);
+	
+	conf.status = status;
+	jsonPackConfChangeAvailability(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
 void reconnect(){
 	printf("NET: Reconnect\n");
 	suspendReadThread();
@@ -1053,6 +1083,9 @@ void netThread(void const * argument){
 					break;
 				case NET_INPUT_MESSAGE_REMOTE_STOP_TRANSACTION_ANSWER:
 					sendAnswerRemoteStopTransaction(message.param1, message.uniqIdIndex);
+					break;
+				case NET_INPUT_MESSAGE_CHANGE_AVAILABILITY:
+					sendAnswerChangeAvailability(message.param1, message.uniqIdIndex);
 					break;
 			}
 			
