@@ -11,6 +11,7 @@
 #define MESSAGE_NET_REMOTE_STOP_TRANSACTION  5
 #define MESSAGE_NET_RESET                    6
 #define MESSAGE_NET_CHANGE_AVAILABILITY      7
+#define MESSAGE_NET_CLEAR_CACHE              8
 
 #define NET_INPUT_MESSAGE_RECONNECT                       1
 #define NET_INPUT_MESSAGE_AUTHORIZE                       2
@@ -22,6 +23,7 @@
 #define NET_INPUT_MESSAGE_REMOTE_START_TRANSACTION_ANSWER 8
 #define NET_INPUT_MESSAGE_REMOTE_STOP_TRANSACTION_ANSWER  9
 #define NET_INPUT_MESSAGE_CHANGE_AVAILABILITY             10
+#define NET_INPUT_MESSAGE_CLEAR_CACHE                     11
 
 typedef struct _NetInputMessage{
 	uint8_t messageId;

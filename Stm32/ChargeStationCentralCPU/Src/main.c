@@ -759,6 +759,14 @@ void sendChangeAvailabilityAnswer(int status, int uniqIdIndex){
 	NET_sendInputMessage(&netMessage);
 }
 
+void sendClearCacheAnswer(int status, int uniqIdIndex){
+	NetInputMessage netMessage;
+	netMessage.messageId = NET_INPUT_MESSAGE_CLEAR_CACHE;
+	netMessage.param1 = status;
+	netMessage.uniqIdIndex = uniqIdIndex;
+	NET_sendInputMessage(&netMessage);
+}
+
 
 void remoteStartTransaction(GeneralMessage *message){
 	bool authRemoteTxRequests;
@@ -853,6 +861,16 @@ void changeAvalability(GeneralMessage *message){
 	sendChangeAvailabilityAnswer(OCPP_AVAILABILITY_STATUS_REJECTED, uniqIdIndex);
 }
 
+void clearAuthCache(GeneralMessage *message){
+	int uniqIdIndex;
+	int status;
+	
+	uniqIdIndex = message->param2;
+	
+	status = OCPP_CLEAR_CACHE_STATUS_REJECTED;
+	sendClearCacheAnswer(status, uniqIdIndex);
+}
+
 void processMessageFromNET(GeneralMessage *message){
 	NetInputMessage netMessage;
 	printf("Main task. Message from NET is got\n");
@@ -886,6 +904,9 @@ void processMessageFromNET(GeneralMessage *message){
 			break;
 		case MESSAGE_NET_CHANGE_AVAILABILITY:
 			changeAvalability(message);
+			break;
+		case MESSAGE_NET_CLEAR_CACHE:
+			clearAuthCache(message);
 			break;
 	}
 }

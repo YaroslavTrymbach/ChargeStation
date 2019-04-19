@@ -836,6 +836,37 @@ void processReqReset(RpcPacket* packet, cJSON* json){
 	sendConfMessage(&rpcPacket);
 }
 
+void processReqClearCache(RpcPacket* packet, cJSON* json){
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfClearCache conf;
+
+
+	conf.status = OCPP_CLEAR_CACHE_STATUS_ACCEPTED;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfClearCache(&rpcPacket, &conf);
+	sendConfMessage(&rpcPacket);
+}
+
+void processReqDataTransfer(RpcPacket* packet, cJSON* json){
+	char jsonData[512];
+	RpcPacket rpcPacket;
+	ConfDataTransfer conf;
+
+	conf.status = OCPP_DATA_TRANSFER_STATUS_UNKNOWN_VENDOR_ID;
+
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	strcpy(rpcPacket.uniqueId, packet->uniqueId);
+
+	jsonPackConfDataTransfer(&rpcPacket, &conf);
+	sendConfMessage(&rpcPacket);
+}
+
 void processRPCPacket(RpcPacket* packet){
 	cJSON* jsonRoot;
 	cJSON* jsonElement;
@@ -914,6 +945,12 @@ void processRPCPacket(RpcPacket* packet){
 				break;
 			case ACTION_RESET:
 				processReqReset(packet, jsonRoot);
+				break;
+			case ACTION_CLEAR_CACHE:
+				processReqClearCache(packet, jsonRoot);
+				break;
+			case ACTION_DATA_TRANSFER:
+				processReqDataTransfer(packet, jsonRoot);
 				break;
 		}
 

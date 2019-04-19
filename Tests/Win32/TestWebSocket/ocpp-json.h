@@ -18,6 +18,8 @@ bool jsonPackReqStopTransaction(RpcPacket *rpcPacket, RequestStopTransaction *re
 
 bool jsonPackConfChangeAvailability(RpcPacket *rpcPacket, ConfChangeAvailability *conf);
 bool jsonPackConfChangeConfiguration(RpcPacket *rpcPacket, ConfChangeConfiguration *conf);
+bool jsonPackConfClearCache(RpcPacket *rpcPacket, ConfClearCache *conf);
+bool jsonPackConfDataTransfer(RpcPacket *rpcPacket, ConfDataTransfer *conf);
 bool jsonPackConfGetConfiguration(RpcPacket *rpcPacket, ConfGetConfiguration *conf);
 bool jsonPackConfGetLocalListVersion(RpcPacket *rpcPacket, ConfGetLocalListVersion *conf);
 bool jsonPackConfRemoteStartTransaction(RpcPacket *rpcPacket, ConfRemoteStartTransaction *conf);

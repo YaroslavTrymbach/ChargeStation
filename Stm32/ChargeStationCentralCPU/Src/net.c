@@ -534,6 +534,29 @@ void processReqReset(RpcPacket* packet, cJSON* json){
 	sendMessageToMainDispatcher(&message);
 }
 
+void processReqClearCache(RpcPacket* packet, cJSON* json){
+	GeneralMessage message;
+	
+	message.messageId = MESSAGE_NET_CLEAR_CACHE;
+	message.param2 = unicIdPoolPos;
+
+	sendMessageToMainDispatcher(&message);
+}
+
+void processReqDataTransfer(RpcPacket* packet, cJSON* json){
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfDataTransfer conf;
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, packet->uniqueId, 37);
+	
+	conf.status = OCPP_DATA_TRANSFER_STATUS_UNKNOWN_VENDOR_ID;
+	jsonPackConfDataTransfer(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
 void processConfBootNotification(cJSON* json){
 	ConfBootNotifiaction conf;
 	GeneralMessage message;
@@ -639,11 +662,17 @@ void processRPCPacket(RpcPacket* packet){
 			case ACTION_GET_CONFIGURATION:
 				processReqGetConfiguration(packet, jsonRoot);	
 				break;
+			case ACTION_CLEAR_CACHE:
+				processReqClearCache(packet, jsonRoot);
+				break;
 			case ACTION_CHANGE_AVAILABILITY:
 				processReqChangeAvailability(packet, jsonRoot);	
 				break;
 			case ACTION_CHANGE_CONFIGURATION:
 				processReqChangeConfiguration(packet, jsonRoot);
+				break;
+			case ACTION_DATA_TRANSFER:
+				processReqDataTransfer(packet, jsonRoot);
 				break;
 			case ACTION_GET_LOCAL_LIST_VERSION:
 				processReqGetLocalListVersion(packet, jsonRoot);
@@ -963,6 +992,20 @@ void sendAnswerChangeAvailability(int status, int uniqIdIndex){
 	sendConfMessageToServer(&rpcPacket);
 }
 
+void sendAnswerClearCache(int status, int uniqIdIndex){
+	char jsonData[512];
+	RpcPacket rpcPacket;	
+	ConfClearCache conf;
+	
+	rpcPacket.payload = (unsigned char*)jsonData;
+	rpcPacket.payloadSize = 512;
+	memcpy(rpcPacket.uniqueId, uniqIdPool[uniqIdIndex], 37);
+	
+	conf.status = status;
+	jsonPackConfClearCache(&rpcPacket, &conf);
+	sendConfMessageToServer(&rpcPacket);
+}
+
 void reconnect(){
 	printf("NET: Reconnect\n");
 	suspendReadThread();
@@ -1086,6 +1129,9 @@ void netThread(void const * argument){
 					break;
 				case NET_INPUT_MESSAGE_CHANGE_AVAILABILITY:
 					sendAnswerChangeAvailability(message.param1, message.uniqIdIndex);
+					break;
+				case NET_INPUT_MESSAGE_CLEAR_CACHE:
+					sendAnswerClearCache(message.param1, message.uniqIdIndex);
 					break;
 			}
 			

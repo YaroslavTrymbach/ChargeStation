@@ -449,6 +449,26 @@ bool jsonPackConfReset(RpcPacket *rpcPacket, ConfReset *conf){
 	return true;
 }
 
+bool jsonPackConfClearCache(RpcPacket *rpcPacket, ConfClearCache *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addString(paramStr(STATUS), ocppGetClearCacheStatusString(conf->status));
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
+bool jsonPackConfDataTransfer(RpcPacket *rpcPacket, ConfDataTransfer *conf){
+	openJsonFormation(rpcPacket->payload);
+
+	addString(paramStr(STATUS), ocppGetDataTransferStatusString(conf->status));
+
+	closeJsonFormation();
+	rpcPacket->payloadLen = outCnt;
+	return true;
+}
+
 bool jsonPackConfChangeAvailability(RpcPacket *rpcPacket, ConfChangeAvailability *conf){
 	openJsonFormation(rpcPacket->payload);
 

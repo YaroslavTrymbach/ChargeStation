@@ -106,6 +106,14 @@ const char* REMOTE_STARTSTOP_STATUS_STR_REJECTED = "Rejected\0";
 const char* OCPP_RESET_STATUS_STR_ACCEPTED = "Accepted\0";
 const char* OCPP_RESET_STATUS_STR_REJECTED = "Rejected\0";
 
+const char* OCPP_CLEAR_CACHE_STATUS_STR_ACCEPTED = "Accepted\0";
+const char* OCPP_CLEAR_CACHE_STATUS_STR_REJECTED = "Rejected\0";
+
+const char* OCPP_DATA_TRANSFER_STATUS_STR_ACCEPTED           = "Accepted\0";
+const char* OCPP_DATA_TRANSFER_STATUS_STR_REJECTED           = "Rejected\0";
+const char* OCPP_DATA_TRANSFER_STATUS_STR_UNKNOWN_MESSAGE_ID = "UnknownMessageId\0";
+const char* OCPP_DATA_TRANSFER_STATUS_STR_UNKNOWN_VENDOR_ID  = "UnknownVendorId\0";
+
 const char* CONFIGURATION_STATUS_STR_ACCEPTED        = "Accepted\0";
 const char* CONFIGURATION_STATUS_STR_REJECTED        = "Rejected\0";
 const char* CONFIGURATION_STATUS_STR_REBOOT_REQUIRED = "RebootRequired\0";
@@ -351,6 +359,38 @@ const char *ocppGetResetStatusString(int status){
 			break;
 		case OCPP_RESET_STATUS_REJECTED:
 			res = OCPP_RESET_STATUS_STR_REJECTED;
+			break;
+	}
+	return res;
+}
+
+const char *ocppGetClearCacheStatusString(int status){
+	const char* res = EMPTY_STRING;
+	switch(status){
+		case OCPP_CLEAR_CACHE_STATUS_ACCEPTED:
+			res = OCPP_CLEAR_CACHE_STATUS_STR_ACCEPTED;
+			break;
+		case OCPP_CLEAR_CACHE_STATUS_REJECTED:
+			res = OCPP_CLEAR_CACHE_STATUS_STR_REJECTED;
+			break;
+	}
+	return res;
+}
+
+const char *ocppGetDataTransferStatusString(int status){
+	const char* res = EMPTY_STRING;
+	switch(status){
+		case OCPP_DATA_TRANSFER_STATUS_ACCEPTED:
+			res = OCPP_DATA_TRANSFER_STATUS_STR_ACCEPTED;
+			break;
+		case OCPP_DATA_TRANSFER_STATUS_REJECTED:
+			res = OCPP_DATA_TRANSFER_STATUS_STR_REJECTED;
+			break;
+		case OCPP_DATA_TRANSFER_STATUS_UNKNOWN_MESSAGE_ID:
+			res = OCPP_DATA_TRANSFER_STATUS_STR_UNKNOWN_MESSAGE_ID;
+			break;
+		case OCPP_DATA_TRANSFER_STATUS_UNKNOWN_VENDOR_ID:
+			res = OCPP_DATA_TRANSFER_STATUS_STR_UNKNOWN_VENDOR_ID;
 			break;
 	}
 	return res;

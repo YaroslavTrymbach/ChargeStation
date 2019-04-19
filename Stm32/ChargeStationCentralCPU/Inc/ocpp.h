@@ -113,6 +113,14 @@ typedef CiString20Type idToken;
 #define OCPP_RESET_STATUS_ACCEPTED   0
 #define OCPP_RESET_STATUS_REJECTED   1
 
+#define OCPP_CLEAR_CACHE_STATUS_ACCEPTED   0
+#define OCPP_CLEAR_CACHE_STATUS_REJECTED   1
+
+#define OCPP_DATA_TRANSFER_STATUS_ACCEPTED             0
+#define OCPP_DATA_TRANSFER_STATUS_REJECTED             1
+#define OCPP_DATA_TRANSFER_STATUS_UNKNOWN_MESSAGE_ID   2
+#define OCPP_DATA_TRANSFER_STATUS_UNKNOWN_VENDOR_ID    3
+
 #define OCPP_PARAM_CURRENT_TIME      0
 #define OCPP_PARAM_INTERVAL          1
 #define OCPP_PARAM_STATUS            2
@@ -325,6 +333,14 @@ typedef struct _ConfChangeConfiguration{
 	int status;
 }ConfChangeConfiguration;
 
+typedef struct _ConfClearCache{
+	int status;
+}ConfClearCache;
+
+typedef struct _ConfDataTransfer{
+	int status;
+}ConfDataTransfer;
+
 typedef struct _ConfGetConfiguration{
 	KeyValueListItem *configurationKey;
 	CiString50TypeListItem *unknownKey;
@@ -378,6 +394,8 @@ const char *ocppGetRemoteStartStopStatusString(int status);
 const char *ocppGetReasonString(int reason);
 const char *ocppGetResetStatusString(int status);
 const char *ocppGetAvailabilityStatusString(int status);
+const char *ocppGetClearCacheStatusString(int status);
+const char *ocppGetDataTransferStatusString(int status);
 
 const char *ocppGetParamNameString(int param);
 
