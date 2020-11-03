@@ -7,8 +7,10 @@
 Авторизация клиентов с помощью RFID
 Передача на сервер состояние станции через интернет по протоколу OCPP.
 
-Target board. Nucleo-144 Stm32F429
+Target board. Nucleo-144 Stm32F429.
 
-Среда разработки Keil-uVision5
-Язык программирования С
-OC FreeRTOS
+Среда разработки Keil-uVision5.
+
+Язык программирования С.
+
+OC FreeRTOS.
