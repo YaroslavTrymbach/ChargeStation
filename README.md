@@ -1,29 +1,14 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Проект программного обеспечения центрального модуля зарядной станции электромобиля.
 
-### What is this repository for? ###
+Задача: 
+Управление канальными микроконтроллерами, которые управляют зарядкой электромобля
+Авторизация клиентов с помощью RFID
+Передача на сервер состояние станции через интернет по протоколу OCPP.
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+Target board. Nucleo-144 Stm32F429
 
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+Среда разработки Keil-uVision5
+Язык программирования С
+OC FreeRTOS
